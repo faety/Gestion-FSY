@@ -5,7 +5,7 @@ out/
 *.db-journal
 .env
 .env.local
-prisma/dev.db*
 npm-debug.log*
 .DS_Store
 next-env.d.ts
+.vercel

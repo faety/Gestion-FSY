@@ -121,20 +121,20 @@ export function ValidationCar({
               <button
                 onClick={() => basculer(j)}
                 disabled={!peutValider || pending}
-                className="w-full flex items-center gap-3 p-3 text-left hover:bg-slate-50 transition disabled:cursor-default"
+                className="w-full flex items-center gap-3 px-3 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition disabled:cursor-default"
               >
                 <span
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-white text-sm shrink-0 ${
+                  className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-white text-sm shrink-0 ${
                     coche ? "bg-green-500 border-green-500" : "border-slate-300"
                   } ${enCours === j.id ? "animate-pulse" : ""}`}
                 >
                   {coche && "✓"}
                 </span>
-                <span className="flex-1">
-                  <span className="font-medium">
+                <span className="flex-1 min-w-0">
+                  <span className="font-medium block sm:inline">
                     {j.prenom} {j.nom}
                   </span>
-                  <span className="text-sm text-slate-500 ml-2">
+                  <span className="text-sm text-slate-500 sm:ml-2">
                     {j.sexe === "M" ? "Garçon" : "Fille"}
                     {j.groupe && ` — ${j.groupe}`}
                   </span>
