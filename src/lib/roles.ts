@@ -45,6 +45,21 @@ export const CIBLE_LABELS: Record<string, string> = {
   CONSEILLERS: "Conseillers",
 };
 
+// ---------- Programme ----------
+
+export const PUBLIC_LABELS: Record<string, string> = {
+  TOUS: "Tout le monde",
+  GARCONS: "Jeunes Gens",
+  FILLES: "Jeunes Filles",
+};
+
+// Une activité concerne-t-elle un groupe de ce sexe ?
+// ("M" = garçons, "F" = filles ; une activité TOUS concerne les deux)
+export function activitePourSexe(publicCible: string, sexe: string): boolean {
+  if (publicCible === "TOUS") return true;
+  return publicCible === (sexe === "M" ? "GARCONS" : "FILLES");
+}
+
 // Une annonce est-elle visible pour ce rôle ?
 export function annonceVisible(cible: string, role: string): boolean {
   if (cible === "TOUS") return true;

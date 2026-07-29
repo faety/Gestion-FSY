@@ -131,7 +131,10 @@ model Mouvement {
 
 // Activité du programme
 // type: GENERAL (tout le monde) | COMPAGNIE | GROUPE | MULTI_GROUPE
-// statut: PLANIFIE | MODIFIE | ANNULE
+// statut: A_CONFIRMER (horaire provisoire, à valider par les coordinateurs)
+//         | PLANIFIE (confirmé) | MODIFIE | ANNULE
+// publicCible: TOUS | GARCONS | FILLES (ex. réunions spirituelles du jour 4,
+//              séparées Jeunes Gens / Jeunes Filles)
 model Activite {
   id          String   @id @default(cuid())
   titre       String
@@ -141,6 +144,7 @@ model Activite {
   lieu        String?
   type        String   @default("GENERAL")
   statut      String   @default("PLANIFIE")
+  publicCible String   @default("TOUS")
   compagnie   Compagnie? @relation(fields: [compagnieId], references: [id])
   compagnieId String?
   groupes     ActiviteGroupe[]

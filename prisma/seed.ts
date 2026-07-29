@@ -1,6 +1,9 @@
 // Données de démonstration — FSY 2026 Abidjan Ouest
+// Le programme, lui, est le vrai programme de la conférence (voir
+// prisma/programme-fsy2026.ts) : il n'est pas fictif.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PROGRAMME, DATE_JOUR_1, THEME_FSY } from "./programme-fsy2026";
 
 const prisma = new PrismaClient();
 
@@ -130,24 +133,31 @@ async function main() {
     });
   }
 
-  // Programme de démonstration (3-6 août 2026)
+  // Programme réel de la conférence (3 au 8 août 2026)
   const dejaActivites = await prisma.activite.count();
   if (dejaActivites === 0) {
-    const coordinateur = await prisma.user.findUnique({ where: { email: "coordinateur@fsy2026.ci" } });
-    const jour = (d: number, h: number, m = 0) => new Date(2026, 7, d, h, m); // août = mois 7
-    await prisma.activite.createMany({
-      data: [
-        { titre: "Arrivée et enregistrement", debut: jour(3, 8), lieu: "Entrée principale", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Cérémonie d'ouverture", debut: jour(3, 14), lieu: "Grand auditorium", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Soirée de danse", debut: jour(3, 19, 30), lieu: "Esplanade", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Dévotion du matin", debut: jour(4, 7), lieu: "Grand auditorium", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Classe : Choisis la foi", debut: jour(4, 9), lieu: "Salle A", type: "COMPAGNIE", compagnieId: compagnies[0].id, creeParId: coordinateur?.id },
-        { titre: "Classe : Choisis la foi", debut: jour(4, 9), lieu: "Salle B", type: "COMPAGNIE", compagnieId: compagnies[1].id, creeParId: coordinateur?.id },
-        { titre: "Jeux et sports", debut: jour(4, 15), lieu: "Terrain de sport", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Veillée de témoignages", debut: jour(5, 19), lieu: "Grand auditorium", type: "GENERAL", creeParId: coordinateur?.id },
-        { titre: "Cérémonie de clôture", debut: jour(6, 10), lieu: "Grand auditorium", type: "GENERAL", creeParId: coordinateur?.id },
-      ],
+    const coordinateur = await prisma.user.findUnique({
+      where: { email: "coordinateur@fsy2026.ci" },
     });
+    const dateDe = (jour: number, h: number, m = 0) =>
+      new Date(DATE_JOUR_1.annee, DATE_JOUR_1.mois, DATE_JOUR_1.jour + jour - 1, h, m);
+
+    for (const a of PROGRAMME) {
+      await prisma.activite.create({
+        data: {
+          titre: a.titre,
+          description: a.description ?? null,
+          lieu: a.lieu ?? null,
+          debut: dateDe(a.jour, a.h, a.m ?? 0),
+          fin: a.finH !== undefined ? dateDe(a.jour, a.finH, a.finM ?? 0) : null,
+          type: a.type ?? "GENERAL",
+          publicCible: a.publicCible ?? "TOUS",
+          statut: a.statut ?? "A_CONFIRMER",
+          creeParId: coordinateur?.id,
+        },
+      });
+    }
+    console.log(`   ${PROGRAMME.length} activités du programme FSY 2026 enregistrées.`);
   }
 
   // Annonce de bienvenue
@@ -157,9 +167,18 @@ async function main() {
     if (dirigeant) {
       await prisma.annonce.create({
         data: {
-          titre: "Bienvenue au FSY 2026 Abidjan Ouest !",
-          contenu: "Chers conseillers et coordinateurs, merci pour votre engagement. Vérifiez le programme du jour chaque matin et validez bien les arrivées aux cars.",
+          titre: `Thème 2026 : « ${THEME_FSY.titre} » — ${THEME_FSY.reference}`,
+          contenu: `${THEME_FSY.texte}\n\nChers conseillers et coordinateurs, merci pour votre engagement. Consultez votre programme du jour chaque matin et validez bien les arrivées et départs aux cars.`,
           cible: "TOUS",
+          creeParId: dirigeant.id,
+        },
+      });
+      await prisma.annonce.create({
+        data: {
+          titre: "Programme : horaires à confirmer",
+          contenu:
+            "Les activités marquées « À confirmer » suivent la structure standard d'une journée FSY. Seuls les horaires du jour 4 (réunions spirituelles Jeunes Gens / Jeunes Filles de 9 h 45 à 10 h 45 et répétition du medley de 10 h 45 à 11 h 00) sont officiels. Les coordinateurs principaux doivent confirmer ou ajuster chaque activité à partir du manuel du personnel.",
+          cible: "COORDINATEURS",
           creeParId: dirigeant.id,
         },
       });

@@ -1,0 +1,56 @@
+import { PUBLIC_LABELS } from "@/lib/roles";
+
+const fmtHeure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+// Plage horaire : « 9h45 » ou « 9h45 → 10h45 » si l'heure de fin est connue
+export function Horaire({ debut, fin }: { debut: string; fin?: string | null }) {
+  return (
+    <span className="font-mono text-xs sm:text-sm bg-fsy-light text-fsy-dark rounded px-2 py-0.5 whitespace-nowrap">
+      {fmtHeure.format(new Date(debut))}
+      {fin && <span className="hidden sm:inline"> → {fmtHeure.format(new Date(fin))}</span>}
+    </span>
+  );
+}
+
+// Badges de statut et de public ciblé
+export function BadgesActivite({
+  statut,
+  publicCible,
+}: {
+  statut: string;
+  publicCible?: string;
+}) {
+  return (
+    <>
+      {statut === "A_CONFIRMER" && (
+        <span
+          className="text-xs bg-slate-100 text-slate-500 rounded-full px-2 py-0.5"
+          title="Horaire provisoire — à confirmer par les coordinateurs"
+        >
+          À confirmer
+        </span>
+      )}
+      {statut === "ANNULE" && (
+        <span className="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5">
+          Annulée
+        </span>
+      )}
+      {statut === "MODIFIE" && (
+        <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+          Modifiée
+        </span>
+      )}
+      {publicCible && publicCible !== "TOUS" && (
+        <span
+          className={`text-xs rounded-full px-2 py-0.5 ${
+            publicCible === "GARCONS"
+              ? "bg-blue-100 text-blue-700"
+              : "bg-pink-100 text-pink-700"
+          }`}
+        >
+          {PUBLIC_LABELS[publicCible]}
+        </span>
+      )}
+    </>
+  );
+}

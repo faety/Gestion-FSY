@@ -140,6 +140,7 @@ export async function creerActivite(formData: FormData) {
       lieu: String(formData.get("lieu") ?? "") || null,
       debut,
       type,
+      publicCible: String(formData.get("publicCible") ?? "TOUS"),
       compagnieId: type === "COMPAGNIE" ? compagnieId : null,
       creeParId: user.id,
       groupes:
@@ -165,14 +166,22 @@ export async function modifierActivite(activiteId: string, formData: FormData) {
 
   if (peutModifierDirectement(user)) {
     // Modification directe (coordinateurs principaux, couple dirigeant,
-    // ou adjoint ayant reçu le droit)
+    // ou adjoint ayant reçu le droit).
+    // Corriger un horaire encore provisoire équivaut à le confirmer : on passe
+    // à PLANIFIE plutôt qu'à MODIFIE (qui signale un changement du programme
+    // déjà publié).
+    const nouveauStatut = annuler
+      ? "ANNULE"
+      : activite.statut === "A_CONFIRMER"
+        ? "PLANIFIE"
+        : "MODIFIE";
     await prisma.activite.update({
       where: { id: activiteId },
       data: {
         titre: nouveauTitre ?? activite.titre,
         debut: nouveauDebut ?? activite.debut,
         lieu: nouveauLieu ?? activite.lieu,
-        statut: annuler ? "ANNULE" : "MODIFIE",
+        statut: nouveauStatut,
       },
     });
     await journaliser(user.id, "ACTIVITE_MODIFIEE", `${activite.titre}${annuler ? " (annulée)" : ""}`);
@@ -194,6 +203,46 @@ export async function modifierActivite(activiteId: string, formData: FormData) {
     throw new Error("Les conseillers ne peuvent pas modifier le programme.");
   }
   revalidatePath("/programme");
+}
+
+// Confirme un horaire provisoire (A_CONFIRMER → PLANIFIE), ou l'inverse.
+// Sert à valider le programme importé du manuel officiel, activité par activité.
+export async function basculerConfirmation(activiteId: string) {
+  const user = await exiger("COORDINATEUR");
+  const activite = await prisma.activite.findUniqueOrThrow({ where: { id: activiteId } });
+  if (activite.statut === "ANNULE") throw new Error("Cette activité est annulée.");
+  const confirme = activite.statut === "A_CONFIRMER";
+  await prisma.activite.update({
+    where: { id: activiteId },
+    data: { statut: confirme ? "PLANIFIE" : "A_CONFIRMER" },
+  });
+  await journaliser(
+    user.id,
+    confirme ? "ACTIVITE_CONFIRMEE" : "ACTIVITE_A_CONFIRMER",
+    activite.titre
+  );
+  revalidatePath("/programme");
+  revalidatePath("/");
+}
+
+// Confirme d'un coup toutes les activités provisoires d'une journée
+export async function confirmerJournee(dateISO: string) {
+  const user = await exiger("COORDINATEUR");
+  const debut = new Date(dateISO);
+  debut.setHours(0, 0, 0, 0);
+  const fin = new Date(debut);
+  fin.setDate(fin.getDate() + 1);
+  const { count } = await prisma.activite.updateMany({
+    where: { statut: "A_CONFIRMER", debut: { gte: debut, lt: fin } },
+    data: { statut: "PLANIFIE" },
+  });
+  await journaliser(
+    user.id,
+    "JOURNEE_CONFIRMEE",
+    `${count} activité(s) le ${debut.toLocaleDateString("fr-FR")}`
+  );
+  revalidatePath("/programme");
+  revalidatePath("/");
 }
 
 export async function deciderModification(modifId: string, decision: "VALIDE" | "REJETE") {

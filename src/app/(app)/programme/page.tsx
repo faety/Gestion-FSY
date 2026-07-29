@@ -22,6 +22,10 @@ export default async function ProgrammePage() {
     prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
   ]);
 
+  // Sexe des groupes dirigés par un conseiller : sert à filtrer les réunions
+  // spirituelles séparées Jeunes Gens / Jeunes Filles du jour 4
+  const sexesDeMesGroupes = [...new Set(user.groupesDiriges.map((g) => g.sexe))];
+
   return (
     <Programme
       role={user.role}
@@ -29,14 +33,17 @@ export default async function ProgrammePage() {
       peutModifierDirect={peutModifierDirectement(user)}
       peutProposer={user.role === "ADJOINT"}
       peutValider={roleAuMoins(user.role, "COORDINATEUR")}
+      sexesDeMesGroupes={sexesDeMesGroupes}
       activites={activites.map((a) => ({
         id: a.id,
         titre: a.titre,
         description: a.description,
         debut: a.debut.toISOString(),
+        fin: a.fin?.toISOString() ?? null,
         lieu: a.lieu,
         type: a.type,
         statut: a.statut,
+        publicCible: a.publicCible,
         cibles: [
           ...(a.compagnie ? [a.compagnie.nom] : []),
           ...a.groupes.map((g) => g.groupe.nom),
