@@ -1,4 +1,4 @@
-import { PUBLIC_LABELS } from "@/lib/roles";
+import { PUBLIC_LABELS, TYPE_LABELS } from "@/lib/roles";
 
 const fmtHeure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
@@ -12,16 +12,23 @@ export function Horaire({ debut, fin }: { debut: string; fin?: string | null }) 
   );
 }
 
-// Badges de statut et de public ciblé
+// Badges de statut, d'organisation et de public ciblé
 export function BadgesActivite({
   statut,
   publicCible,
+  type,
 }: {
   statut: string;
   publicCible?: string;
+  type?: string;
 }) {
   return (
     <>
+      {(type === "PAR_GROUPE" || type === "PAR_COMPAGNIE") && (
+        <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">
+          {TYPE_LABELS[type]}
+        </span>
+      )}
       {statut === "A_CONFIRMER" && (
         <span
           className="text-xs bg-slate-100 text-slate-500 rounded-full px-2 py-0.5"

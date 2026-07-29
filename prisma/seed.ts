@@ -3,7 +3,7 @@
 // prisma/programme-fsy2026.ts) : il n'est pas fictif.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { PROGRAMME, DATE_JOUR_1, THEME_FSY } from "./programme-fsy2026";
+import { PROGRAMME, DATE_JOUR_1, JOURNEES, THEME_FSY } from "./programme-fsy2026";
 
 const prisma = new PrismaClient();
 
@@ -133,31 +133,44 @@ async function main() {
     });
   }
 
-  // Programme réel de la conférence (3 au 8 août 2026)
+  // Programme officiel de la conférence (3 au 8 août 2026)
+  const dateDe = (jour: number, heure: string) => {
+    const [h, m] = heure.split(":").map(Number);
+    return new Date(DATE_JOUR_1.annee, DATE_JOUR_1.mois, DATE_JOUR_1.jour + jour - 1, h, m);
+  };
+
+  for (const j of JOURNEES) {
+    await prisma.journeeConference.upsert({
+      where: { numero: j.numero },
+      update: { date: dateDe(j.numero, "00:00"), tenue: j.tenue, note: j.note },
+      create: { numero: j.numero, date: dateDe(j.numero, "00:00"), tenue: j.tenue, note: j.note },
+    });
+  }
+
   const dejaActivites = await prisma.activite.count();
   if (dejaActivites === 0) {
     const coordinateur = await prisma.user.findUnique({
       where: { email: "coordinateur@fsy2026.ci" },
     });
-    const dateDe = (jour: number, h: number, m = 0) =>
-      new Date(DATE_JOUR_1.annee, DATE_JOUR_1.mois, DATE_JOUR_1.jour + jour - 1, h, m);
-
     for (const a of PROGRAMME) {
       await prisma.activite.create({
         data: {
           titre: a.titre,
           description: a.description ?? null,
           lieu: a.lieu ?? null,
-          debut: dateDe(a.jour, a.h, a.m ?? 0),
-          fin: a.finH !== undefined ? dateDe(a.jour, a.finH, a.finM ?? 0) : null,
+          debut: dateDe(a.jour, a.debut),
+          fin: a.fin ? dateDe(a.jour, a.fin) : null,
           type: a.type ?? "GENERAL",
           publicCible: a.publicCible ?? "TOUS",
-          statut: a.statut ?? "A_CONFIRMER",
+          statut: a.statut ?? "PLANIFIE",
           creeParId: coordinateur?.id,
         },
       });
     }
-    console.log(`   ${PROGRAMME.length} activités du programme FSY 2026 enregistrées.`);
+    const aConfirmer = PROGRAMME.filter((a) => a.statut === "A_CONFIRMER").length;
+    console.log(
+      `   ${PROGRAMME.length} activités du programme FSY 2026 (${PROGRAMME.length - aConfirmer} officielles, ${aConfirmer} à confirmer).`
+    );
   }
 
   // Annonce de bienvenue
@@ -175,9 +188,9 @@ async function main() {
       });
       await prisma.annonce.create({
         data: {
-          titre: "Programme : horaires à confirmer",
+          titre: "Programme officiel chargé",
           contenu:
-            "Les activités marquées « À confirmer » suivent la structure standard d'une journée FSY. Seuls les horaires du jour 4 (réunions spirituelles Jeunes Gens / Jeunes Filles de 9 h 45 à 10 h 45 et répétition du medley de 10 h 45 à 11 h 00) sont officiels. Les coordinateurs principaux doivent confirmer ou ajuster chaque activité à partir du manuel du personnel.",
+            "Les horaires des jours 1 à 5 proviennent du manuel du participant FSY 2026. Seules les activités du jour 6 (départs) restent « À confirmer », ainsi que les lieux, à renseigner pour le site d'Abidjan Ouest. Pensez aussi aux tenues : tee-shirt FSY le 3e jour, vêtements du dimanche le 4e jour.",
           cible: "COORDINATEURS",
           creeParId: dirigeant.id,
         },

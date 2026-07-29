@@ -129,12 +129,27 @@ model Mouvement {
   @@index([carId, horodatage])
 }
 
+// Journée de la conférence : porte la tenue vestimentaire du jour, que les
+// conseillers doivent relayer à leur groupe (ex. jour 4 : vêtements du dimanche)
+model JourneeConference {
+  id     String   @id @default(cuid())
+  numero Int      @unique // 1 à 6
+  date   DateTime
+  tenue  String?
+  note   String?
+}
+
 // Activité du programme
-// type: GENERAL (tout le monde) | COMPAGNIE | GROUPE | MULTI_GROUPE
-// statut: A_CONFIRMER (horaire provisoire, à valider par les coordinateurs)
-//         | PLANIFIE (confirmé) | MODIFIE | ANNULE
-// publicCible: TOUS | GARCONS | FILLES (ex. réunions spirituelles du jour 4,
-//              séparées Jeunes Gens / Jeunes Filles)
+// type: GENERAL       (tout le monde ensemble)
+//       PAR_GROUPE    (chaque groupe séparément, avec son conseiller)
+//       PAR_COMPAGNIE (chaque compagnie séparément)
+//       COMPAGNIE     (une compagnie précise, via compagnieId)
+//       GROUPE | MULTI_GROUPE (groupes précis, via ActiviteGroupe)
+// statut: PLANIFIE (officiel, manuel du participant FSY 2026)
+//         | A_CONFIRMER (horaire provisoire, à valider par les coordinateurs)
+//         | MODIFIE | ANNULE
+// publicCible: TOUS | GARCONS | FILLES (ex. jour 4, réunions spirituelles et
+//              activités séparées Jeunes Gens / Jeunes Filles)
 model Activite {
   id          String   @id @default(cuid())
   titre       String

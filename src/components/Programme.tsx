@@ -8,7 +8,12 @@ import {
   basculerConfirmation,
   confirmerJournee,
 } from "@/lib/actions";
-import { activitePourSexe, PUBLIC_LABELS } from "@/lib/roles";
+import {
+  activitePourMesGroupes,
+  PUBLIC_LABELS,
+  TYPE_LABELS,
+  TYPES_CREATION,
+} from "@/lib/roles";
 import { Horaire, BadgesActivite } from "@/components/StatutActivite";
 
 type ActiviteVue = {
@@ -21,6 +26,8 @@ type ActiviteVue = {
   type: string;
   statut: string;
   publicCible: string;
+  compagnieId: string | null;
+  groupeIds: string[];
   cibles: string[];
 };
 
@@ -35,6 +42,8 @@ type Proposition = {
   motif: string | null;
 };
 
+type Journee = { numero: number; date: string; tenue: string | null; note: string | null };
+
 const fmtJourCourt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric" });
 const fmtJourLong = new Intl.DateTimeFormat("fr-FR", {
   weekday: "long",
@@ -47,38 +56,42 @@ export function Programme({
   propositions,
   compagnies,
   groupes,
+  journees,
+  mesGroupes,
   peutCreer,
   peutModifierDirect,
   peutProposer,
   peutValider,
-  sexesDeMesGroupes,
 }: {
-  role: string;
   activites: ActiviteVue[];
   propositions: Proposition[];
   compagnies: { id: string; nom: string }[];
   groupes: { id: string; nom: string }[];
+  journees: Journee[];
+  mesGroupes: { id: string; sexe: string; compagnieId: string | null }[];
   peutCreer: boolean;
   peutModifierDirect: boolean;
   peutProposer: boolean;
   peutValider: boolean;
-  sexesDeMesGroupes: string[];
 }) {
   const [jourSelectionne, setJourSelectionne] = useState<string | null>(null);
   const [editionId, setEditionId] = useState<string | null>(null);
   const [creation, setCreation] = useState(false);
   const [typeCreation, setTypeCreation] = useState("GENERAL");
-  const [pourMoi, setPourMoi] = useState(sexesDeMesGroupes.length > 0);
+  const [pourMoi, setPourMoi] = useState(mesGroupes.length > 0);
   const [pending, startTransition] = useTransition();
 
-  // Un conseiller de groupe de filles n'a pas besoin de voir la réunion
-  // spirituelle des Jeunes Gens (et inversement)
+  // Journée (numéro + tenue) par date, pour l'en-tête de chaque jour
+  const journeeParDate = useMemo(() => {
+    const m = new Map<string, Journee>();
+    for (const j of journees) m.set(new Date(j.date).toDateString(), j);
+    return m;
+  }, [journees]);
+
   const pertinentes = useMemo(() => {
-    if (!pourMoi || sexesDeMesGroupes.length === 0) return activites;
-    return activites.filter((a) =>
-      sexesDeMesGroupes.some((s) => activitePourSexe(a.publicCible, s))
-    );
-  }, [activites, pourMoi, sexesDeMesGroupes]);
+    if (!pourMoi || mesGroupes.length === 0) return activites;
+    return activites.filter((a) => activitePourMesGroupes(a, mesGroupes));
+  }, [activites, pourMoi, mesGroupes]);
 
   const jours = useMemo(() => {
     const m = new Map<string, Date>();
@@ -127,13 +140,11 @@ export function Programme({
         )}
       </div>
 
-      {/* Rappel sur les horaires provisoires */}
       {nbAConfirmer > 0 && (
         <p className="text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-600">
-          <strong>{nbAConfirmer} activité(s) « À confirmer »</strong> — structure standard
-          d'une journée FSY. Seuls les horaires du jour 4 (réunions spirituelles Jeunes Gens /
-          Jeunes Filles et répétition du medley) sont officiels.
-          {peutValider && " Corrigez l'horaire ou confirmez-le pour le rendre définitif."}
+          Horaires des jours 1 à 5 issus du <strong>manuel du participant FSY 2026</strong>.{" "}
+          <strong>{nbAConfirmer} activité(s) « À confirmer »</strong> : la journée des départs
+          et les lieux, à renseigner pour le site d'Abidjan Ouest.
         </p>
       )}
 
@@ -206,10 +217,9 @@ export function Programme({
             onChange={(e) => setTypeCreation(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white"
           >
-            <option value="GENERAL">Générale (tout le monde)</option>
-            <option value="COMPAGNIE">Compagnie</option>
-            <option value="GROUPE">Un groupe</option>
-            <option value="MULTI_GROUPE">Plusieurs groupes</option>
+            {TYPES_CREATION.map((t) => (
+              <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+            ))}
           </select>
           <select name="publicCible" className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white">
             {Object.entries(PUBLIC_LABELS).map(([v, label]) => (
@@ -217,7 +227,7 @@ export function Programme({
             ))}
           </select>
           {typeCreation === "COMPAGNIE" && (
-            <select name="compagnieId" className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white">
+            <select name="compagnieId" className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white sm:col-span-2">
               {compagnies.map((c) => (
                 <option key={c.id} value={c.id}>{c.nom}</option>
               ))}
@@ -227,7 +237,7 @@ export function Programme({
             <select
               name="groupeIds"
               multiple={typeCreation === "MULTI_GROUPE"}
-              className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white"
+              className="rounded-lg border border-slate-300 px-3 py-2.5 bg-white sm:col-span-2"
             >
               {groupes.map((g) => (
                 <option key={g.id} value={g.id}>{g.nom}</option>
@@ -253,7 +263,7 @@ export function Programme({
         >
           Tout
         </button>
-        {jours.map(([cle, date], i) => (
+        {jours.map(([cle, date]) => (
           <button
             key={cle}
             onClick={() => setJourSelectionne(cle)}
@@ -261,13 +271,13 @@ export function Programme({
               jourSelectionne === cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
             }`}
           >
-            J{i + 1} · {fmtJourCourt.format(date)}
+            J{journeeParDate.get(cle)?.numero ?? "?"} · {fmtJourCourt.format(date)}
           </button>
         ))}
       </div>
 
       {/* Filtre « pertinentes pour mes groupes » (conseillers) */}
-      {sexesDeMesGroupes.length > 0 && (
+      {mesGroupes.length > 0 && (
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
@@ -281,19 +291,24 @@ export function Programme({
 
       {/* Liste des activités par jour */}
       {[...parJour.entries()].map(([cle, liste]) => {
+        const journee = journeeParDate.get(cle);
         const aConfirmerCeJour = liste.filter((a) => a.statut === "A_CONFIRMER").length;
         return (
           <section key={cle}>
-            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-              <h2 className="font-bold text-slate-700 capitalize">
-                {fmtJourLong.format(new Date(liste[0].debut))}
-              </h2>
+            <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+              <div>
+                <h2 className="font-bold text-slate-700 capitalize">
+                  {journee && `Jour ${journee.numero} — `}
+                  {fmtJourLong.format(new Date(liste[0].debut))}
+                </h2>
+                {journee?.tenue && (
+                  <p className="text-sm text-fsy">👕 {journee.tenue}</p>
+                )}
+              </div>
               {peutValider && aConfirmerCeJour > 0 && (
                 <button
                   disabled={pending}
-                  onClick={() =>
-                    startTransition(() => confirmerJournee(liste[0].debut))
-                  }
+                  onClick={() => startTransition(() => confirmerJournee(liste[0].debut))}
                   className="text-xs bg-green-50 text-green-700 border border-green-200 rounded-lg px-2.5 py-1.5 hover:bg-green-100 disabled:opacity-50"
                 >
                   Confirmer la journée ({aConfirmerCeJour})
@@ -314,13 +329,18 @@ export function Programme({
                         {a.titre}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                        <BadgesActivite statut={a.statut} publicCible={a.publicCible} />
+                        <BadgesActivite
+                          statut={a.statut}
+                          publicCible={a.publicCible}
+                          type={a.type}
+                        />
                       </div>
-                      <div className="text-sm text-slate-500 mt-1">
-                        {a.lieu ?? "Lieu à confirmer"}
-                        {a.cibles.length > 0 && ` — ${a.cibles.join(", ")}`}
-                        {a.type === "COMPAGNIE" && a.cibles.length === 0 && " — Par compagnie"}
-                      </div>
+                      {(a.lieu || a.cibles.length > 0) && (
+                        <div className="text-sm text-slate-500 mt-1">
+                          {a.lieu}
+                          {a.cibles.length > 0 && `${a.lieu ? " — " : ""}${a.cibles.join(", ")}`}
+                        </div>
+                      )}
                       {a.description && (
                         <p className="text-sm text-slate-600 mt-1">{a.description}</p>
                       )}
@@ -373,7 +393,7 @@ export function Programme({
                       </button>
                       <p className="sm:col-span-2 text-xs text-slate-500">
                         {peutModifierDirect
-                          ? "Laissez un champ vide pour ne pas le changer. Corriger un horaire « À confirmer » le rend définitif."
+                          ? "Laissez un champ vide pour ne pas le changer. Renseigner le lieu d'une activité « À confirmer » la rend définitive."
                           : "Votre proposition sera soumise à la validation des coordinateurs principaux."}
                       </p>
                     </form>

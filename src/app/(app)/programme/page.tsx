@@ -6,7 +6,7 @@ import { Programme } from "@/components/Programme";
 export default async function ProgrammePage() {
   const user = (await getUtilisateur())!;
 
-  const [activites, propositions, compagnies, groupes] = await Promise.all([
+  const [activites, propositions, compagnies, groupes, journees] = await Promise.all([
     prisma.activite.findMany({
       orderBy: { debut: "asc" },
       include: { groupes: { include: { groupe: true } }, compagnie: true },
@@ -20,20 +20,26 @@ export default async function ProgrammePage() {
       : [],
     prisma.compagnie.findMany({ orderBy: { nom: "asc" } }),
     prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
+    prisma.journeeConference.findMany({ orderBy: { numero: "asc" } }),
   ]);
-
-  // Sexe des groupes dirigés par un conseiller : sert à filtrer les réunions
-  // spirituelles séparées Jeunes Gens / Jeunes Filles du jour 4
-  const sexesDeMesGroupes = [...new Set(user.groupesDiriges.map((g) => g.sexe))];
 
   return (
     <Programme
-      role={user.role}
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}
       peutModifierDirect={peutModifierDirectement(user)}
       peutProposer={user.role === "ADJOINT"}
       peutValider={roleAuMoins(user.role, "COORDINATEUR")}
-      sexesDeMesGroupes={sexesDeMesGroupes}
+      mesGroupes={user.groupesDiriges.map((g) => ({
+        id: g.id,
+        sexe: g.sexe,
+        compagnieId: g.compagnieId,
+      }))}
+      journees={journees.map((j) => ({
+        numero: j.numero,
+        date: j.date.toISOString(),
+        tenue: j.tenue,
+        note: j.note,
+      }))}
       activites={activites.map((a) => ({
         id: a.id,
         titre: a.titre,
@@ -44,6 +50,8 @@ export default async function ProgrammePage() {
         type: a.type,
         statut: a.statut,
         publicCible: a.publicCible,
+        compagnieId: a.compagnieId,
+        groupeIds: a.groupes.map((g) => g.groupeId),
         cibles: [
           ...(a.compagnie ? [a.compagnie.nom] : []),
           ...a.groupes.map((g) => g.groupe.nom),

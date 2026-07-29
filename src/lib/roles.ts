@@ -53,11 +53,55 @@ export const PUBLIC_LABELS: Record<string, string> = {
   FILLES: "Jeunes Filles",
 };
 
+export const TYPE_LABELS: Record<string, string> = {
+  GENERAL: "Tout le monde",
+  PAR_GROUPE: "Par groupe",
+  PAR_COMPAGNIE: "Par compagnie",
+  COMPAGNIE: "Compagnie",
+  GROUPE: "Groupe",
+  MULTI_GROUPE: "Plusieurs groupes",
+};
+
+// Types que les coordinateurs peuvent choisir en créant une activité
+export const TYPES_CREATION = [
+  "GENERAL",
+  "PAR_COMPAGNIE",
+  "PAR_GROUPE",
+  "COMPAGNIE",
+  "GROUPE",
+  "MULTI_GROUPE",
+] as const;
+
 // Une activité concerne-t-elle un groupe de ce sexe ?
 // ("M" = garçons, "F" = filles ; une activité TOUS concerne les deux)
 export function activitePourSexe(publicCible: string, sexe: string): boolean {
   if (publicCible === "TOUS") return true;
   return publicCible === (sexe === "M" ? "GARCONS" : "FILLES");
+}
+
+// Une activité concerne-t-elle les groupes que dirige ce conseiller ?
+export function activitePourMesGroupes(
+  activite: {
+    type: string;
+    publicCible: string;
+    compagnieId: string | null;
+    groupeIds: string[];
+  },
+  mesGroupes: { id: string; sexe: string; compagnieId: string | null }[]
+): boolean {
+  if (mesGroupes.length === 0) return true; // pas de groupe dirigé : on montre tout
+  const bonPublic = mesGroupes.some((g) => activitePourSexe(activite.publicCible, g.sexe));
+  if (!bonPublic) return false;
+  switch (activite.type) {
+    case "GENERAL":
+    case "PAR_GROUPE":
+    case "PAR_COMPAGNIE":
+      return true;
+    case "COMPAGNIE":
+      return mesGroupes.some((g) => g.compagnieId && g.compagnieId === activite.compagnieId);
+    default:
+      return mesGroupes.some((g) => activite.groupeIds.includes(g.id));
+  }
 }
 
 // Une annonce est-elle visible pour ce rôle ?

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
-import { activitePourSexe, annonceVisible, roleAuMoins } from "@/lib/roles";
+import { activitePourMesGroupes, annonceVisible, roleAuMoins } from "@/lib/roles";
 import { Horaire, BadgesActivite } from "@/components/StatutActivite";
 
 const fmtDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -14,8 +14,12 @@ export default async function Accueil() {
   const finJour = new Date(debutJour);
   finJour.setDate(finJour.getDate() + 1);
 
-  // Groupes du conseiller pour filtrer son programme du jour
-  const mesGroupeIds = user.groupesDiriges.map((g) => g.id);
+  // Groupes du conseiller, pour filtrer son programme du jour
+  const mesGroupes = user.groupesDiriges.map((g) => ({
+    id: g.id,
+    sexe: g.sexe,
+    compagnieId: g.compagnieId,
+  }));
 
   const inclureActivite = {
     groupes: { include: { groupe: true } },
@@ -50,6 +54,7 @@ export default async function Accueil() {
   // Avant (ou après) la conférence, il n'y a rien « aujourd'hui » : on affiche
   // alors la prochaine journée du programme.
   let activitesJour = activitesAujourdhui;
+  let dateJour = debutJour;
   let titreJour: string | null = null;
   if (activitesAujourdhui.length === 0) {
     const prochaine = await prisma.activite.findFirst({
@@ -66,23 +71,25 @@ export default async function Accueil() {
         orderBy: { debut: "asc" },
         include: inclureActivite,
       });
+      dateJour = debutProchain;
       titreJour = fmtDate.format(debutProchain);
     }
   }
 
+  // Journée de conférence correspondante (numéro + tenue vestimentaire)
+  const finDateJour = new Date(dateJour);
+  finDateJour.setDate(finDateJour.getDate() + 1);
+  const journee = await prisma.journeeConference.findFirst({
+    where: { date: { gte: dateJour, lt: finDateJour } },
+  });
+
   const estConseiller = user.role === "CONSEILLER";
-  const sexesDeMesGroupes = [...new Set(user.groupesDiriges.map((g) => g.sexe))];
   const activitesPourMoi = estConseiller
-    ? activitesJour.filter(
-        (a) =>
-          // Activités du bon public (Jeunes Gens / Jeunes Filles / tous)…
-          sexesDeMesGroupes.some((s) => activitePourSexe(a.publicCible, s)) &&
-          // …et qui concernent ses groupes ou toute la conférence
-          (a.type === "GENERAL" ||
-            a.groupes.some((g) => mesGroupeIds.includes(g.groupeId)) ||
-            (a.compagnieId
-              ? user.groupesDiriges.some((g) => g.compagnieId === a.compagnieId)
-              : a.type === "COMPAGNIE"))
+    ? activitesJour.filter((a) =>
+        activitePourMesGroupes(
+          { ...a, groupeIds: a.groupes.map((g) => g.groupeId) },
+          mesGroupes
+        )
       )
     : activitesJour;
 
@@ -132,17 +139,18 @@ export default async function Accueil() {
       <section className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-lg">
-            {titreJour ? (
-              <>
-                Prochaine journée
-                <span className="block text-sm font-normal text-slate-500 capitalize">
-                  {titreJour}
-                </span>
-              </>
-            ) : estConseiller ? (
-              "Mon programme du jour"
-            ) : (
-              "Programme du jour"
+            {titreJour
+              ? `Prochaine journée${journee ? ` — Jour ${journee.numero}` : ""}`
+              : estConseiller
+                ? "Mon programme du jour"
+                : "Programme du jour"}
+            {titreJour && (
+              <span className="block text-sm font-normal text-slate-500 capitalize">
+                {titreJour}
+              </span>
+            )}
+            {journee?.tenue && (
+              <span className="block text-sm font-normal text-fsy">👕 {journee.tenue}</span>
             )}
           </h2>
           <Link href="/programme" className="text-sm text-fsy hover:underline shrink-0">
@@ -161,13 +169,23 @@ export default async function Accueil() {
                     {a.titre}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                    <BadgesActivite statut={a.statut} publicCible={a.publicCible} />
+                    <BadgesActivite
+                      statut={a.statut}
+                      publicCible={a.publicCible}
+                      type={a.type}
+                    />
                   </div>
-                  <div className="text-sm text-slate-500">
-                    {a.lieu}
-                    {a.compagnie && ` — ${a.compagnie.nom}`}
-                    {a.groupes.length > 0 && ` — ${a.groupes.map((g) => g.groupe.nom).join(", ")}`}
-                  </div>
+                  {(a.lieu || a.compagnie || a.groupes.length > 0) && (
+                    <div className="text-sm text-slate-500">
+                      {a.lieu}
+                      {a.compagnie && `${a.lieu ? " — " : ""}${a.compagnie.nom}`}
+                      {a.groupes.length > 0 &&
+                        ` — ${a.groupes.map((g) => g.groupe.nom).join(", ")}`}
+                    </div>
+                  )}
+                  {a.description && (
+                    <p className="text-sm text-slate-600 mt-0.5">{a.description}</p>
+                  )}
                 </div>
               </li>
             ))}
