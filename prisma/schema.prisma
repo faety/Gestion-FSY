@@ -1,0 +1,209 @@
+// Schéma de données — Gestion FSY 2026 Abidjan Ouest
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Rôles de la hiérarchie FSY :
+// DIRIGEANT   = couple dirigeant (accès total, gestion des permissions)
+// COORDINATEUR = coordinateur principal (accès complet, validations)
+// ADJOINT     = coordinateur adjoint (dirige une compagnie, propose des modifications)
+// CONSEILLER  = conseiller/conseillère (dirige un groupe, valide les cars)
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nom          String
+  prenom       String
+  telephone    String?
+  sexe         String // "M" | "F"
+  role         String // DIRIGEANT | COORDINATEUR | ADJOINT | CONSEILLER
+  dateNaissance DateTime?
+  actif        Boolean  @default(true)
+  // Permission supplémentaire accordée par le couple dirigeant (ex: droit de
+  // modification directe du programme pour un adjoint)
+  droitsSupplementaires String @default("[]") // JSON array d'actions
+
+  pieu      Pieu?   @relation(fields: [pieuId], references: [id])
+  pieuId    String?
+  // Compagnie dirigée (pour les coordinateurs adjoints, par paire H/F)
+  compagnie   Compagnie? @relation("DirigeantsCompagnie", fields: [compagnieId], references: [id])
+  compagnieId String?
+
+  groupesDiriges     Groupe[]
+  carsResponsable    Car[]
+  mouvementsValides  Mouvement[]
+  annoncesCreees     Annonce[]
+  activitesCreees    Activite[]
+  modifsProposees    ModificationProgramme[] @relation("Proposeur")
+  modifsValidees     ModificationProgramme[] @relation("Valideur")
+  auditLogs          AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Pieu ou district de provenance des jeunes
+model Pieu {
+  id     String  @id @default(cuid())
+  nom    String  @unique
+  jeunes Jeune[]
+  cars   Car[]
+  users  User[]
+}
+
+// Compagnie : regroupement de groupes (garçons et filles), dirigée par une
+// paire de coordinateurs adjoints (un homme et une femme, via User.compagnieId)
+model Compagnie {
+  id         String   @id @default(cuid())
+  nom        String   @unique
+  groupes    Groupe[]
+  dirigeants User[]   @relation("DirigeantsCompagnie")
+  activites  Activite[]
+}
+
+// Groupe : jeunes du même sexe (~15-20), dirigé par un conseiller du même sexe
+model Groupe {
+  id           String  @id @default(cuid())
+  nom          String  @unique
+  sexe         String // "M" | "F"
+  capaciteMax  Int     @default(20)
+  conseiller   User?   @relation(fields: [conseillerId], references: [id])
+  conseillerId String?
+  compagnie    Compagnie? @relation(fields: [compagnieId], references: [id])
+  compagnieId  String?
+  jeunes       Jeune[]
+  activites    ActiviteGroupe[]
+}
+
+model Jeune {
+  id         String   @id @default(cuid())
+  nom        String
+  prenom     String
+  sexe       String // "M" | "F"
+  telephone  String?
+  pieu       Pieu     @relation(fields: [pieuId], references: [id])
+  pieuId     String
+  groupe     Groupe?  @relation(fields: [groupeId], references: [id])
+  groupeId   String?
+  mouvements Mouvement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nom, prenom])
+}
+
+// Car (bus) assigné à un pieu, avec un conseiller responsable des validations
+model Car {
+  id            String  @id @default(cuid())
+  nom           String  @unique
+  capacite      Int     @default(70)
+  pieu          Pieu    @relation(fields: [pieuId], references: [id])
+  pieuId        String
+  responsable   User?   @relation(fields: [responsableId], references: [id])
+  responsableId String?
+  mouvements    Mouvement[]
+}
+
+// Mouvement : chaque validation d'arrivée/départ, horodatée
+// type: MONTEE (monte dans le car au pieu) | ARRIVEE (descend au site) | DEPART (repart du site)
+model Mouvement {
+  id          String   @id @default(cuid())
+  type        String
+  jeune       Jeune    @relation(fields: [jeuneId], references: [id], onDelete: Cascade)
+  jeuneId     String
+  car         Car      @relation(fields: [carId], references: [id])
+  carId       String
+  validePar   User     @relation(fields: [valideParId], references: [id])
+  valideParId String
+  horodatage  DateTime @default(now())
+
+  @@index([jeuneId, type])
+  @@index([carId, horodatage])
+}
+
+// Activité du programme
+// type: GENERAL (tout le monde) | COMPAGNIE | GROUPE | MULTI_GROUPE
+// statut: PLANIFIE | MODIFIE | ANNULE
+model Activite {
+  id          String   @id @default(cuid())
+  titre       String
+  description String?
+  debut       DateTime
+  fin         DateTime?
+  lieu        String?
+  type        String   @default("GENERAL")
+  statut      String   @default("PLANIFIE")
+  compagnie   Compagnie? @relation(fields: [compagnieId], references: [id])
+  compagnieId String?
+  groupes     ActiviteGroupe[]
+  creePar     User?    @relation(fields: [creeParId], references: [id])
+  creeParId   String?
+  modifications ModificationProgramme[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([debut])
+}
+
+model ActiviteGroupe {
+  activite   Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  activiteId String
+  groupe     Groupe   @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+  groupeId   String
+
+  @@id([activiteId, groupeId])
+}
+
+// Proposition de modification du programme (workflow de validation)
+// statut: PROPOSE | VALIDE | REJETE
+model ModificationProgramme {
+  id           String   @id @default(cuid())
+  activite     Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  activiteId   String
+  // Champs proposés (null = inchangé)
+  nouveauTitre String?
+  nouveauDebut DateTime?
+  nouveauLieu  String?
+  nouveauStatut String? // ex: ANNULE
+  motif        String?
+  statut       String   @default("PROPOSE")
+  proposePar   User     @relation("Proposeur", fields: [proposeParId], references: [id])
+  proposeParId String
+  validePar    User?    @relation("Valideur", fields: [valideParId], references: [id])
+  valideParId  String?
+  createdAt    DateTime @default(now())
+  decideAt     DateTime?
+}
+
+// Annonce ciblée par rôle
+// cible: TOUS | COORDINATEURS | ADJOINTS | CONSEILLERS
+model Annonce {
+  id        String   @id @default(cuid())
+  titre     String
+  contenu   String
+  cible     String   @default("TOUS")
+  creePar   User     @relation(fields: [creeParId], references: [id])
+  creeParId String
+  createdAt DateTime @default(now())
+}
+
+// Journal d'audit : qui a fait quoi, à quelle heure
+model AuditLog {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

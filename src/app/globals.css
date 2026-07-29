@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fsy: #1d4ed8;
+  --color-fsy-dark: #1e3a8a;
+  --color-fsy-light: #dbeafe;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+}
