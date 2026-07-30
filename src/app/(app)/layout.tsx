@@ -14,8 +14,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Accès directs de la barre mobile (4 + Plus) et liens du menu "Plus"
   const principaux = [
-    { href: "/", label: "Accueil", icone: "🏠" },
-    { href: "/programme", label: "Programme", icone: "📅" },
+    { href: "/accueil", label: "Accueil", icone: "🏠" },
+    { href: "/programme", label: "Programme", icone: "📅", court: "Prog." },
+    { href: "/rapports", label: "Mon rapport", icone: "📝", court: "Rapport" },
     { href: "/cars", label: "Cars", icone: "🚌" },
     { href: "/jeunes", label: "Jeunes", icone: "👥" },
   ];
@@ -26,6 +27,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : []),
     { href: "/organigramme", label: "Organigramme", icone: "🗂️" },
     { href: "/annonces", label: "Annonces", icone: "📢" },
+    ...(estCoordinateur
+      ? [{ href: "/rapports/final", label: "Rapport final", icone: "📊" }]
+      : []),
     ...(estCoordinateur ? [{ href: "/admin", label: "Administration", icone: "⚙️" }] : []),
   ];
   const tous = [...principaux, ...secondaires];
@@ -34,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex flex-col">
       <header className="bg-fsy-dark text-white sticky top-0 z-20 shadow">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <Link href="/" className="font-bold text-lg whitespace-nowrap">
+          <Link href="/accueil" className="font-bold text-lg whitespace-nowrap">
             FSY 2026
           </Link>
           <div className="text-sm text-blue-200 truncate">
@@ -58,7 +62,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 pb-24 sm:pb-4">{children}</main>
 
       <footer className="hidden sm:block text-center text-xs text-slate-400 py-4">
-        FSY 2026 — Abidjan Ouest
+        <Link href="/" className="hover:text-fsy">
+          FSY 2026 — Abidjan Ouest
+        </Link>
       </footer>
 
       {/* Navigation mobile en bas d'écran */}

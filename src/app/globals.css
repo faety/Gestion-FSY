@@ -9,3 +9,63 @@
 body {
   @apply bg-slate-100 text-slate-900 antialiased;
 }
+
+/* Célébration à l'envoi d'un rapport quotidien */
+@keyframes chute {
+  from {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(105vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes surgir {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Certains encadrants réduisent les animations sur leur téléphone : on respecte
+   ce réglage, la fenêtre de félicitations s'affiche alors sans mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Impression du rapport final : « Enregistrer en PDF », depuis le téléphone ou
+   l'ordinateur, doit produire un document lisible, sans navigation ni ombres. */
+@media print {
+  body {
+    background: #fff;
+  }
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  [class*="shadow"] {
+    box-shadow: none !important;
+  }
+  section,
+  li,
+  figure {
+    break-inside: avoid;
+  }
+}

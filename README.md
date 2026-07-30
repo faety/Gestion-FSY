@@ -1,7 +1,9 @@
 # Gestion FSY 2026 — Abidjan Ouest
 
 Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidjan Ouest) :
-650+ participants, hiérarchie de rôles, arrivées/départs par cars, programme et annonces.
+650 participants, hiérarchie de rôles, arrivées/départs par cars, programme, annonces et
+rapports quotidiens des encadrants. Une page publique présente la conférence ; tout le
+reste est derrière une authentification.
 
 > **Thème 2026 — « Marche avec moi »** (Moïse 6:34)
 > « Les montagnes fuiront devant toi et les fleuves se détourneront de leur cours.
@@ -9,10 +11,19 @@ Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidja
 
 ## Participants
 
-**663 inscriptions réelles** importées depuis le fichier d'inscription officiel
-(647 approuvées, 14 annulées, 2 en attente), réparties sur **11 pieux et districts** :
-Niangon North, Toit Rouge, Dabou, Selmer, Niangon South, Yopougon Attie, Niangon Central,
-Tiassale, Mission West, Dakar Senegal et Roosevelt Utah West.
+**650 inscriptions réelles** importées depuis le fichier d'inscription officiel
+(643 approuvées, 6 annulées, 1 en attente), réparties sur **8 pieux et districts** :
+Niangon North, Toit Rouge, Dabou, Selmer, Niangon South, Yopougon Attie, Niangon Central
+et Tiassale.
+
+### Unités retirées du périmètre
+
+Le fichier d'inscription contenait trois unités qui ne relèvent pas de cette conférence —
+**District de Dakar Senegal**, **Mission West** et **Pieu de Roosevelt Utah West** — soit
+13 inscriptions (4 approuvées, 8 annulées, 1 en attente). Elles s'y étaient glissées par
+erreur lors de l'export et ont été retirées. La liste est conservée dans
+`src/lib/perimetre.ts`, pour pouvoir refiltrer un nouvel export sans avoir à retrouver
+quelles unités écarter.
 
 ### Protection des données personnelles
 
@@ -32,8 +43,8 @@ npm run import:sensibles    # lit data/participants-sensibles.json
 
 Le formulaire d'inscription étant un champ libre, « rien à signaler » y est écrit d'une
 vingtaine de façons (`aucun`, `RAS`, `néant`, `pas de régime alimentaire`, `il mange
-tout`…). L'import ne conserve que les réponses porteuses d'information : **27 alertes
-médicales** et **47 contraintes alimentaires** réelles, au lieu de 663 champs bruts. Les
+tout`…). L'import ne conserve que les réponses porteuses d'information : **24 alertes
+médicales** et **44 contraintes alimentaires** réelles, au lieu de 650 champs bruts. Les
 conseillers voient ainsi des badges qui signalent quelque chose.
 
 Chaque encadrant ne voit que les jeunes de son périmètre : un conseiller son groupe, un
@@ -49,10 +60,10 @@ D'après les rapports par pieu du 29 juillet 2026 (`src/lib/criteres.ts`) :
 - **Statut** : seul « Approuvée » est accepté. « En attente d'approbation » doit être
   régularisé, « Annulé » n'est pas accepté.
 
-**7 participants hors critères** sont signalés : six ont plus de 18 ans au 3 août (20, 20,
-21, 22, 23 et 28 ans) et un a une date de naissance invalide (`0012-08-23`). Cette date
-n'est **pas corrigée silencieusement** : la valeur brute est conservée dans
-`dateNaissanceBrute` et signalée, comme le fait le rapport officiel.
+**7 participants approuvés hors critères** sont signalés : six ont plus de 18 ans au
+3 août (20, 20, 21, 22, 23 et 28 ans) et un a une date de naissance invalide
+(`0012-08-23`). Cette date n'est **pas corrigée silencieusement** : la valeur brute est
+conservée dans `dateNaissanceBrute` et signalée, comme le fait le rapport officiel.
 
 ### Structure des groupes (affectation officielle)
 
@@ -69,23 +80,25 @@ de l'unité, et non la répartition par tranche d'âge que suggère le manuel de
 Formule officielle, appliquée **séparément par sexe** :
 `plafond(participants du sexe ÷ 10) + 2`.
 
-| Pieu / district | Inscrits | Conseillères | Conseillers | Total |
-|---|--:|--:|--:|--:|
-| Pieu de Niangon North | 100 | 9 | 6 | 15 |
-| Pieu de Toit Rouge | 95 | 7 | 7 | 14 |
-| District de Dabou | 94 | 8 | 7 | 15 |
-| Pieu de Selmer | 93 | 8 | 6 | 14 |
-| Pieu de Niangon South | 90 | 7 | 7 | 14 |
-| Pieu de Yopougon Attie | 80 | 6 | 6 | 12 |
-| Pieu de Niangon Central | 71 | 7 | 5 | 12 |
-| District de Tiassale | 27 | 4 | 4 | 8 |
-| Mission West | 8 | 3 | 3 | 6 |
-| District de Dakar Senegal | 4 | 3 | 3 | 6 |
-| Pieu de Roosevelt Utah West | 1 | 3 | 2 | 5 |
-| **Total** | **663** | **65** | **56** | **121** |
+| Pieu / district | Inscrits | JF | JG | Conseillères | Conseillers | Total |
+|---|--:|--:|--:|--:|--:|--:|
+| Pieu de Niangon North | 100 | 66 | 32 | 9 | 6 | 15 |
+| Pieu de Toit Rouge | 95 | 47 | 48 | 7 | 7 | 14 |
+| District de Dabou | 94 | 53 | 40 | 8 | 6 | 14 |
+| Pieu de Selmer | 93 | 52 | 40 | 8 | 6 | 14 |
+| Pieu de Niangon South | 90 | 43 | 47 | 7 | 7 | 14 |
+| Pieu de Yopougon Attie | 80 | 40 | 40 | 6 | 6 | 12 |
+| Pieu de Niangon Central | 71 | 40 | 29 | 6 | 5 | 11 |
+| District de Tiassale | 27 | 14 | 13 | 4 | 4 | 8 |
+| **Total** | **650** | **355** | **289** | **55** | **47** | **102** |
 
-Ces chiffres reproduisent exactement les rapports officiels des quatre pieux fournis
-(Niangon North, Toit Rouge, Dabou, Niangon South), ce qui valide l'implémentation.
+Les colonnes JF et JG comptent les inscriptions non annulées, qui servent de base à la
+formule.
+
+Ces chiffres reproduisent les rapports officiels des quatre pieux fournis (Niangon North,
+Toit Rouge, Dabou, Niangon South), ce qui valide l'implémentation. Dabou et Niangon
+Central passent respectivement de 15 à 14 et de 12 à 11 conseillers par rapport à la
+version précédente, du seul fait du retrait des unités hors périmètre.
 
 Profil attendu : jeune adulte seul de **19 à 35 ans**, non marié ; missionnaire de retour
 pour les hommes (non obligatoire pour les femmes) ; recommandation à l'usage du temple ;
@@ -94,12 +107,103 @@ formation « Protéger les enfants et les jeunes ».
 La page **Pieux et districts** (coordinateurs et adjoints) réunit ces effectifs, les
 statuts d'inscription, les cas hors critères et le profil des conseillers.
 
-### Doublons d'inscription détectés
+### Doublons d'inscription probables
 
-Quatre paires partagent prénom, nom et date de naissance. Deux sont des ré-inscriptions
-normales (une annulée puis une approuvée) ; **deux sont de vrais doublons approuvés** :
-Djerou Kady Soroko et Kabogbo Chris Uriel Zie. Les 647 inscriptions approuvées
-correspondent donc à 645 jeunes distincts.
+**Trois personnes apparaissent deux fois** parmi les inscriptions approuvées, ce qui ramène
+643 approbations à 640 jeunes distincts :
+
+| Jeune | Indice |
+|---|---|
+| Djerou Kady Soroko | Deux fiches identiques : même date de naissance, même paroisse, même groupe. Doublon certain. |
+| Kabogbo Chris Uriel Zie | Dates de naissance à six jours d'écart, deux paroisses voisines du même pieu, deux groupes. |
+| Yao Evans Seu | Dates de naissance à dix jours d'écart, même paroisse, deux groupes. |
+
+Les deux derniers cas demandent une vérification auprès du pieu : ce sont soit des
+doublons de saisie, soit deux jeunes homonymes. La page **Pieux et districts** les
+signale, avec les éléments permettant de trancher.
+
+## Rapports quotidiens des encadrants
+
+Chaque conseiller, adjoint, coordinateur principal et membre du couple dirigeant remplit
+**un rapport par journée** de conférence. Le formulaire est conçu pour se remplir en deux
+minutes sur un téléphone : presque tout se fait au doigt, et seuls deux champs de texte
+sont proposés, volontairement courts.
+
+Le questionnaire est décrit de façon déclarative dans `src/lib/rapports.ts` : un seul
+endroit à modifier pour ajouter une question. Les réponses sont stockées en JSON, donc le
+questionnaire évolue sans migration de base.
+
+### Ce sur quoi chacun rapporte
+
+| Section | Qui | Ce qui est demandé |
+|---|---|---|
+| **L'ambiance du jour** | tous | Une échelle de cinq visages : de « excellente » à « très difficile » |
+| **Mes jeunes** | conseillers, adjoints | Présences (et qui manquait), participation aux activités, incidents (conflit, mal du pays, règles non respectées, objet interdit, blessure, sortie non autorisée, retards), santé (fatigue, fièvre, infirmerie, traitement à poursuivre…) |
+| **Vie spirituelle** | tous | Ce qui a été tenu (dévotion du matin, classe, veillée, prière, étude, entretien personnel), et tout moment marquant vécu par un jeune |
+| **Intendance et logistique** | tous | Dix points, chacun en un appui — *ça va* / *souci* / *non concerné* : repas à l'heure, quantité suffisante, eau potable, dortoirs, sanitaires, électricité, sonorisation, sécurité du site, propreté, trousse de secours |
+| **Mon équipe d'encadrement** | adjoints et au-dessus | Forme de l'équipe, encadrants absents, coordination (réunions tenues, consignes transmises, programme respecté, retards) |
+| **Décisions et arbitrages** | coordinateurs et couple dirigeant | Décisions prises, points à arbitrer le lendemain |
+| **En deux phrases** | tous | Ce qui a bien marché, ce qui a moins marché, et une case « j'ai besoin d'aide » avec précision |
+| **Photos** | tous | Une ou deux photos facultatives, réduites par le navigateur avant l'envoi |
+
+Chacun ne voit que les sections qui le concernent : un conseiller n'a pas la partie
+« décisions », un coordinateur n'a pas la partie « mes jeunes ».
+
+Une case « j'ai besoin d'aide » remonte la demande **en tête du rapport final**, là où les
+coordinateurs la verront.
+
+### Points et récompenses
+
+Rendre son rapport rapporte des points, jusqu'à **35 par jour** :
+
+| Geste | Points |
+|---|--:|
+| Rapport remis | 10 |
+| Remis avant 22 h | 5 |
+| « Ce qui a marché » renseigné | 3 |
+| « Ce qui a moins marché » renseigné | 3 |
+| Au moins une photo | 4 |
+| Intendance entièrement renseignée | 5 |
+| Rapport de la veille également remis (série) | 5 |
+
+Les points sont **calculés côté serveur**, jamais fournis par le navigateur. À l'envoi,
+une fenêtre de félicitations affiche des confettis et un compteur qui monte jusqu'au score
+obtenu, le total de la conférence et le niveau atteint (🌱 Nouveau, ⭐ Régulier,
+🌟 Fiable, 🏅 Pilier, 🏆 Référence). Un indicateur 🔥 signale les séries de plusieurs
+jours consécutifs, et un classement « Les plus assidus » est visible de tous. Le réglage
+système « réduire les animations » est respecté.
+
+Un rapport peut être corrigé : le renvoyer remplace le précédent et recalcule les points,
+sans créer de doublon.
+
+### Photos
+
+Les photos sont réduites **dans le navigateur** avant l'envoi : côté ramené à 1100 px, puis
+baisse de la qualité JPEG et, si cela ne suffit pas, réduction de la taille — jusqu'à
+tenir sous ~140 ko. Elles sont conservées en data URL dans la base, sans service de
+stockage externe à administrer.
+
+### Rapport final
+
+`/rapports/final` (coordinateurs principaux et couple dirigeant) agrège tous les rapports
+quotidiens et se met à jour à chaque nouveau rapport :
+
+- **Demandes d'aide** en tête, puisque ce sont elles qui appellent une action ;
+- taux de remise jour par jour et par niveau de responsabilité ;
+- ambiance déclarée, moyenne globale et répartition ;
+- **intendance classée par nombre de soucis signalés** — le haut de liste est ce qu'il faut corriger, avec les jours concernés ;
+- incidents, santé, participation, vie spirituelle, coordination, état des équipes ;
+- absences signalées, avec les précisions saisies ;
+- tout ce que les encadrants ont écrit, groupé par jour et attribué ;
+- moments marquants, décisions et arbitrages ;
+- galerie des photos.
+
+Trois sorties : **copier le texte** (Markdown, pour le coller dans un courriel ou un
+document), **télécharger** le fichier, ou **imprimer / enregistrer en PDF** — une feuille
+de style d'impression retire la navigation et les ombres.
+
+L'agrégation est faite dans `src/lib/synthese.ts` : la page affichée et l'export texte
+partent du même objet, ils ne peuvent donc pas se contredire.
 
 ## Anniversaires pendant la conférence
 
@@ -239,15 +343,27 @@ attente de la liste officielle de l'encadrement.
 | Coordinateur adjoint *(démo)* | `adjointm1@fsy2026.ci` | — |
 | Conseiller *(démo)* | `conseiller1@fsy2026.ci` | — |
 
+## Page publique
+
+`/` est une page de présentation accessible sans compte : thème de l'année, dates,
+chiffres de la conférence, déroulé des six jours, organisation en groupes et compagnies,
+présentation de l'application, informations pratiques (critères de participation,
+encadrement, affaires à apporter, santé) et accès à l'espace des encadrants. Elle ne
+publie que des chiffres agrégés : **aucun nom de participant**.
+
+L'espace de travail commence à `/accueil`, derrière l'authentification.
+
 ## Modules
 
 - **Accueil** — statistiques en direct, programme du jour (filtré par groupe pour les conseillers), dernières annonces, alertes de validations en attente.
 - **Cars** — pointage des jeunes aux **trois étapes** : *départ du pieu* (montée dans le car au pieu ou district), *arrivée au site*, *retour le dernier jour* (montée dans le car le samedi 8 août). Recherche rapide par nom, horodatage de chaque validation, historique complet, alertes médicales et alimentaires affichées à côté du nom. **Le couple dirigeant et les coordinateurs principaux désignent, car par car et étape par étape, qui coche les noms** — un ou plusieurs conseillers, conseillères, coordinateurs ou coordinatrices. Les autres encadrants voient la liste en lecture seule. Tant que personne n'est désigné pour une étape, tout encadrant peut cocher : le jour même, personne ne doit être bloqué. La page Cars signale combien de pointages restent sans personne affectée.
 - **Groupes** — réassignation dynamique : changer le conseiller d'un groupe, fusionner deux groupes, alerte de sur-capacité. Contrainte : groupe et conseiller du même sexe.
-- **Jeunes** — 663 inscrits réels : recherche par nom/pieu/paroisse/groupe, âge, taille de t-shirt, statut d'inscription, badges 🎂 anniversaire, ⚕️ médical et 🍽 alimentaire, contact d'urgence ; filtres par onglet (anniversaires, à suivre, sans groupe) ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
+- **Jeunes** — 650 inscrits réels : recherche par nom/pieu/paroisse/groupe, âge, taille de t-shirt, statut d'inscription, badges 🎂 anniversaire, ⚕️ médical et 🍽 alimentaire, contact d'urgence ; filtres par onglet (anniversaires, à suivre, sans groupe) ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
 - **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs. Les numéros de téléphone du couple et des coordinateurs principaux sont cliquables pour appeler directement depuis le téléphone.
-- **Pieux et districts** *(coordinateurs et adjoints)* — effectifs par unité, statuts d'inscription, **contrôle des critères d'âge officiels**, **conseillers à proposer** selon la formule officielle, et profil attendu des conseillers.
+- **Pieux et districts** *(coordinateurs et adjoints)* — effectifs par unité, statuts d'inscription, **contrôle des critères d'âge officiels**, **conseillers à proposer** selon la formule officielle, **inscriptions approuvées en double** à faire vérifier, et profil attendu des conseillers.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
+- **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
+- **Rapport final** *(coordinateurs principaux et couple dirigeant)* — synthèse automatique de tous les rapports quotidiens, exportable.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.
 - **Admin** — création de comptes, marquage présent/absent, octroi du droit de modification directe aux adjoints (couple dirigeant), **journal d'audit** (qui a fait quoi, quand).
 
@@ -274,16 +390,22 @@ Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`
 ```
 prisma/schema.prisma       # modèle de données commenté
 prisma/programme-fsy2026.ts # programme officiel (sources et arbitrages documentés)
-prisma/participants.json   # 663 inscrits, champs non sensibles (versionné)
+prisma/participants.json   # 650 inscrits, champs non sensibles (versionné)
 prisma/anniversaires.ts    # fenêtre du 2 au 8 août et génération des annonces J-2/J-1/jour J
-src/lib/criteres.ts        # critères d'âge officiels et formule des conseillers à proposer
+src/lib/criteres.ts        # critères d'âge officiels, formule des conseillers, doublons probables
+src/lib/perimetre.ts       # unités écartées du fichier d'inscription officiel
+src/lib/theme.ts           # thème de l'année, partagé par l'application et l'amorçage
+src/lib/etapes-car.ts      # les trois étapes de pointage aux cars
+src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de points, niveaux
+src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts depuis data/ (hors dépôt)
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission
 src/lib/auth.ts            # sessions JWT (cookie httpOnly)
 src/lib/actions.ts         # toutes les mutations (server actions) avec contrôle d'accès + audit
-src/app/(app)/…            # pages protégées (layout exige une session)
-src/components/…           # composants interactifs (pointage car, recherche, programme…)
+src/app/page.tsx           # page publique de présentation (aucune donnée personnelle)
+src/app/(app)/…            # pages protégées (layout exige une session), à partir de /accueil
+src/components/…           # composants interactifs (pointage car, rapport, recherche, programme…)
 ```
 
 ## Mise en production
@@ -292,8 +414,10 @@ src/components/…           # composants interactifs (pointage car, recherche, 
 2. `npm run build && npm start` sur un serveur Node (Railway, Render, VPS…).
    Pour Vercel, remplacer SQLite par PostgreSQL (Neon/Supabase) : changer
    `provider = "postgresql"` dans `prisma/schema.prisma` et `DATABASE_URL`.
-3. **Le programme et les 663 participants sont réels.** Seule l'**équipe d'encadrement**
-   (couple dirigeant, coordinateurs, adjoints, conseillers) reste fictive, en attente des
-   listes officielles : 60 conseillers et 27 paires d'adjoints à créer.
+3. **Le programme et les 650 participants sont réels**, ainsi que le couple dirigeant
+   (Bérenger et Armande Dahakpoin) et les deux coordinateurs principaux (Kouassi Allegra
+   Cédric et Yao Aquicy Candela Eméraude). Les **adjoints et conseillers** restent des
+   comptes de démonstration, en attente des listes officielles : 102 conseillers et
+   36 paires d'adjoints à créer, et 72 groupes à pourvoir.
 4. Charger les données sensibles des participants avec `npm run import:sensibles` (le
    fichier source n'est pas versionné).

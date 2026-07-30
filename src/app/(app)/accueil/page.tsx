@@ -26,7 +26,8 @@ export default async function Accueil() {
     compagnie: true,
   } as const;
 
-  const [annonces, activitesAujourdhui, stats, propositionsEnAttente] = await Promise.all([
+  const [annonces, activitesAujourdhui, stats, propositionsEnAttente, journeeDuJour] =
+    await Promise.all([
     prisma.annonce.findMany({
       where: { datePublication: { lte: new Date() } },
       orderBy: { datePublication: "desc" },
@@ -47,7 +48,18 @@ export default async function Accueil() {
     roleAuMoins(user.role, "COORDINATEUR")
       ? prisma.modificationProgramme.count({ where: { statut: "PROPOSE" } })
       : 0,
+    prisma.journeeConference.findFirst({
+      where: { date: { gte: debutJour, lt: finJour } },
+    }),
   ]);
+
+  // Rappel du rapport quotidien : seulement pendant la conférence.
+  const monRapportDuJour = journeeDuJour
+    ? await prisma.rapportQuotidien.findUnique({
+        where: { auteurId_jour: { auteurId: user.id, jour: journeeDuJour.numero } },
+        select: { points: true },
+      })
+    : null;
 
   const [nbJeunes, nbGroupes, nbArrives, nbConseillers] = stats;
   const annoncesVisibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
@@ -142,6 +154,34 @@ export default async function Accueil() {
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Rapport du jour : un seul appui pour y aller */}
+      {journeeDuJour && (
+        <Link
+          href="/rapports"
+          className={`block rounded-xl p-4 transition ${
+            monRapportDuJour
+              ? "bg-green-50 border border-green-300 text-green-900 hover:bg-green-100"
+              : "bg-fsy text-white hover:bg-fsy-dark shadow"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-bold">
+                {monRapportDuJour
+                  ? "✅ Votre rapport du jour est remis"
+                  : "📝 Votre rapport du jour"}
+              </div>
+              <p className={`text-sm ${monRapportDuJour ? "text-green-800" : "text-blue-100"}`}>
+                {monRapportDuJour
+                  ? `+${monRapportDuJour.points} points. Vous pouvez encore le compléter.`
+                  : "Deux minutes, presque tout au doigt."}
+              </p>
+            </div>
+            <span className="text-2xl shrink-0">→</span>
+          </div>
+        </Link>
       )}
 
       {propositionsEnAttente > 0 && (

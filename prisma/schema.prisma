@@ -43,6 +43,7 @@ model User {
   activitesCreees    Activite[]
   modifsProposees    ModificationProgramme[] @relation("Proposeur")
   modifsValidees     ModificationProgramme[] @relation("Valideur")
+  rapports           RapportQuotidien[]
   auditLogs          AuditLog[]
 
   createdAt DateTime @default(now())
@@ -271,6 +272,44 @@ model Annonce {
   createdAt DateTime @default(now())
 
   @@index([datePublication])
+}
+
+// Rapport quotidien d'un encadrant, une fois par journée de conférence.
+// Les réponses aux questions du modèle (src/lib/rapports.ts) sont stockées en
+// JSON : le questionnaire évolue d'une année à l'autre sans migration de schéma.
+model RapportQuotidien {
+  id       String @id @default(cuid())
+  auteur   User   @relation(fields: [auteurId], references: [id])
+  auteurId String
+  jour     Int // numéro de journée de conférence (0 = veille, 1 à 6)
+  date     DateTime
+
+  ambiance   String // EXCELLENTE | BONNE | CORRECTE | DIFFICILE | CRITIQUE
+  reponses   String @default("{}") // JSON { idQuestion: valeur }
+  aMarche    String @default("")
+  aAmeliorer String @default("")
+  // Demande d'aide : remonte en tête du tableau de bord des coordinateurs
+  besoinAide Boolean @default(false)
+  detailAide String?
+
+  points Int @default(0)
+  photos PhotoRapport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([auteurId, jour])
+  @@index([jour])
+}
+
+// Photo jointe à un rapport : image JPEG redimensionnée par le navigateur avant
+// envoi, conservée en data URL (aucun service de stockage externe à administrer).
+model PhotoRapport {
+  id        String           @id @default(cuid())
+  rapport   RapportQuotidien @relation(fields: [rapportId], references: [id], onDelete: Cascade)
+  rapportId String
+  image     String
+  legende   String?
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure

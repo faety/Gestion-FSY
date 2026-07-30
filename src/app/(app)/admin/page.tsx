@@ -12,7 +12,7 @@ const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "m
 
 export default async function AdminPage() {
   const user = (await getUtilisateur())!;
-  if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/");
+  if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/accueil");
   const estDirigeant = user.role === "DIRIGEANT";
 
   const [utilisateurs, compagnies, audit] = await Promise.all([

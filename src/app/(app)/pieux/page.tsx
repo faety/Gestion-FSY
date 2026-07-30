@@ -4,7 +4,9 @@ import { getUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import {
   conseillersAProposer,
+  doublonsProbables,
   estAccepte,
+  estAttendu,
   LIBELLE_STATUT,
   PROFIL_CONSEILLER,
   verifierAge,
@@ -14,7 +16,7 @@ const fmtDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" });
 
 export default async function PieuxPage() {
   const user = (await getUtilisateur())!;
-  if (!roleAuMoins(user.role, "ADJOINT")) redirect("/");
+  if (!roleAuMoins(user.role, "ADJOINT")) redirect("/accueil");
 
   const pieux = await prisma.pieu.findMany({
     orderBy: { nom: "asc" },
@@ -25,19 +27,24 @@ export default async function PieuxPage() {
 
   const rapports = pieux
     .map((p) => {
-      const filles = p.jeunes.filter((j) => j.sexe === "F").length;
-      const garcons = p.jeunes.length - filles;
+      // La formule officielle porte sur les jeunes attendus, non sur les
+      // inscriptions annulées.
+      const attendus = p.jeunes.filter((j) => estAttendu(j.statutInscription));
+      const filles = attendus.filter((j) => j.sexe === "F").length;
+      const garcons = attendus.length - filles;
       const statuts = p.jeunes.reduce<Record<string, number>>((acc, j) => {
         acc[j.statutInscription] = (acc[j.statutInscription] ?? 0) + 1;
         return acc;
       }, {});
-      const horsCriteres = p.jeunes.filter((j) => !verifierAge(j.dateNaissance).valide).length;
+      const horsCriteres = p.jeunes.filter(
+        (j) => estAccepte(j.statutInscription) && !verifierAge(j.dateNaissance).valide
+      ).length;
       return {
         nom: p.nom,
         total: p.jeunes.length,
         filles,
         garcons,
-        paroisses: new Set(p.jeunes.map((j) => j.paroisse).filter(Boolean)).size,
+        paroisses: new Set(attendus.map((j) => j.paroisse).filter(Boolean)).size,
         acceptes: p.jeunes.filter((j) => estAccepte(j.statutInscription)).length,
         statuts,
         horsCriteres,
@@ -64,8 +71,12 @@ export default async function PieuxPage() {
     orderBy: [{ nom: "asc" }],
   });
   const horsCriteres = tous
+    .filter((j) => estAccepte(j.statutInscription))
     .map((j) => ({ jeune: j, verdict: verifierAge(j.dateNaissance) }))
     .filter((x) => !x.verdict.valide);
+
+  // Inscriptions approuvées en double : à faire vérifier par le pieu concerné
+  const doublons = doublonsProbables(tous);
 
   return (
     <div className="space-y-4">
@@ -174,6 +185,41 @@ export default async function PieuxPage() {
           </ul>
         )}
       </section>
+
+      {/* Inscriptions approuvées en double */}
+      {doublons.length > 0 && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold">Inscriptions approuvées en double</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Même prénom, même nom, même sexe. Soit un doublon de saisie, soit deux
+            homonymes : à vérifier auprès du pieu avant la conférence.
+          </p>
+          <ul className="mt-3 space-y-3 text-sm">
+            {doublons.map((d) => (
+              <li key={d.cle} className="border-l-4 border-amber-300 pl-3">
+                <div className="font-medium">
+                  {d.fiches[0].prenom} {d.fiches[0].nom}
+                  <span className="text-slate-400 font-normal">
+                    {" "}
+                    — {d.fiches.length} inscriptions approuvées
+                  </span>
+                </div>
+                <ul className="text-slate-500">
+                  {d.fiches.map((j) => (
+                    <li key={j.id}>
+                      {j.dateNaissance
+                        ? fmtDate.format(j.dateNaissance)
+                        : `saisie « ${j.dateNaissanceBrute} »`}{" "}
+                      · {j.paroisse} · {j.pieu.nom}
+                      {j.groupeId && ` · groupe affecté`}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Profil attendu des conseillers */}
       <details className="bg-white rounded-xl shadow-sm p-4">

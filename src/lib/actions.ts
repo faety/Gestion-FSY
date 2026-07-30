@@ -8,6 +8,7 @@ import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
 import { peutModifierDirectement, roleAuMoins } from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
+import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -32,7 +33,7 @@ export async function seConnecter(
   }
   await creerSession(user.id);
   await journaliser(user.id, "CONNEXION");
-  redirect("/");
+  redirect("/accueil");
 }
 
 export async function seDeconnecter() {
@@ -284,7 +285,7 @@ export async function basculerConfirmation(activiteId: string) {
     activite.titre
   );
   revalidatePath("/programme");
-  revalidatePath("/");
+  revalidatePath("/accueil");
 }
 
 // Confirme d'un coup toutes les activités provisoires d'une journée
@@ -304,7 +305,7 @@ export async function confirmerJournee(dateISO: string) {
     `${count} activité(s) le ${debut.toLocaleDateString("fr-FR")}`
   );
   revalidatePath("/programme");
-  revalidatePath("/");
+  revalidatePath("/accueil");
 }
 
 export async function deciderModification(modifId: string, decision: "VALIDE" | "REJETE") {
@@ -344,7 +345,7 @@ export async function creerAnnonce(formData: FormData) {
   await prisma.annonce.create({ data: { titre, contenu, cible, creeParId: user.id } });
   await journaliser(user.id, "ANNONCE_CREEE", `${titre} (cible: ${cible})`);
   revalidatePath("/annonces");
-  revalidatePath("/");
+  revalidatePath("/accueil");
 }
 
 export async function supprimerAnnonce(annonceId: string) {
@@ -352,7 +353,148 @@ export async function supprimerAnnonce(annonceId: string) {
   await prisma.annonce.delete({ where: { id: annonceId } });
   await journaliser(user.id, "ANNONCE_SUPPRIMEE", annonceId);
   revalidatePath("/annonces");
-  revalidatePath("/");
+  revalidatePath("/accueil");
+}
+
+// ---------- Rapports quotidiens ----------
+
+// Un rapport par encadrant et par journée de conférence. Un renvoi remplace le
+// précédent : on corrige son rapport sans en créer un doublon. Les points sont
+// recalculés à chaque enregistrement, jamais fournis par le navigateur.
+export async function soumettreRapport(formData: FormData) {
+  const user = await exiger("CONSEILLER");
+
+  const jour = Number(formData.get("jour"));
+  const journee = await prisma.journeeConference.findUnique({ where: { numero: jour } });
+  if (!journee) throw new Error("Journée de conférence inconnue.");
+
+  const ambianceChoisie = String(formData.get("ambiance") ?? "");
+  if (!AMBIANCES.some((a) => a.cle === ambianceChoisie)) {
+    throw new Error("Indiquez d'abord l'ambiance de la journée.");
+  }
+
+  const aMarche = String(formData.get("aMarche") ?? "").trim().slice(0, 2000);
+  const aAmeliorer = String(formData.get("aAmeliorer") ?? "").trim().slice(0, 2000);
+  const besoinAide = formData.get("besoinAide") === "on";
+  const detailAide = String(formData.get("detailAide") ?? "").trim().slice(0, 2000) || null;
+
+  // Réponses : on ne conserve que les questions du modèle visibles pour ce rôle,
+  // pour qu'un formulaire trafiqué n'introduise pas de champ arbitraire.
+  const brut = lireReponses(String(formData.get("reponses") ?? "{}"));
+  // Les questions oui/non rangent leur précision sous « <id>_precision » : elle
+  // fait partie de la réponse et doit être conservée.
+  const autorisees = new Set(
+    sectionsPour(user.role)
+      .flatMap((s) => s.questions)
+      .flatMap((q) => [q.id, `${q.id}_precision`])
+  );
+  const reponses: Record<string, unknown> = {};
+  for (const [cle, valeur] of Object.entries(brut)) {
+    if (!autorisees.has(cle)) continue;
+    if (Array.isArray(valeur)) reponses[cle] = valeur.map((v) => String(v).slice(0, 300));
+    else if (valeur && typeof valeur === "object") {
+      reponses[cle] = Object.fromEntries(
+        Object.entries(valeur as Record<string, unknown>).map(([k, v]) => [
+          k.slice(0, 200),
+          String(v).slice(0, 200),
+        ])
+      );
+    } else reponses[cle] = String(valeur ?? "").slice(0, 2000);
+  }
+
+  // Photos : envoyées en data URL, déjà redimensionnées par le navigateur.
+  const photos = formData
+    .getAll("photos")
+    .map((p) => String(p))
+    .filter((p) => p.startsWith("data:image/") && p.length < 900_000)
+    .slice(0, 2);
+
+  // État avant enregistrement : sert à distinguer un premier envoi d'une
+  // correction, et à accorder le bonus de série.
+  const [veille, precedent] = await Promise.all([
+    jour > 0
+      ? prisma.rapportQuotidien.findFirst({
+          where: { auteurId: user.id, jour: jour - 1 },
+          select: { id: true },
+        })
+      : null,
+    prisma.rapportQuotidien.findUnique({
+      where: { auteurId_jour: { auteurId: user.id, jour } },
+      select: { points: true },
+    }),
+  ]);
+
+  const { total } = calculerPoints({
+    aMarche,
+    aAmeliorer,
+    nbPhotos: photos.length,
+    reponses,
+    heure: new Date().getHours(),
+    veilleRemise: Boolean(veille),
+  });
+
+  const donnees = {
+    jour,
+    date: journee.date,
+    ambiance: ambianceChoisie,
+    reponses: JSON.stringify(reponses),
+    aMarche,
+    aAmeliorer,
+    besoinAide,
+    detailAide: besoinAide ? detailAide : null,
+    points: total,
+  };
+
+  const rapport = await prisma.rapportQuotidien.upsert({
+    where: { auteurId_jour: { auteurId: user.id, jour } },
+    update: donnees,
+    create: { ...donnees, auteurId: user.id },
+  });
+
+  // Les photos sont remplacées en bloc : le formulaire renvoie toujours l'état
+  // complet de la sélection.
+  await prisma.photoRapport.deleteMany({ where: { rapportId: rapport.id } });
+  if (photos.length > 0) {
+    await prisma.photoRapport.createMany({
+      data: photos.map((image) => ({ rapportId: rapport.id, image })),
+    });
+  }
+
+  await journaliser(
+    user.id,
+    "RAPPORT_SOUMIS",
+    `Jour ${jour} — ambiance ${ambianceChoisie}, ${total} points${besoinAide ? ", demande d'aide" : ""}`
+  );
+
+  const cumul = await prisma.rapportQuotidien.aggregate({
+    where: { auteurId: user.id },
+    _sum: { points: true },
+  });
+
+  revalidatePath("/rapports");
+  revalidatePath("/rapports/final");
+  revalidatePath("/accueil");
+  // Renvoyé au formulaire pour la fenêtre de félicitations : calculé ici, car
+  // la revalidation rend les props du composant obsolètes au même instant.
+  return {
+    points: total,
+    jour,
+    cree: precedent === null,
+    total: cumul._sum.points ?? total,
+  };
+}
+
+export async function supprimerRapport(rapportId: string) {
+  const user = await exiger("CONSEILLER");
+  const rapport = await prisma.rapportQuotidien.findUniqueOrThrow({ where: { id: rapportId } });
+  // Chacun supprime le sien ; les coordinateurs peuvent supprimer un doublon.
+  if (rapport.auteurId !== user.id && !roleAuMoins(user.role, "COORDINATEUR")) {
+    throw new Error("Vous ne pouvez supprimer que vos propres rapports.");
+  }
+  await prisma.rapportQuotidien.delete({ where: { id: rapportId } });
+  await journaliser(user.id, "RAPPORT_SUPPRIME", `Jour ${rapport.jour}`);
+  revalidatePath("/rapports");
+  revalidatePath("/rapports/final");
 }
 
 // ---------- Administration (couple dirigeant) ----------

@@ -1,0 +1,363 @@
+// Synthèse des rapports quotidiens → rapport final de la conférence.
+//
+// Toute l'agrégation est faite ici, à partir des rapports bruts : la page
+// d'affichage et l'export texte partent du même objet, donc ils ne peuvent pas
+// se contredire.
+
+import { ROLE_LABELS, type Role } from "./roles";
+import {
+  AMBIANCES,
+  POINTS_INTENDANCE,
+  SECTIONS,
+  ambiance,
+  enObjet,
+  enTableau,
+  enTexte,
+  libelleJour,
+  libelleJourCourt,
+  lireReponses,
+} from "./rapports";
+
+export type RapportBrut = {
+  id: string;
+  jour: number;
+  date: Date;
+  ambiance: string;
+  reponses: string;
+  aMarche: string;
+  aAmeliorer: string;
+  besoinAide: boolean;
+  detailAide: string | null;
+  points: number;
+  auteur: { id: string; prenom: string; nom: string; role: string };
+  photos: { id: string; image: string }[];
+};
+
+export type Journee = { numero: number; date: Date };
+
+export type Comptage = { label: string; nombre: number };
+
+const fmtDate = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long" });
+const nomComplet = (a: RapportBrut["auteur"]) => `${a.prenom} ${a.nom}`;
+
+// Recense les options cochées pour une question donnée, sur tous les rapports
+function compterCases(rapports: RapportBrut[], idQuestion: string): Comptage[] {
+  const total = new Map<string, number>();
+  for (const r of rapports) {
+    for (const o of enTableau(lireReponses(r.reponses)[idQuestion])) {
+      total.set(o, (total.get(o) ?? 0) + 1);
+    }
+  }
+  return [...total.entries()]
+    .map(([label, nombre]) => ({ label, nombre }))
+    .sort((a, b) => b.nombre - a.nombre);
+}
+
+function compterChoix(rapports: RapportBrut[], idQuestion: string): Comptage[] {
+  const total = new Map<string, number>();
+  for (const r of rapports) {
+    const v = enTexte(lireReponses(r.reponses)[idQuestion]);
+    if (v) total.set(v, (total.get(v) ?? 0) + 1);
+  }
+  return [...total.entries()]
+    .map(([label, nombre]) => ({ label, nombre }))
+    .sort((a, b) => b.nombre - a.nombre);
+}
+
+export function construireSynthese(
+  rapports: RapportBrut[],
+  journees: Journee[],
+  nbEncadrants: number
+) {
+  // ---------- Remise des rapports, jour par jour ----------
+  const parJour = journees.map((j) => {
+    const duJour = rapports.filter((r) => r.jour === j.numero);
+    const notes: number[] = duJour.map((r) => ambiance(r.ambiance)?.note ?? 0).filter((n) => n > 0);
+    return {
+      numero: j.numero,
+      date: j.date,
+      libelle: libelleJour(j.numero),
+      remis: duJour.length,
+      attendus: nbEncadrants,
+      moyenneAmbiance: notes.length > 0 ? notes.reduce((a, b) => a + b, 0) / notes.length : null,
+      rapports: duJour,
+    };
+  });
+
+  // ---------- Remise par rôle ----------
+  const parRole = (["DIRIGEANT", "COORDINATEUR", "ADJOINT", "CONSEILLER"] as Role[]).map(
+    (role) => {
+      const duRole = rapports.filter((r) => r.auteur.role === role);
+      return {
+        role,
+        label: ROLE_LABELS[role],
+        remis: duRole.length,
+        auteurs: new Set(duRole.map((r) => r.auteur.id)).size,
+      };
+    }
+  );
+
+  // ---------- Intendance : ce qui a posé problème ----------
+  const intendance = POINTS_INTENDANCE.map((point) => {
+    let ok = 0;
+    let souci = 0;
+    const jours = new Set<number>();
+    for (const r of rapports) {
+      const etat = enObjet(lireReponses(r.reponses).intendance)[point];
+      if (etat === "OK") ok++;
+      else if (etat === "SOUCI") {
+        souci++;
+        jours.add(r.jour);
+      }
+    }
+    return {
+      point,
+      ok,
+      souci,
+      jours: [...jours].sort((a, b) => a - b).map(libelleJourCourt),
+    };
+  }).sort((a, b) => b.souci - a.souci);
+
+  // ---------- Incidents, santé, vie spirituelle ----------
+  const incidents = compterCases(rapports, "incidents");
+  const sante = compterCases(rapports, "sante");
+  const devotions = compterCases(rapports, "devotions");
+  const coordination = compterCases(rapports, "coordination");
+  const participation = compterChoix(rapports, "participation");
+  const etatEquipe = compterChoix(rapports, "etatEquipe");
+
+  // ---------- Demandes d'aide ----------
+  const demandesAide = rapports
+    .filter((r) => r.besoinAide)
+    .map((r) => ({
+      jour: r.jour,
+      auteur: nomComplet(r.auteur),
+      role: ROLE_LABELS[r.auteur.role as Role],
+      detail: r.detailAide ?? "",
+    }))
+    .sort((a, b) => b.jour - a.jour);
+
+  // ---------- Verbatim ----------
+  const verbatim = journees
+    .map((j) => ({
+      numero: j.numero,
+      libelle: libelleJour(j.numero),
+      date: j.date,
+      aMarche: rapports
+        .filter((r) => r.jour === j.numero && r.aMarche.trim())
+        .map((r) => ({ auteur: nomComplet(r.auteur), role: r.auteur.role, texte: r.aMarche })),
+      aAmeliorer: rapports
+        .filter((r) => r.jour === j.numero && r.aAmeliorer.trim())
+        .map((r) => ({ auteur: nomComplet(r.auteur), role: r.auteur.role, texte: r.aAmeliorer })),
+    }))
+    .filter((v) => v.aMarche.length > 0 || v.aAmeliorer.length > 0);
+
+  // ---------- Absences signalées ----------
+  // Les précisions saisies quand la réponse est « Non » : qui manquait, et pourquoi.
+  const absences = rapports
+    .flatMap((r) =>
+      (
+        [
+          ["presences", "Jeunes"],
+          ["presenceEncadrants", "Encadrants"],
+        ] as const
+      ).map(([cle, quoi]) => ({
+        jour: r.jour,
+        quoi,
+        auteur: nomComplet(r.auteur),
+        texte: enTexte(lireReponses(r.reponses)[`${cle}_precision`]),
+        signale: enTexte(lireReponses(r.reponses)[cle]) === "Non",
+      }))
+    )
+    .filter((a) => a.signale && a.texte.trim())
+    .sort((a, b) => a.jour - b.jour);
+
+  const temoignages = rapports
+    .map((r) => ({
+      jour: r.jour,
+      auteur: nomComplet(r.auteur),
+      texte: enTexte(lireReponses(r.reponses).temoignageDetail),
+    }))
+    .filter((t) => t.texte.trim())
+    .sort((a, b) => a.jour - b.jour);
+
+  const decisions = rapports
+    .flatMap((r) =>
+      (["decisions", "arbitrages"] as const).map((cle) => ({
+        jour: r.jour,
+        auteur: nomComplet(r.auteur),
+        type: cle === "decisions" ? ("Décision" as const) : ("À arbitrer" as const),
+        texte: enTexte(lireReponses(r.reponses)[cle]),
+      }))
+    )
+    .filter((d) => d.texte.trim())
+    .sort((a, b) => a.jour - b.jour);
+
+  const photos = rapports.flatMap((r) =>
+    r.photos.map((p) => ({
+      id: p.id,
+      image: p.image,
+      jour: r.jour,
+      auteur: nomComplet(r.auteur),
+    }))
+  );
+
+  const notesGlobales: number[] = rapports
+    .map((r) => ambiance(r.ambiance)?.note ?? 0)
+    .filter((n) => n > 0);
+
+  return {
+    nbRapports: rapports.length,
+    nbAuteurs: new Set(rapports.map((r) => r.auteur.id)).size,
+    nbEncadrants,
+    ambianceMoyenne:
+      notesGlobales.length > 0
+        ? notesGlobales.reduce((a, b) => a + b, 0) / notesGlobales.length
+        : null,
+    repartitionAmbiance: AMBIANCES.map((a) => ({
+      ...a,
+      nombre: rapports.filter((r) => r.ambiance === a.cle).length,
+    })),
+    parJour,
+    parRole,
+    intendance,
+    incidents,
+    sante,
+    devotions,
+    coordination,
+    participation,
+    etatEquipe,
+    demandesAide,
+    absences,
+    verbatim,
+    temoignages,
+    decisions,
+    photos,
+  };
+}
+
+export type Synthese = ReturnType<typeof construireSynthese>;
+
+// ---------- Export texte (Markdown) ----------
+
+export function syntheseEnTexte(s: Synthese, titre: string): string {
+  const l: string[] = [];
+  const liste = (c: Comptage[]) => c.map((x) => `- ${x.label} : ${x.nombre}`);
+  const bloc = (titre: string, lignes: string[]) => {
+    if (lignes.length === 0) return;
+    l.push(`## ${titre}`, "", ...lignes, "");
+  };
+
+  l.push(`# ${titre}`, "");
+  l.push(
+    `${s.nbRapports} rapports quotidiens remis par ${s.nbAuteurs} encadrants sur ${s.nbEncadrants}.`,
+    ""
+  );
+  if (s.ambianceMoyenne !== null) {
+    l.push(`Ambiance moyenne de la conférence : ${s.ambianceMoyenne.toFixed(1)} sur 5.`, "");
+  }
+
+  bloc(
+    "Remise des rapports, jour par jour",
+    s.parJour.map(
+      (j) =>
+        `- ${j.libelle} (${fmtDate.format(j.date)}) : ${j.remis}/${j.attendus} rapports` +
+        (j.moyenneAmbiance !== null
+          ? ` — ambiance ${j.moyenneAmbiance.toFixed(1)}/5`
+          : "")
+    )
+  );
+
+  bloc(
+    "Remise par niveau de responsabilité",
+    s.parRole.filter((r) => r.remis > 0).map((r) => `- ${r.label} : ${r.remis} rapports (${r.auteurs} personnes)`)
+  );
+
+  bloc(
+    "Intendance et logistique",
+    s.intendance
+      .filter((i) => i.souci > 0 || i.ok > 0)
+      .map(
+        (i) =>
+          `- ${i.point} : ${i.souci} signalement(s) de souci, ${i.ok} fois « ça va »` +
+          (i.jours.length > 0 ? ` (jours ${i.jours.join(", ")})` : "")
+      )
+  );
+
+  bloc("Incidents relevés", liste(s.incidents));
+  bloc("Santé et bien-être", liste(s.sante));
+  bloc("Participation des jeunes", liste(s.participation));
+  bloc("Vie spirituelle", liste(s.devotions));
+  bloc("Coordination de l'encadrement", liste(s.coordination));
+  bloc("État des équipes", liste(s.etatEquipe));
+
+  bloc(
+    "Demandes d'aide",
+    s.demandesAide.map(
+      (d) => `- ${libelleJour(d.jour)} — ${d.auteur} (${d.role}) : ${d.detail || "sans précision"}`
+    )
+  );
+
+  if (s.verbatim.length > 0) {
+    l.push("## Ce que les encadrants ont écrit", "");
+    for (const v of s.verbatim) {
+      l.push(`### ${v.libelle} — ${fmtDate.format(v.date)}`, "");
+      if (v.aMarche.length > 0) {
+        l.push("**Ce qui a marché**", "");
+        l.push(...v.aMarche.map((x) => `- ${x.auteur} : ${x.texte}`), "");
+      }
+      if (v.aAmeliorer.length > 0) {
+        l.push("**Ce qui a moins marché**", "");
+        l.push(...v.aAmeliorer.map((x) => `- ${x.auteur} : ${x.texte}`), "");
+      }
+    }
+  }
+
+  bloc(
+    "Absences signalées",
+    s.absences.map((a) => `- ${libelleJour(a.jour)} — ${a.quoi} (${a.auteur}) : ${a.texte}`)
+  );
+
+  bloc(
+    "Moments marquants rapportés",
+    s.temoignages.map((t) => `- ${libelleJour(t.jour)} — ${t.auteur} : ${t.texte}`)
+  );
+
+  bloc(
+    "Décisions et arbitrages",
+    s.decisions.map((d) => `- ${libelleJour(d.jour)} — ${d.type} (${d.auteur}) : ${d.texte}`)
+  );
+
+  if (s.photos.length > 0) {
+    l.push(
+      `_${s.photos.length} photo(s) jointes aux rapports, à consulter dans l'application._`,
+      ""
+    );
+  }
+
+  return l.join("\n");
+}
+
+// Questions du modèle absentes de la synthèse : garde-fou pour ne pas oublier
+// une question ajoutée au questionnaire sans l'agréger ici.
+export const QUESTIONS_AGREGEES = [
+  "ambiance",
+  "presences",
+  "participation",
+  "incidents",
+  "sante",
+  "devotions",
+  "temoignage",
+  "temoignageDetail",
+  "intendance",
+  "etatEquipe",
+  "presenceEncadrants",
+  "coordination",
+  "decisions",
+  "arbitrages",
+];
+
+export const questionsNonAgregees = () =>
+  SECTIONS.flatMap((s) => s.questions.map((q) => q.id)).filter(
+    (id) => !QUESTIONS_AGREGEES.includes(id)
+  );

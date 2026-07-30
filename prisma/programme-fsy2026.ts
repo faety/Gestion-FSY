@@ -33,14 +33,9 @@
 //                    horaires du jour zéro laissés libres par le manuel).
 // ============================================================================
 
-export const THEME_FSY = {
-  reference: "Moïse 6:34",
-  titre: "Marche avec moi",
-  texte:
-    "Voici, mon Esprit est sur toi, c'est pourquoi je justifierai toutes tes paroles. " +
-    "Les montagnes fuiront devant toi et les fleuves se détourneront de leur cours. " +
-    "Tu demeureras en moi et moi en toi ; c'est pourquoi, marche avec moi.",
-};
+// Le thème est défini dans src/lib/theme.ts et réexporté ici pour le script de
+// peuplement, afin qu'il n'existe qu'une seule version du texte.
+export { THEME_FSY } from "../src/lib/theme";
 
 // Jour 1 = lundi 3 août 2026 (le jour zéro tombe donc le dimanche 2 août)
 export const DATE_JOUR_1 = { annee: 2026, mois: 7 /* août */, jour: 3 };

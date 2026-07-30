@@ -102,6 +102,11 @@ async function main() {
   if (introuvables.length) {
     console.warn(`⚠️  ${introuvables.length} fiche(s) sans jeune correspondant :`);
     introuvables.slice(0, 10).forEach((c) => console.warn(`     ${c}`));
+    console.warn(
+      "   C'est normal si ces fiches viennent d'une unité retirée du périmètre\n" +
+        "   (voir src/lib/perimetre.ts). Sinon, la date de naissance diffère entre\n" +
+        "   le fichier sensible et prisma/participants.json."
+    );
   }
 }
 

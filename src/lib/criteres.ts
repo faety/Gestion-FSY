@@ -42,9 +42,34 @@ export function verifierAge(naissance: Date | null): VerdictAge {
   return { valide: true, ageConference, ageFinAnnee };
 }
 
+// Deux inscriptions approuvées pour le même prénom, le même nom et le même sexe :
+// soit un doublon de saisie, soit deux homonymes. On ne tranche pas — on remonte
+// les éléments (date de naissance, paroisse, groupe) pour que le pieu vérifie.
+export type Doublon<T> = { cle: string; fiches: T[] };
+
+export function doublonsProbables<
+  T extends { prenom: string; nom: string; sexe: string; statutInscription: string },
+>(jeunes: T[]): Doublon<T>[] {
+  const parNom = new Map<string, T[]>();
+  for (const j of jeunes) {
+    if (!estAccepte(j.statutInscription)) continue;
+    const cle = `${j.prenom.trim().toLowerCase()}|${j.nom.trim().toLowerCase()}|${j.sexe}`;
+    parNom.set(cle, [...(parNom.get(cle) ?? []), j]);
+  }
+  return [...parNom.entries()]
+    .filter(([, fiches]) => fiches.length > 1)
+    .map(([cle, fiches]) => ({ cle, fiches }))
+    .sort((a, b) => b.fiches.length - a.fiches.length);
+}
+
 // Statuts d'inscription : seul « Approuvée » est accepté à la conférence
 export const STATUT_ACCEPTE = "Approuvée";
+export const STATUT_ANNULE = "Annulé(e)";
 export const estAccepte = (statut: string) => statut === STATUT_ACCEPTE;
+export const estAnnule = (statut: string) => statut === STATUT_ANNULE;
+// Base de calcul du nombre de conseillers : les jeunes attendus, c'est-à-dire
+// les inscriptions non annulées (celles en attente restent à régulariser).
+export const estAttendu = (statut: string) => !estAnnule(statut);
 
 export const LIBELLE_STATUT: Record<string, string> = {
   "Approuvée": "Approuvée",
