@@ -7,7 +7,11 @@ import {
   basculerDroitModification,
   basculerActif,
   affecterCompagnie,
+  deciderInscription,
 } from "@/lib/actions";
+import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
+import { BoutonMotDePasse } from "@/components/OutilsCompte";
+import { RemiseAZero } from "@/components/RemiseAZero";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
 
@@ -19,7 +23,7 @@ export default async function AdminPage() {
   const [utilisateurs, compagnies, audit] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ role: "asc" }, { nom: "asc" }],
-      include: { compagnie: true, groupesDiriges: true },
+      include: { compagnie: true, groupesDiriges: { select: { nom: true } } },
     }),
     prisma.compagnie.findMany({ orderBy: { nom: "asc" } }),
     prisma.auditLog.findMany({
@@ -29,9 +33,69 @@ export default async function AdminPage() {
     }),
   ]);
 
+  const enAttente = utilisateurs.filter((u) => !u.valide);
+  const equipe = utilisateurs.filter((u) => u.valide);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">⚙️ Administration</h1>
+
+      {/* Inscriptions à valider : c'est ce qui bloque quelqu'un, donc en tête */}
+      {enAttente.length > 0 && (
+        <section className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+          <h2 className="font-bold text-amber-900">
+            ✋ {enAttente.length} inscription{enAttente.length > 1 ? "s" : ""} à vérifier
+          </h2>
+          <p className="text-sm text-amber-800">
+            Ces personnes ne pourront pas se connecter tant que vous n'aurez pas validé.
+            Vérifiez qu'elles font bien partie de l'encadrement.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {enAttente.map((u) => (
+              <li
+                key={u.id}
+                className="bg-white rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap"
+              >
+                <div className="text-sm min-w-0">
+                  <div className="font-medium">
+                    {u.prenom} {u.nom}
+                    <span className="text-slate-400 font-normal">
+                      {" "}
+                      · {u.sexe === "F" ? "femme" : "homme"} · {ROLE_LABELS[u.role as Role]}
+                    </span>
+                  </div>
+                  <div className="text-slate-500">
+                    {u.email}
+                    {u.telephone && ` · ${u.telephone}`}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deciderInscription(u.id, true);
+                    }}
+                  >
+                    <button className="text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-1.5">
+                      Valider
+                    </button>
+                  </form>
+                  <form
+                    action={async () => {
+                      "use server";
+                      await deciderInscription(u.id, false);
+                    }}
+                  >
+                    <button className="text-sm bg-white hover:bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-1.5">
+                      Refuser
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="bg-white rounded-xl shadow-sm p-4">
         <h2 className="font-bold mb-3">Créer un compte</h2>
@@ -62,20 +126,23 @@ export default async function AdminPage() {
         </form>
       </section>
 
+      {estDirigeant && <RemiseAZero choses={CHOSES_A_EFFACER} />}
+
       <section className="bg-white rounded-xl shadow-sm overflow-x-auto">
-        <h2 className="font-bold p-4 pb-0">Équipe ({utilisateurs.length})</h2>
+        <h2 className="font-bold p-4 pb-0">Équipe ({equipe.length})</h2>
         <table className="w-full text-sm">
           <thead className="text-left text-slate-500 border-b border-slate-200">
             <tr>
               <th className="p-3">Nom</th>
               <th className="p-3">Rôle</th>
               <th className="p-3">Affectation</th>
+              <th className="p-3">Accès</th>
               {estDirigeant && <th className="p-3">Droit de modif. directe</th>}
               {estDirigeant && <th className="p-3">Présence</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {utilisateurs.map((u) => {
+            {equipe.map((u) => {
               const aDroit = u.droitsSupplementaires.includes("MODIFICATION_DIRECTE");
               return (
                 <tr key={u.id} className={!u.actif ? "opacity-50" : ""}>
@@ -116,6 +183,16 @@ export default async function AdminPage() {
                     ) : (
                       (u.groupesDiriges.map((g) => g.nom).join(", ") || "—")
                     )}
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <BoutonMotDePasse userId={u.id} nom={`${u.prenom} ${u.nom}`} />
+                      {u.doitChangerMotDePasse && (
+                        <span className="text-xs text-amber-700 whitespace-nowrap">
+                          mot de passe provisoire
+                        </span>
+                      )}
+                    </div>
                   </td>
                   {estDirigeant && (
                     <td className="p-3">

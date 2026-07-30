@@ -1,0 +1,14 @@
+{
+  "name": "FSY 2026 — Abidjan Ouest",
+  "short_name": "FSY 2026",
+  "description": "Marche avec moi — Moïse 6:34. Conférence pour la jeunesse, 3 au 8 août 2026.",
+  "start_url": "/accueil",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef6fb",
+  "theme_color": "#1e3a8a",
+  "lang": "fr",
+  "icons": [
+    { "src": "/logo-fsy-2026.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,5 +1,7 @@
 # Gestion FSY 2026 — Abidjan Ouest
 
+**[2026.fsy.ci](https://2026.fsy.ci)**
+
 Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidjan Ouest) :
 650 participants, hiérarchie de rôles, arrivées/départs par cars, programme, annonces et
 rapports quotidiens des encadrants. Une page publique présente la conférence ; tout le
@@ -179,6 +181,28 @@ chargés par :
 ```bash
 npm run import:contacts
 ```
+
+## Rapidité
+
+L'application est servie depuis **Francfort** (`vercel.json`, région `fra1`), là où se
+trouve la base Neon. Sans cela les fonctions tournaient par défaut aux États-Unis et
+chaque requête traversait l'Atlantique : une centaine de millisecondes multipliée par le
+nombre de requêtes d'une page — plus d'une seconde pour l'accueil, qui en fait treize.
+
+Deux corrections mesurées en local, base à côté :
+
+| Page | Avant | Après |
+|---|--:|--:|
+| `/jeunes` — HTML envoyé | 2 245 ko | **477 ko** |
+| `/jeunes` — rendu serveur | 1 321 ms | **113 ms** |
+
+Les 650 fiches étaient toutes rendues d'un coup. Elles le sont désormais par **40**, avec
+un bouton pour la suite ; la recherche continue de porter sur la liste entière, donc elle
+reste instantanée. Le compteur d'anniversaires de l'accueil chargeait les 650 jeunes et
+leurs relations à chaque affichage pour n'en retenir qu'un ou deux : le filtre sur le jour
+et le mois se fait maintenant en base.
+
+Les autres pages tiennent entre 40 et 150 ms côté serveur.
 
 ## Rapports quotidiens des encadrants
 
@@ -415,9 +439,12 @@ npm run dev             # http://localhost:3000
 
 Voir la section **Base de données** pour l'hébergement et le déploiement.
 
-### Comptes (mot de passe : `fsy2026`)
+### Comptes et mots de passe
 
-**66 comptes, tous réels.** Chacun se connecte avec `prenom.nom@fsy2026.ci`.
+**66 comptes, tous réels.** Chacun se connecte avec `prenom.nom@fsy2026.ci` et le mot de
+passe commun `fsy2026`. **À la première connexion, l'application impose d'en choisir un
+autre** : tant que ce n'est pas fait, aucune autre page n'est accessible, même en tapant
+son adresse. Il n'y a donc rien à distribuer individuellement.
 
 | Rôle | Nombre | Exemple |
 |---|--:|---|
@@ -426,8 +453,40 @@ Voir la section **Base de données** pour l'hébergement et le déploiement.
 | Coordinateurs adjoints | 10 | `patricia.zile@fsy2026.ci` |
 | Conseillers et conseillères | 52 | `kevine.adja@fsy2026.ci` |
 
-Le mot de passe est le même pour tous au premier accès. La liste complète des
-adresses est visible sur la page **Administration**.
+La liste complète des adresses est visible sur la page **Administration**.
+
+### Mot de passe oublié
+
+Sur la page **Administration**, chaque ligne porte un bouton *Mot de passe oublié*. Il
+génère un mot de passe provisoire de la forme `QFYX-2223`, affiché **une seule fois** pour
+être dicté de vive voix. Il évite les caractères que l'on confond en les dictant — pas de
+`0`/`O`, pas de `1`/`I`/`l`. La personne s'en sert pour se connecter, puis l'application
+lui demande aussitôt d'en choisir un nouveau. Le provisoire n'est stocké nulle part en
+clair : le régénérer est la seule façon d'en obtenir un autre.
+
+### Demande de compte
+
+La page de connexion propose **Demander un accès**. Le formulaire recueille nom, prénoms,
+adresse, téléphone, sexe et appel (conseiller ou adjoint). Le compte est créé mais **reste
+inactif** : la connexion renvoie un message expliquant que l'inscription attend une
+validation. Les coordinateurs principaux et le couple dirigeant voient les demandes **en
+tête de la page Administration**, avec les éléments permettant de vérifier que la personne
+fait bien partie de l'encadrement, et décident : *Valider* ou *Refuser*. Un refus supprime
+le compte, la personne peut refaire une demande si c'était une erreur.
+
+### Remise à zéro après une répétition
+
+Réservée au couple dirigeant, sur la page **Administration**. Huit éléments se cochent
+séparément — rapports quotidiens, pointages aux cars, qui coche à quel car, conseillers
+affectés aux groupes, adjoints affectés aux compagnies, modifications du programme,
+annonces écrites à la main, journal d'audit — avec deux raccourcis : *Données d'essai
+seulement* (les trois premiers) et *Tout remettre à zéro*.
+
+Il faut taper **EFFACER** pour que le bouton s'active, parce que rien ne se récupère. Les
+photos de rapport parties chez Cloudinary sont supprimées avec elles. **Ne sont jamais
+touchés** : les comptes, les 650 jeunes, les 36 compagnies, les 72 groupes et le programme
+officiel — les activités du programme sont marquées à l'amorçage, et celles qui auraient
+été annulées ou modifiées pendant l'essai retrouvent leur statut d'origine.
 
 ## Page publique
 
@@ -482,6 +541,10 @@ prisma/anniversaires.ts    # fenêtre du 2 au 8 août et génération des annonc
 src/lib/criteres.ts        # critères d'âge officiels, formule des conseillers, doublons probables
 src/lib/perimetre.ts       # unités écartées du fichier d'inscription officiel
 src/lib/theme.ts           # thème de l'année, partagé par l'application et l'amorçage
+src/lib/remise-a-zero.ts   # ce que la remise à zéro d'après-essais peut effacer
+src/middleware.ts          # recopie le chemin demandé, pour imposer le changement de mot de passe
+vercel.json                # région fra1 : les fonctions au plus près de la base
+public/logo-fsy-2026.png   # logo officiel (à déposer tel quel, jamais redessiné)
 src/lib/etapes-car.ts      # les trois étapes de pointage aux cars
 src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de points, niveaux
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown

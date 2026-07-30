@@ -25,7 +25,15 @@ model User {
   sexe         String // "M" | "F"
   role         String // DIRIGEANT | COORDINATEUR | ADJOINT | CONSEILLER
   dateNaissance DateTime?
+  // Présence à la conférence : un encadrant absent ne peut plus se connecter.
   actif        Boolean  @default(true)
+  // Inscription en attente de validation par les coordinateurs principaux.
+  // Les comptes créés par l'amorçage sont validés d'office ; ceux créés depuis
+  // le formulaire d'inscription attendent une approbation.
+  valide       Boolean  @default(true)
+  // Mot de passe provisoire : la connexion aboutit, mais l'application impose
+  // d'en choisir un nouveau avant toute autre action.
+  doitChangerMotDePasse Boolean @default(false)
   // Permission supplémentaire accordée par le couple dirigeant (ex: droit de
   // modification directe du programme pour un adjoint)
   droitsSupplementaires String @default("[]") // JSON array d'actions
@@ -194,6 +202,9 @@ model JourneeConference {
 //              activités séparées Jeunes Gens / Jeunes Filles)
 model Activite {
   id          String   @id @default(cuid())
+  // Vient du programme officiel des manuels : une remise à zéro après les essais
+  // efface les activités ajoutées à la main, jamais celles-ci.
+  officielle  Boolean  @default(false)
   titre       String
   description String?
   debut       DateTime

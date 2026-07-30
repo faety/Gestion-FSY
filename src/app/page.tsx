@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
 import { THEME_FSY } from "@/lib/theme";
+import { Logo } from "@/components/Logo";
 
 export const metadata = {
   title: "FSY 2026 — Abidjan Ouest · Marche avec moi",
@@ -143,7 +144,10 @@ export default async function LandingPage() {
       {/* En-tête */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <span className="font-bold text-fsy-dark">FSY 2026</span>
+          <span className="font-bold text-fsy-dark flex items-center gap-2">
+            <Logo taille={34} />
+            FSY 2026
+          </span>
           <nav className="hidden sm:flex gap-5 text-sm text-slate-600">
             <a href="#programme" className="hover:text-fsy">Programme</a>
             <a href="#application" className="hover:text-fsy">L'application</a>
@@ -161,6 +165,7 @@ export default async function LandingPage() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-fsy-dark to-fsy text-white">
         <div className="max-w-5xl mx-auto px-4 py-14 sm:py-20">
+          <Logo taille={96} className="mb-5" clair />
           <p className="text-blue-200 text-sm uppercase tracking-widest">
             Conférence pour la jeunesse
           </p>
@@ -340,7 +345,7 @@ export default async function LandingPage() {
 
       <footer className="bg-fsy-dark text-blue-100 text-sm">
         <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row gap-2 justify-between">
-          <span>FSY 2026 — Abidjan Ouest · 3 au 8 août 2026</span>
+          <span>FSY 2026 — Abidjan Ouest · 3 au 8 août 2026 · 2026.fsy.ci</span>
           <span className="text-blue-300">« {THEME_FSY.titre} » — {THEME_FSY.reference}</span>
         </div>
       </footer>

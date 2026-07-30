@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+
+// Nombre de fiches rendues d'un coup
+const PAGE = 40;
 import { deplacerJeune } from "@/lib/actions";
 import { anniversairePendantConference } from "@/lib/anniversaires-client";
 
@@ -39,6 +42,10 @@ export function RechercheJeunes({
   peutReassigner: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
+  // 650 fiches rendues d'un coup pesaient plus de deux mégaoctets de HTML, et
+  // le téléphone mettait plus d'une seconde à les afficher. On n'en rend qu'une
+  // page à la fois ; la recherche, elle, porte toujours sur la liste entière.
+  const [limite, setLimite] = useState(PAGE);
   const [filtre, setFiltre] = useState<
     "TOUS" | "ANNIVERSAIRE" | "MEDICAL" | "HORS_CRITERES" | "SANS_GROUPE"
   >("TOUS");
@@ -55,6 +62,16 @@ export function RechercheJeunes({
     }),
     [jeunes]
   );
+
+  // Toute nouvelle recherche ou tout changement d'onglet ramène à la première page
+  const chercher = (v: string) => {
+    setRecherche(v);
+    setLimite(PAGE);
+  };
+  const choisirFiltre = (v: typeof filtre) => {
+    setFiltre(v);
+    setLimite(PAGE);
+  };
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -94,7 +111,7 @@ export function RechercheJeunes({
       <input
         type="search"
         value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
+        onChange={(e) => chercher(e.target.value)}
         placeholder="🔍 Rechercher par nom, pieu, paroisse ou groupe…"
         className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-fsy bg-white"
       />
@@ -103,7 +120,7 @@ export function RechercheJeunes({
         {onglets.map((o) => (
           <button
             key={o.cle}
-            onClick={() => setFiltre(o.cle)}
+            onClick={() => choisirFiltre(o.cle)}
             className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
               filtre === o.cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
             }`}
@@ -113,8 +130,13 @@ export function RechercheJeunes({
         ))}
       </div>
 
+      <p className="text-sm text-slate-500">
+        {filtres.length} jeune{filtres.length > 1 ? "s" : ""}
+        {filtres.length > limite && ` · ${limite} affichés`}
+      </p>
+
       <ul className="space-y-2">
-        {filtres.map((j) => {
+        {filtres.slice(0, limite).map((j) => {
           const anniv =
             j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance));
           const annule = j.statutInscription === "Annulé(e)";
@@ -207,6 +229,19 @@ export function RechercheJeunes({
         })}
         {filtres.length === 0 && <p className="text-slate-500">Aucun jeune trouvé.</p>}
       </ul>
+
+      {filtres.length > limite && (
+        <button
+          onClick={() => setLimite((n) => n + PAGE)}
+          className="w-full bg-white shadow-sm hover:bg-slate-50 rounded-xl py-3 text-sm font-medium text-fsy transition"
+        >
+          Afficher {Math.min(PAGE, filtres.length - limite)} jeunes de plus
+          <span className="text-slate-400 font-normal">
+            {" "}
+            ({filtres.length - limite} restants)
+          </span>
+        </button>
+      )}
     </div>
   );
 }

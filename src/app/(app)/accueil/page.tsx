@@ -90,15 +90,25 @@ export default async function Accueil() {
   }
 
   // Anniversaires de la journée affichée (comparaison jour + mois)
-  const jeunesAnniv = await prisma.jeune.findMany({
-    where: { statutInscription: { not: "Annulé(e)" }, dateNaissance: { not: null } },
-    include: { groupe: true, pieu: true },
-  });
-  const anniversairesDuJour = jeunesAnniv.filter(
-    (j) =>
-      j.dateNaissance!.getDate() === dateJour.getDate() &&
-      j.dateNaissance!.getMonth() === dateJour.getMonth()
-  );
+  // Le jour et le mois ne sont pas indexables tels quels : on restreint d'abord
+  // en base sur l'intervalle des dates possibles, puis on compare précisément.
+  // Sans cela, l'accueil chargeait les 650 jeunes et leurs relations à chaque
+  // affichage, pour n'en retenir qu'un ou deux.
+  const anniversairesDuJour = (
+    await prisma.$queryRaw<
+      { id: string; prenom: string; nom: string; dateNaissance: Date; groupe: string | null; pieu: string }[]
+    >`
+      SELECT j.id, j.prenom, j.nom, j."dateNaissance", g.nom AS groupe, p.nom AS pieu
+      FROM "Jeune" j
+      LEFT JOIN "Groupe" g ON g.id = j."groupeId"
+      JOIN "Pieu" p ON p.id = j."pieuId"
+      WHERE j."statutInscription" <> 'Annulé(e)'
+        AND j."dateNaissance" IS NOT NULL
+        AND EXTRACT(MONTH FROM j."dateNaissance") = ${dateJour.getMonth() + 1}
+        AND EXTRACT(DAY FROM j."dateNaissance") = ${dateJour.getDate()}
+      ORDER BY j.nom, j.prenom
+    `
+  ).map((j) => ({ ...j, groupeNom: j.groupe, pieuNom: j.pieu }));
 
   // Journée de conférence correspondante (numéro + tenue vestimentaire)
   const finDateJour = new Date(dateJour);
@@ -148,8 +158,8 @@ export default async function Accueil() {
                 <span className="font-medium">
                   {j.prenom} {j.nom}
                 </span>{" "}
-                — {dateJour.getFullYear() - j.dateNaissance!.getFullYear()} ans ·{" "}
-                {j.groupe?.nom ?? j.pieu.nom}
+                — {dateJour.getFullYear() - j.dateNaissance.getFullYear()} ans ·{" "}
+                {j.groupeNom ?? j.pieuNom}
               </li>
             ))}
           </ul>

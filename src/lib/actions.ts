@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import { prisma } from "./db";
 import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
@@ -10,6 +11,7 @@ import { peutModifierDirectement, roleAuMoins } from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
+import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -29,12 +31,161 @@ export async function seConnecter(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const motDePasse = String(formData.get("motDePasse") ?? "");
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.actif || !(await bcrypt.compare(motDePasse, user.passwordHash))) {
+  if (!user || !(await bcrypt.compare(motDePasse, user.passwordHash))) {
     return { erreur: "Email ou mot de passe incorrect." };
+  }
+  // Un compte en attente ou désactivé reçoit un message qui dit quoi faire,
+  // plutôt que « mot de passe incorrect » qui enverrait la personne chercher au
+  // mauvais endroit.
+  if (!user.valide) {
+    return {
+      erreur:
+        "Votre inscription attend la validation des coordinateurs principaux. Vous pourrez vous connecter dès qu'elle sera approuvée.",
+    };
+  }
+  if (!user.actif) {
+    return { erreur: "Ce compte a été désactivé. Adressez-vous aux coordinateurs principaux." };
   }
   await creerSession(user.id);
   await journaliser(user.id, "CONNEXION");
+  redirect(user.doitChangerMotDePasse ? "/mot-de-passe" : "/accueil");
+}
+
+// ---------- Mots de passe ----------
+
+const MDP_MINIMUM = 8;
+
+// Mot de passe provisoire lisible au téléphone : pas de 0/O ni de 1/l/I, que
+// l'on confond en le dictant à quelqu'un.
+function motDePasseProvisoire(): string {
+  const lettres = "ABCDEFGHJKMNPQRSTUVWXYZ";
+  const chiffres = "23456789";
+  const tirage = (source: string, n: number) =>
+    Array.from(randomBytes(n))
+      .map((o) => source[o % source.length])
+      .join("");
+  return `${tirage(lettres, 4)}-${tirage(chiffres, 4)}`;
+}
+
+export async function changerMonMotDePasse(
+  _prev: { erreur?: string; ok?: boolean } | undefined,
+  formData: FormData
+) {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  const nouveau = String(formData.get("nouveau") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+  const actuel = String(formData.get("actuel") ?? "");
+
+  // Le mot de passe actuel n'est pas redemandé quand il est provisoire : la
+  // personne vient justement de le recevoir d'un coordinateur.
+  if (!user.doitChangerMotDePasse) {
+    const utilisateur = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    if (!(await bcrypt.compare(actuel, utilisateur.passwordHash))) {
+      return { erreur: "Mot de passe actuel incorrect." };
+    }
+  }
+  if (nouveau.length < MDP_MINIMUM) {
+    return { erreur: `Choisissez au moins ${MDP_MINIMUM} caractères.` };
+  }
+  if (nouveau !== confirmation) {
+    return { erreur: "Les deux saisies ne correspondent pas." };
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await bcrypt.hash(nouveau, 10), doitChangerMotDePasse: false },
+  });
+  await journaliser(user.id, "MOT_DE_PASSE_CHANGE");
   redirect("/accueil");
+}
+
+// Un coordinateur génère un mot de passe provisoire pour quelqu'un qui a oublié
+// le sien. Il est affiché une seule fois, à dicter de vive voix ; la personne
+// devra en choisir un nouveau dès sa connexion.
+export async function reinitialiserMotDePasse(userId: string) {
+  const auteur = await exiger("COORDINATEUR");
+  const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const provisoire = motDePasseProvisoire();
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash: await bcrypt.hash(provisoire, 10),
+      doitChangerMotDePasse: true,
+    },
+  });
+  await journaliser(
+    auteur.id,
+    "MOT_DE_PASSE_REINITIALISE",
+    `${cible.prenom} ${cible.nom} (${cible.email})`
+  );
+  revalidatePath("/admin");
+  return { provisoire, nom: `${cible.prenom} ${cible.nom}`, email: cible.email };
+}
+
+// ---------- Inscription ----------
+
+// Toute inscription attend la validation des coordinateurs principaux : c'est
+// ce qui permet de vérifier que la personne fait bien partie de l'encadrement.
+export async function sInscrire(
+  _prev: { erreur?: string; ok?: boolean } | undefined,
+  formData: FormData
+) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const nom = String(formData.get("nom") ?? "").trim();
+  const prenom = String(formData.get("prenom") ?? "").trim();
+  const telephone = String(formData.get("telephone") ?? "").trim() || null;
+  const sexe = String(formData.get("sexe") ?? "");
+  const role = String(formData.get("role") ?? "CONSEILLER");
+  const motDePasse = String(formData.get("motDePasse") ?? "");
+
+  if (!email.includes("@")) return { erreur: "Adresse électronique invalide." };
+  if (!nom || !prenom) return { erreur: "Indiquez votre nom et votre prénom." };
+  if (sexe !== "M" && sexe !== "F") return { erreur: "Indiquez si vous êtes un homme ou une femme." };
+  if (!["CONSEILLER", "ADJOINT"].includes(role)) return { erreur: "Rôle invalide." };
+  if (motDePasse.length < MDP_MINIMUM) {
+    return { erreur: `Choisissez un mot de passe d'au moins ${MDP_MINIMUM} caractères.` };
+  }
+  if (await prisma.user.findUnique({ where: { email } })) {
+    return {
+      erreur:
+        "Un compte existe déjà avec cette adresse. Utilisez « mot de passe oublié » auprès d'un coordinateur.",
+    };
+  }
+
+  const cree = await prisma.user.create({
+    data: {
+      email,
+      passwordHash: await bcrypt.hash(motDePasse, 10),
+      nom,
+      prenom,
+      telephone,
+      sexe,
+      role,
+      valide: false,
+    },
+  });
+  await journaliser(cree.id, "INSCRIPTION_DEMANDEE", `${prenom} ${nom} — ${role}`);
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function deciderInscription(userId: string, accepter: boolean) {
+  const auteur = await exiger("COORDINATEUR");
+  const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  if (accepter) {
+    await prisma.user.update({ where: { id: userId }, data: { valide: true } });
+  } else {
+    // Refus : le compte est supprimé, la personne peut se réinscrire si c'est
+    // une erreur. Rien n'y est encore rattaché puisqu'elle n'a pas pu se connecter.
+    await prisma.auditLog.deleteMany({ where: { userId } });
+    await prisma.user.delete({ where: { id: userId } });
+  }
+  await journaliser(
+    auteur.id,
+    accepter ? "INSCRIPTION_VALIDEE" : "INSCRIPTION_REFUSEE",
+    `${cible.prenom} ${cible.nom} (${cible.email})`
+  );
+  revalidatePath("/admin");
 }
 
 export async function seDeconnecter() {
@@ -565,6 +716,96 @@ export async function affecterCompagnie(userId: string, compagnieId: string | nu
 export async function demanderSignaturePhoto() {
   await exiger("CONSEILLER");
   return signerEnvoi();
+}
+
+// ---------- Remise à zéro après les essais ----------
+
+
+// Réservée au couple dirigeant : c'est une action irréversible. Les comptes, les
+// jeunes, les groupes, les compagnies et le programme officiel ne sont jamais
+// touchés — seules les données produites pendant les essais le sont.
+export async function remiseAZero(choix: string[], confirmation: string) {
+  const user = await exiger("DIRIGEANT");
+  if (confirmation.trim().toUpperCase() !== "EFFACER") {
+    throw new Error("Tapez EFFACER pour confirmer.");
+  }
+  const valides = choix.filter((c) =>
+    CHOSES_A_EFFACER.some((x) => x.cle === c)
+  ) as ChoseAEffacer[];
+  if (valides.length === 0) throw new Error("Choisissez au moins un élément à effacer.");
+
+  const compte: Record<string, number> = {};
+  const a = (c: ChoseAEffacer) => valides.includes(c);
+
+  if (a("rapports")) {
+    // Les photos partent avec le rapport (suppression en cascade en base) ;
+    // celles qui sont chez Cloudinary sont retirées d'abord.
+    const photos = await prisma.photoRapport.findMany({
+      where: { publicId: { not: null } },
+      select: { publicId: true },
+    });
+    await supprimerPhotos(photos.map((p) => p.publicId!).filter(Boolean));
+    compte.rapports = (await prisma.rapportQuotidien.deleteMany()).count;
+  }
+  if (a("pointages")) compte.pointages = (await prisma.mouvement.deleteMany()).count;
+  if (a("affectationsCars")) {
+    compte.affectationsCars = (await prisma.affectationCar.deleteMany()).count;
+  }
+  if (a("conseillers")) {
+    compte.conseillers = (
+      await prisma.groupe.updateMany({
+        where: { conseillerId: { not: null } },
+        data: { conseillerId: null },
+      })
+    ).count;
+  }
+  if (a("adjoints")) {
+    compte.adjoints = (
+      await prisma.user.updateMany({
+        where: { compagnieId: { not: null } },
+        data: { compagnieId: null },
+      })
+    ).count;
+  }
+  if (a("programme")) {
+    compte.propositions = (await prisma.modificationProgramme.deleteMany()).count;
+    // Seules les activités ajoutées à la main partent ; celles du programme
+    // officiel sont marquées à l'amorçage et retrouvent leur statut d'origine.
+    const ajoutees = await prisma.activite.findMany({
+      where: { officielle: false },
+      select: { id: true },
+    });
+    await prisma.activiteGroupe.deleteMany({
+      where: { activiteId: { in: ajoutees.map((x) => x.id) } },
+    });
+    compte.activitesAjoutees = (
+      await prisma.activite.deleteMany({ where: { officielle: false } })
+    ).count;
+    compte.activitesRetablies = (
+      await prisma.activite.updateMany({
+        where: { officielle: true, statut: { in: ["MODIFIE", "ANNULE"] } },
+        data: { statut: "PLANIFIE" },
+      })
+    ).count;
+  }
+  if (a("annonces")) {
+    compte.annonces = (await prisma.annonce.deleteMany({ where: { automatique: false } })).count;
+  }
+  if (a("audit")) {
+    compte.audit = (await prisma.auditLog.deleteMany()).count;
+  }
+
+  await journaliser(
+    user.id,
+    "REMISE_A_ZERO",
+    Object.entries(compte)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ") || "aucune donnée"
+  );
+  for (const chemin of ["/accueil", "/cars", "/groupes", "/programme", "/annonces", "/rapports", "/rapports/final", "/admin", "/organigramme"]) {
+    revalidatePath(chemin);
+  }
+  return compte;
 }
 
 // ---------- Administration (couple dirigeant) ----------

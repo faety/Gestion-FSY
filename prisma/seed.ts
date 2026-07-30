@@ -46,7 +46,16 @@ async function main() {
     prisma.user.upsert({
       where: { email },
       update: { nom, prenom, telephone },
-      create: { email, passwordHash: hash, nom, prenom, sexe, role, telephone },
+      create: {
+        email,
+        passwordHash: hash,
+        nom,
+        prenom,
+        sexe,
+        role,
+        telephone,
+        doitChangerMotDePasse: true,
+      },
     });
 
   // Couple dirigeant de la conférence (réel)
@@ -186,6 +195,9 @@ async function main() {
         // groupe de filles sans conseillère étant plus difficile à combler.
         sexe: p.sexe ?? "F",
         role: p.role,
+        // Mot de passe commun au premier accès : l'application impose d'en
+        // choisir un autre dès la première connexion.
+        doitChangerMotDePasse: true,
       },
     });
   }
@@ -244,6 +256,7 @@ async function main() {
     for (const a of PROGRAMME) {
       await prisma.activite.create({
         data: {
+          officielle: true,
           titre: a.titre,
           description: a.description ?? null,
           lieu: a.lieu ?? null,

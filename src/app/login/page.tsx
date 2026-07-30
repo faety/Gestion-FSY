@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { seConnecter } from "@/lib/actions";
 
 export default function LoginPage() {
@@ -9,6 +11,9 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-fsy-dark to-fsy">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
+        <div className="flex justify-center mb-2">
+          <Logo taille={72} />
+        </div>
         <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
         <p className="text-center text-slate-500 mb-6">Abidjan Ouest — Gestion de l'événement</p>
         <form action={action} className="space-y-4">
@@ -46,6 +51,16 @@ export default function LoginPage() {
             {pending ? "Connexion…" : "Se connecter"}
           </button>
         </form>
+
+        <p className="text-center text-sm text-slate-500 mt-5">
+          Pas encore de compte ?{" "}
+          <Link href="/inscription" className="text-fsy hover:underline">
+            Demander un accès
+          </Link>
+        </p>
+        <p className="text-center text-xs text-slate-400 mt-2">
+          Mot de passe oublié ? Demandez-en un provisoire à un coordinateur principal.
+        </p>
       </div>
     </main>
   );
