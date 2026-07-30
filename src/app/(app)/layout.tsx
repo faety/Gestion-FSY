@@ -21,7 +21,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
   const secondaires = [
     { href: "/groupes", label: "Groupes", icone: "🧑‍🤝‍🧑" },
-    { href: "/organigramme", label: "Organigramme", icone: "🏛️" },
+    ...(roleAuMoins(user.role, "ADJOINT")
+      ? [{ href: "/pieux", label: "Pieux et districts", icone: "🏛️" }]
+      : []),
+    { href: "/organigramme", label: "Organigramme", icone: "🗂️" },
     { href: "/annonces", label: "Annonces", icone: "📢" },
     ...(estCoordinateur ? [{ href: "/admin", label: "Administration", icone: "⚙️" }] : []),
   ];

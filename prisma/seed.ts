@@ -14,23 +14,6 @@ import participants from "./participants.json";
 
 const prisma = new PrismaClient();
 
-// Le manuel de l'encadrant : groupes de dix à douze jeunes du même sexe, et
-// compagnies constituées par tranche d'âge (14-15 ans et 16-18 ans).
-const TAILLE_GROUPE = 11;
-const DATE_REFERENCE = new Date(DATE_JOUR_1.annee, DATE_JOUR_1.mois, DATE_JOUR_1.jour);
-
-function ageA(dateNaissance: Date, reference: Date): number {
-  let age = reference.getFullYear() - dateNaissance.getFullYear();
-  const avantAnniversaire =
-    reference.getMonth() < dateNaissance.getMonth() ||
-    (reference.getMonth() === dateNaissance.getMonth() &&
-      reference.getDate() < dateNaissance.getDate());
-  if (avantAnniversaire) age--;
-  return age;
-}
-
-const trancheDe = (age: number) => (age <= 15 ? "13-15" : "16+");
-
 async function main() {
   const hash = await bcrypt.hash("fsy2026", 10);
 
@@ -69,7 +52,8 @@ async function main() {
           nom: p.nom,
           nomUsage: p.nomUsage,
           sexe: p.sexe,
-          dateNaissance: new Date(p.dateNaissance),
+          dateNaissance: p.dateNaissance ? new Date(p.dateNaissance) : null,
+          dateNaissanceBrute: p.dateNaissanceBrute,
           paroisse: p.paroisse,
           tailleTshirt: p.tailleTshirt,
           statutInscription: p.statut ?? "Approuvée",
@@ -80,85 +64,73 @@ async function main() {
     console.log(`   ${participants.length} participants importés.`);
   }
 
-  // ---------- Groupes et compagnies (calculés depuis les inscriptions) ----------
+  // ---------- Groupes et compagnies (affectation officielle) ----------
+  // 36 compagnies de deux groupes : groupe 1 = filles, groupe 2 = garçons.
+  // L'affectation mélange volontairement les âges et les pieux, pour favoriser
+  // l'unité — c'est le fichier officiel qui fait foi, pas un calcul.
   if ((await prisma.groupe.count()) === 0) {
-    // Les inscriptions annulées ne sont pas affectées à un groupe
-    const attendus = await prisma.jeune.findMany({
-      where: { statutInscription: { not: "Annulé(e)" } },
-      orderBy: [{ nom: "asc" }, { prenom: "asc" }],
-    });
+    const numerosCompagnie = [
+      ...new Set(participants.map((p) => p.compagnie).filter((n): n is number => n != null)),
+    ].sort((a, b) => a - b);
 
-    // Répartition par (tranche d'âge, sexe)
-    const paquets = new Map<string, typeof attendus>();
-    for (const j of attendus) {
-      const tranche = trancheDe(ageA(j.dateNaissance ?? DATE_REFERENCE, DATE_REFERENCE));
-      const cle = `${tranche}|${j.sexe}`;
-      paquets.set(cle, [...(paquets.get(cle) ?? []), j]);
-    }
+    for (const numero of numerosCompagnie) {
+      const compagnie = await prisma.compagnie.create({
+        data: { nom: `Compagnie ${numero}`, numero },
+      });
 
-    // Découpage en groupes de onze
-    type GroupePrevu = { tranche: string; sexe: string; jeunes: typeof attendus };
-    const prevus: GroupePrevu[] = [];
-    for (const [cle, liste] of paquets) {
-      const [tranche, sexe] = cle.split("|");
-      const nbGroupes = Math.ceil(liste.length / TAILLE_GROUPE);
-      for (let i = 0; i < nbGroupes; i++) {
-        prevus.push({
-          tranche,
-          sexe,
-          jeunes: liste.filter((_, idx) => idx % nbGroupes === i),
-        });
-      }
-    }
+      const numerosGroupe = [
+        ...new Set(
+          participants.filter((p) => p.compagnie === numero).map((p) => p.groupe)
+        ),
+      ]
+        .filter((n): n is number => n != null)
+        .sort((a, b) => a - b);
 
-    // Compagnies : un groupe de garçons et un groupe de filles de la même
-    // tranche. Les filles étant plus nombreuses, les groupes en surplus
-    // rejoignent les compagnies existantes.
-    let numeroCompagnie = 0;
-    let numeroGroupe = 0;
-    for (const tranche of ["13-15", "16+"]) {
-      const garcons = prevus.filter((g) => g.tranche === tranche && g.sexe === "M");
-      const filles = prevus.filter((g) => g.tranche === tranche && g.sexe === "F");
-      const nbCompagnies = Math.max(garcons.length, 1);
-
-      const compagnies: string[] = [];
-      for (let i = 0; i < nbCompagnies; i++) {
-        numeroCompagnie++;
-        const c = await prisma.compagnie.create({
-          data: { nom: `Compagnie ${numeroCompagnie} (${tranche} ans)`, trancheAge: tranche },
-        });
-        compagnies.push(c.id);
-      }
-
-      const aCreer = [
-        ...garcons.map((g, i) => ({ ...g, compagnieId: compagnies[i] })),
-        ...filles.map((g, i) => ({ ...g, compagnieId: compagnies[i % nbCompagnies] })),
-      ];
-      for (const g of aCreer) {
-        numeroGroupe++;
+      for (const numeroGroupe of numerosGroupe) {
+        const membres = participants.filter(
+          (p) => p.compagnie === numero && p.groupe === numeroGroupe
+        );
+        const sexe = membres[0].sexe;
         const groupe = await prisma.groupe.create({
           data: {
-            nom: `Groupe ${numeroGroupe}${g.sexe === "M" ? "G" : "F"}`,
-            sexe: g.sexe,
-            trancheAge: g.tranche,
+            nom: `Groupe ${numero}.${numeroGroupe}`,
+            sexe,
+            numeroDansCompagnie: numeroGroupe,
             capaciteMax: 12,
-            compagnieId: g.compagnieId,
+            compagnieId: compagnie.id,
           },
         });
-        await prisma.jeune.updateMany({
-          where: { id: { in: g.jeunes.map((j) => j.id) } },
-          data: { groupeId: groupe.id },
-        });
+        // Rattachement par identité : prénom, nom et date de naissance
+        for (const m of membres) {
+          await prisma.jeune.updateMany({
+            where: {
+              prenom: m.prenom,
+              nom: m.nom,
+              ...(m.dateNaissance
+                ? { dateNaissance: new Date(m.dateNaissance) }
+                : { dateNaissanceBrute: m.dateNaissanceBrute }),
+              groupeId: null,
+            },
+            data: { groupeId: groupe.id },
+          });
+        }
       }
     }
+
+    const nbG = await prisma.groupe.count();
+    const nbC = await prisma.compagnie.count();
+    const affectes = await prisma.jeune.count({ where: { groupeId: { not: null } } });
     console.log(
-      `   ${numeroGroupe} groupes et ${numeroCompagnie} compagnies constitués (${TAILLE_GROUPE} jeunes/groupe, par tranche d'âge et par sexe).`
+      `   ${nbC} compagnies et ${nbG} groupes (affectation officielle) — ${affectes} jeunes affectés.`
     );
 
-    // Conseillers de démonstration : un par groupe, dans la limite de douze, pour
-    // pouvoir tester l'application. Les autres groupes restent sans conseiller.
-    const groupes = await prisma.groupe.findMany({ orderBy: { nom: "asc" } });
-    for (let i = 0; i < Math.min(12, groupes.length); i++) {
+    // Conseillers de démonstration sur les six premiers groupes, pour pouvoir
+    // tester l'application. Les autres groupes restent sans conseiller.
+    const groupes = await prisma.groupe.findMany({
+      orderBy: { nom: "asc" },
+      take: 6,
+    });
+    for (let i = 0; i < groupes.length; i++) {
       const g = groupes[i];
       const prenoms = g.sexe === "M" ? PRENOMS_M : PRENOMS_F;
       const conseiller = await creerUser(
@@ -172,15 +144,16 @@ async function main() {
     }
 
     // Paires de coordinateurs adjoints de démonstration sur les trois premières compagnies
-    const compagnies = await prisma.compagnie.findMany({ orderBy: { nom: "asc" }, take: 3 });
+    const compagnies = await prisma.compagnie.findMany({ orderBy: { numero: "asc" }, take: 3 });
     for (let c = 0; c < compagnies.length; c++) {
       for (const sexe of ["M", "F"] as const) {
         const prenoms = sexe === "M" ? PRENOMS_M : PRENOMS_F;
+        const email = `adjoint${sexe.toLowerCase()}${c + 1}@fsy2026.ci`;
         await prisma.user.upsert({
-          where: { email: `adjoint${sexe.toLowerCase()}${c + 1}@fsy2026.ci` },
+          where: { email },
           update: { compagnieId: compagnies[c].id },
           create: {
-            email: `adjoint${sexe.toLowerCase()}${c + 1}@fsy2026.ci`,
+            email,
             passwordHash: hash,
             nom: NOMS[(c + 5) % NOMS.length],
             prenom: prenoms[(c + 5) % prenoms.length],

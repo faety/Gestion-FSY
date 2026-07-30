@@ -40,28 +40,66 @@ Chaque encadrant ne voit que les jeunes de son périmètre : un conseiller son g
 adjoint sa compagnie, un coordinateur tous. Les informations médicales suivent cette
 portée.
 
-### Structure des groupes
+### Critères d'admission officiels
 
-Calculée depuis les inscriptions, selon les règles du manuel de l'encadrant (groupes de
-dix à douze jeunes du même sexe ; compagnies constituées par tranche d'âge) :
+D'après les rapports par pieu du 29 juillet 2026 (`src/lib/criteres.ts`) :
 
-| Tranche | Filles | Garçons | Total |
-|---|---|---|---|
-| 13-15 ans | 163 (15 groupes) | 138 (13 groupes) | 301 |
-| 16 ans et plus | 194 (18 groupes) | 154 (14 groupes) | 348 |
-| **Total** | **357** | **292** | **649 attendus** |
+- **Âge** : au moins **14 ans au 31 décembre 2026** et au plus **18 ans au 3 août 2026**
+  (jour et mois pris en compte, pas seulement l'année).
+- **Statut** : seul « Approuvée » est accepté. « En attente d'approbation » doit être
+  régularisé, « Annulé » n'est pas accepté.
 
-→ **60 groupes** et **27 compagnies**. Il faut donc **60 conseillers** et 27 paires de
-coordinateurs adjoints. L'application affiche les groupes encore sans conseiller, et une
-annonce le rappelle aux coordinateurs.
+**7 participants hors critères** sont signalés : six ont plus de 18 ans au 3 août (20, 20,
+21, 22, 23 et 28 ans) et un a une date de naissance invalide (`0012-08-23`). Cette date
+n'est **pas corrigée silencieusement** : la valeur brute est conservée dans
+`dateNaissanceBrute` et signalée, comme le fait le rapport officiel.
 
-### Anomalies signalées à l'import
+### Structure des groupes (affectation officielle)
 
-- Une date de naissance saisie `0012-08-23`, corrigée en `2012-08-23` (année tronquée).
-- Six participants de plus de 18 ans au 3 août (20, 20, 21, 22, 23 et 28 ans) enregistrés
-  comme participants — peut-être des conseillers inscrits via le même formulaire.
+L'affectation vient du fichier officiel, pas d'un calcul : **36 compagnies de deux groupes**
+— groupe 1 = filles, groupe 2 = garçons — soit **72 groupes** de 8 à 10 jeunes (moyenne 9),
+nommés `Groupe <compagnie>.<groupe>`.
 
-Ces deux points font l'objet d'une annonce automatique destinée aux coordinateurs.
+L'affectation **mélange volontairement les âges et les pieux** : la compagnie 1 réunit des
+jeunes de 13 à 17 ans venus de 6 pieux différents. C'est un choix d'organisation en faveur
+de l'unité, et non la répartition par tranche d'âge que suggère le manuel de l'encadrant.
+
+### Conseillers à proposer par unité
+
+Formule officielle, appliquée **séparément par sexe** :
+`plafond(participants du sexe ÷ 10) + 2`.
+
+| Pieu / district | Inscrits | Conseillères | Conseillers | Total |
+|---|--:|--:|--:|--:|
+| Pieu de Niangon North | 100 | 9 | 6 | 15 |
+| Pieu de Toit Rouge | 95 | 7 | 7 | 14 |
+| District de Dabou | 94 | 8 | 7 | 15 |
+| Pieu de Selmer | 93 | 8 | 6 | 14 |
+| Pieu de Niangon South | 90 | 7 | 7 | 14 |
+| Pieu de Yopougon Attie | 80 | 6 | 6 | 12 |
+| Pieu de Niangon Central | 71 | 7 | 5 | 12 |
+| District de Tiassale | 27 | 4 | 4 | 8 |
+| Mission West | 8 | 3 | 3 | 6 |
+| District de Dakar Senegal | 4 | 3 | 3 | 6 |
+| Pieu de Roosevelt Utah West | 1 | 3 | 2 | 5 |
+| **Total** | **663** | **65** | **56** | **121** |
+
+Ces chiffres reproduisent exactement les rapports officiels des quatre pieux fournis
+(Niangon North, Toit Rouge, Dabou, Niangon South), ce qui valide l'implémentation.
+
+Profil attendu : jeune adulte seul de **19 à 35 ans**, non marié ; missionnaire de retour
+pour les hommes (non obligatoire pour les femmes) ; recommandation à l'usage du temple ;
+formation « Protéger les enfants et les jeunes ».
+
+La page **Pieux et districts** (coordinateurs et adjoints) réunit ces effectifs, les
+statuts d'inscription, les cas hors critères et le profil des conseillers.
+
+### Doublons d'inscription détectés
+
+Quatre paires partagent prénom, nom et date de naissance. Deux sont des ré-inscriptions
+normales (une annulée puis une approuvée) ; **deux sont de vrais doublons approuvés** :
+Djerou Kady Soroko et Kabogbo Chris Uriel Zie. Les 647 inscriptions approuvées
+correspondent donc à 645 jeunes distincts.
 
 ## Anniversaires pendant la conférence
 
@@ -203,6 +241,7 @@ npm run dev       # http://localhost:3000
 - **Groupes** — réassignation dynamique : changer le conseiller d'un groupe, fusionner deux groupes, alerte de sur-capacité. Contrainte : groupe et conseiller du même sexe.
 - **Jeunes** — 663 inscrits réels : recherche par nom/pieu/paroisse/groupe, âge, taille de t-shirt, statut d'inscription, badges 🎂 anniversaire, ⚕️ médical et 🍽 alimentaire, contact d'urgence ; filtres par onglet (anniversaires, à suivre, sans groupe) ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
 - **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs.
+- **Pieux et districts** *(coordinateurs et adjoints)* — effectifs par unité, statuts d'inscription, **contrôle des critères d'âge officiels**, **conseillers à proposer** selon la formule officielle, et profil attendu des conseillers.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.
 - **Admin** — création de comptes, marquage présent/absent, octroi du droit de modification directe aux adjoints (couple dirigeant), **journal d'audit** (qui a fait quoi, quand).
@@ -232,6 +271,7 @@ prisma/schema.prisma       # modèle de données commenté
 prisma/programme-fsy2026.ts # programme officiel (sources et arbitrages documentés)
 prisma/participants.json   # 663 inscrits, champs non sensibles (versionné)
 prisma/anniversaires.ts    # fenêtre du 2 au 8 août et génération des annonces J-2/J-1/jour J
+src/lib/criteres.ts        # critères d'âge officiels et formule des conseillers à proposer
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts depuis data/ (hors dépôt)
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission

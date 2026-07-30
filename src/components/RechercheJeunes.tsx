@@ -14,8 +14,11 @@ type Jeune = {
   groupeId: string | null;
   groupe: string | null;
   dateNaissance: string | null;
+  dateNaissanceBrute: string | null;
   tailleTshirt: string | null;
   statutInscription: string;
+  motifHorsCriteres: string | null;
+  ageConference: number | null;
   medical: string | null;
   alimentaire: string | null;
   contactNom: string | null;
@@ -23,16 +26,6 @@ type Jeune = {
 };
 
 const fmtAnniv = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" });
-
-// Âge au 3 août 2026, premier jour de la conférence
-const DEBUT = new Date(2026, 7, 3);
-function age(iso: string | null): number | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  let a = DEBUT.getFullYear() - d.getFullYear();
-  if (DEBUT.getMonth() < d.getMonth() || (DEBUT.getMonth() === d.getMonth() && DEBUT.getDate() < d.getDate())) a--;
-  return a;
-}
 
 export function RechercheJeunes({
   jeunes,
@@ -46,7 +39,9 @@ export function RechercheJeunes({
   peutReassigner: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
-  const [filtre, setFiltre] = useState<"TOUS" | "ANNIVERSAIRE" | "MEDICAL" | "SANS_GROUPE">("TOUS");
+  const [filtre, setFiltre] = useState<
+    "TOUS" | "ANNIVERSAIRE" | "MEDICAL" | "HORS_CRITERES" | "SANS_GROUPE"
+  >("TOUS");
   const [, startTransition] = useTransition();
 
   const compteurs = useMemo(
@@ -55,6 +50,7 @@ export function RechercheJeunes({
         (j) => j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance))
       ).length,
       medical: jeunes.filter((j) => j.medical || j.alimentaire).length,
+      horsCriteres: jeunes.filter((j) => j.motifHorsCriteres).length,
       sansGroupe: jeunes.filter((j) => !j.groupeId).length,
     }),
     [jeunes]
@@ -69,6 +65,7 @@ export function RechercheJeunes({
       )
         return false;
       if (filtre === "MEDICAL" && !j.medical && !j.alimentaire) return false;
+      if (filtre === "HORS_CRITERES" && !j.motifHorsCriteres) return false;
       if (filtre === "SANS_GROUPE" && j.groupeId) return false;
       if (!q) return true;
       return `${j.prenom} ${j.nom} ${j.pieu} ${j.paroisse ?? ""} ${j.groupe ?? ""}`
@@ -81,6 +78,7 @@ export function RechercheJeunes({
     { cle: "TOUS" as const, label: `Tous (${jeunes.length})` },
     { cle: "ANNIVERSAIRE" as const, label: `🎂 Anniversaires (${compteurs.anniversaire})` },
     { cle: "MEDICAL" as const, label: `⚕️ À suivre (${compteurs.medical})` },
+    { cle: "HORS_CRITERES" as const, label: `⚠️ Hors critères (${compteurs.horsCriteres})` },
     { cle: "SANS_GROUPE" as const, label: `Sans groupe (${compteurs.sansGroupe})` },
   ];
 
@@ -131,7 +129,7 @@ export function RechercheJeunes({
                     {j.prenom} {j.nom}
                   </div>
                   <div className="text-sm text-slate-500">
-                    {age(j.dateNaissance) !== null && `${age(j.dateNaissance)} ans · `}
+                    {j.ageConference !== null && `${j.ageConference} ans · `}
                     {j.sexe === "M" ? "Garçon" : "Fille"}
                     {j.tailleTshirt && ` · T-shirt ${j.tailleTshirt}`}
                   </div>
@@ -173,6 +171,12 @@ export function RechercheJeunes({
                 {annule && (
                   <span className="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5">
                     Inscription annulée
+                  </span>
+                )}
+                {j.motifHorsCriteres && (
+                  <span className="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5">
+                    ⚠️ {j.motifHorsCriteres}
+                    {j.dateNaissanceBrute && ` (« ${j.dateNaissanceBrute} »)`}
                   </span>
                 )}
                 {j.statutInscription.startsWith("En attente") && (

@@ -59,12 +59,14 @@ async function main() {
 
   const fiches: Fiche[] = JSON.parse(fs.readFileSync(FICHIER, "utf-8"));
   const jeunes = await prisma.jeune.findMany({
-    select: { id: true, prenom: true, nom: true, dateNaissance: true },
+    select: { id: true, prenom: true, nom: true, dateNaissance: true, dateNaissanceBrute: true },
   });
 
+  // Les dates invalides sont conservées telles quelles : la clé retombe alors sur
+  // la valeur brute, afin que ces fiches soient rattachées elles aussi.
   const index = new Map(
     jeunes.map((j) => [
-      `${j.prenom}|${j.nom}|${j.dateNaissance?.toISOString().slice(0, 10)}`,
+      `${j.prenom}|${j.nom}|${j.dateNaissance?.toISOString().slice(0, 10) ?? j.dateNaissanceBrute}`,
       j.id,
     ])
   );

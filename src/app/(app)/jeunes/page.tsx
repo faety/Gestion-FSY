@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
+import { verifierAge } from "@/lib/criteres";
 import { RechercheJeunes } from "@/components/RechercheJeunes";
 
 export default async function JeunesPage() {
@@ -43,8 +44,15 @@ export default async function JeunesPage() {
         groupeId: j.groupeId,
         groupe: j.groupe?.nom ?? null,
         dateNaissance: j.dateNaissance?.toISOString() ?? null,
+        dateNaissanceBrute: j.dateNaissanceBrute,
         tailleTshirt: j.tailleTshirt,
         statutInscription: j.statutInscription,
+        // Contrôle des critères d'âge officiels
+        motifHorsCriteres: (() => {
+          const v = verifierAge(j.dateNaissance);
+          return v.valide ? null : v.motif;
+        })(),
+        ageConference: verifierAge(j.dateNaissance).ageConference,
         // Informations sensibles : la requête ci-dessus limite déjà la liste à la
         // portée de l'utilisateur (son groupe, sa compagnie, ou tous), ces
         // informations ne sortent donc pas de son périmètre de responsabilité.
