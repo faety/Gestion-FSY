@@ -9,11 +9,25 @@ export default async function AnnoncesPage() {
   const user = (await getUtilisateur())!;
   const peutCreer = roleAuMoins(user.role, "COORDINATEUR");
 
-  const annonces = await prisma.annonce.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { creePar: true },
-  });
+  const maintenant = new Date();
+  const [annonces, programmees] = await Promise.all([
+    // Publiées : date de publication atteinte
+    prisma.annonce.findMany({
+      where: { datePublication: { lte: maintenant } },
+      orderBy: { datePublication: "desc" },
+      include: { creePar: true },
+    }),
+    // À venir : visibles des seuls coordinateurs, qui peuvent les ajuster
+    peutCreer
+      ? prisma.annonce.findMany({
+          where: { datePublication: { gt: maintenant } },
+          orderBy: { datePublication: "asc" },
+          include: { creePar: true },
+        })
+      : [],
+  ]);
   const visibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
+  const aVenir = programmees.filter((a) => annonceVisible(a.cible, user.role));
 
   return (
     <div className="space-y-4">
@@ -54,6 +68,44 @@ export default async function AnnoncesPage() {
         </form>
       )}
 
+      {/* File des annonces programmées (coordinateurs) */}
+      {aVenir.length > 0 && (
+        <details className="bg-white rounded-xl shadow-sm p-4">
+          <summary className="font-bold cursor-pointer">
+            🕗 Annonces programmées ({aVenir.length})
+          </summary>
+          <p className="text-sm text-slate-500 mt-2">
+            Publiées automatiquement à la date indiquée. Vous pouvez les supprimer si
+            besoin.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {aVenir.map((a) => (
+              <li key={a.id} className="border-l-4 border-slate-200 pl-3">
+                <div className="text-xs text-fsy font-medium">
+                  {fmt.format(a.datePublication)}
+                  {a.automatique && " · automatique"}
+                </div>
+                <div className="font-medium">{a.titre}</div>
+                <p className="text-sm text-slate-600 whitespace-pre-line">{a.contenu}</p>
+                <div className="text-xs text-slate-400 mt-1">
+                  {CIBLE_LABELS[a.cible] ?? a.cible}
+                  {" · "}
+                  <form
+                    action={async () => {
+                      "use server";
+                      await supprimerAnnonce(a.id);
+                    }}
+                    className="inline"
+                  >
+                    <button className="text-red-500 hover:underline">Supprimer</button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       <ul className="space-y-3">
         {visibles.map((a) => (
           <li key={a.id} className="bg-white rounded-xl shadow-sm p-4">
@@ -62,7 +114,7 @@ export default async function AnnoncesPage() {
                 <div className="font-bold">{a.titre}</div>
                 <p className="text-slate-600 mt-1 whitespace-pre-line">{a.contenu}</p>
                 <div className="text-xs text-slate-400 mt-2">
-                  {a.creePar.prenom} {a.creePar.nom} — {fmt.format(a.createdAt)} —{" "}
+                  {a.creePar.prenom} {a.creePar.nom} — {fmt.format(a.datePublication)} —{" "}
                   <span className="bg-slate-100 rounded-full px-2 py-0.5">
                     {CIBLE_LABELS[a.cible] ?? a.cible}
                   </span>

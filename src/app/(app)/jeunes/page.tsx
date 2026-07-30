@@ -39,8 +39,19 @@ export default async function JeunesPage() {
         prenom: j.prenom,
         sexe: j.sexe,
         pieu: j.pieu.nom,
+        paroisse: j.paroisse,
         groupeId: j.groupeId,
         groupe: j.groupe?.nom ?? null,
+        dateNaissance: j.dateNaissance?.toISOString() ?? null,
+        tailleTshirt: j.tailleTshirt,
+        statutInscription: j.statutInscription,
+        // Informations sensibles : la requête ci-dessus limite déjà la liste à la
+        // portée de l'utilisateur (son groupe, sa compagnie, ou tous), ces
+        // informations ne sortent donc pas de son périmètre de responsabilité.
+        medical: j.medical,
+        alimentaire: j.alimentaire,
+        contactNom: j.contactNom,
+        contactTelephone: j.contactTelephone,
       }))}
     />
   );

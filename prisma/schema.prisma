@@ -63,6 +63,7 @@ model Pieu {
 model Compagnie {
   id         String   @id @default(cuid())
   nom        String   @unique
+  trancheAge String?
   groupes    Groupe[]
   dirigeants User[]   @relation("DirigeantsCompagnie")
   activites  Activite[]
@@ -73,6 +74,7 @@ model Groupe {
   id           String  @id @default(cuid())
   nom          String  @unique
   sexe         String // "M" | "F"
+  trancheAge   String? // "13-15" | "16+" (compagnies constituées par tranche)
   capaciteMax  Int     @default(20)
   conseiller   User?   @relation(fields: [conseillerId], references: [id])
   conseillerId String?
@@ -83,11 +85,25 @@ model Groupe {
 }
 
 model Jeune {
-  id         String   @id @default(cuid())
-  nom        String
-  prenom     String
-  sexe       String // "M" | "F"
-  telephone  String?
+  id            String    @id @default(cuid())
+  nom           String
+  prenom        String
+  nomUsage      String? // nom d'usage / surnom, utile à l'appel
+  sexe          String // "M" | "F"
+  dateNaissance DateTime?
+  paroisse      String?
+  tailleTshirt  String?
+  // Approuvée | En attente d'approbation | Annulé(e) — les annulés ne sont pas
+  // affectés à un groupe et n'apparaissent pas dans les listes de car
+  statutInscription String @default("Approuvée")
+  // Données sensibles, importées séparément (voir scripts/importer-sensibles.ts)
+  telephone     String?
+  email         String?
+  medical       String?
+  alimentaire   String?
+  contactNom    String?
+  contactTelephone String?
+
   pieu       Pieu     @relation(fields: [pieuId], references: [id])
   pieuId     String
   groupe     Groupe?  @relation(fields: [groupeId], references: [id])
@@ -98,6 +114,7 @@ model Jeune {
   updatedAt DateTime @updatedAt
 
   @@index([nom, prenom])
+  @@index([dateNaissance])
 }
 
 // Car (bus) assigné à un pieu, avec un conseiller responsable des validations
@@ -221,9 +238,16 @@ model Annonce {
   titre     String
   contenu   String
   cible     String   @default("TOUS")
+  // Date de publication : une annonce programmée dans le futur reste invisible
+  // jusqu'à cette date (les coordinateurs voient la file des annonces à venir).
+  datePublication DateTime @default(now())
+  // Annonce générée automatiquement (anniversaires) : repérable et régénérable
+  automatique Boolean @default(false)
   creePar   User     @relation(fields: [creeParId], references: [id])
   creeParId String
   createdAt DateTime @default(now())
+
+  @@index([datePublication])
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure

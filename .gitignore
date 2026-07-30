@@ -9,3 +9,6 @@ npm-debug.log*
 .DS_Store
 next-env.d.ts
 .vercel
+
+# Données personnelles des participants (mineurs) : jamais versionnées
+data/

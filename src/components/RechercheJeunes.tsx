@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { deplacerJeune } from "@/lib/actions";
+import { anniversairePendantConference } from "@/lib/anniversaires-client";
 
 type Jeune = {
   id: string;
@@ -9,9 +10,29 @@ type Jeune = {
   prenom: string;
   sexe: string;
   pieu: string;
+  paroisse: string | null;
   groupeId: string | null;
   groupe: string | null;
+  dateNaissance: string | null;
+  tailleTshirt: string | null;
+  statutInscription: string;
+  medical: string | null;
+  alimentaire: string | null;
+  contactNom: string | null;
+  contactTelephone: string | null;
 };
+
+const fmtAnniv = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" });
+
+// Âge au 3 août 2026, premier jour de la conférence
+const DEBUT = new Date(2026, 7, 3);
+function age(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  let a = DEBUT.getFullYear() - d.getFullYear();
+  if (DEBUT.getMonth() < d.getMonth() || (DEBUT.getMonth() === d.getMonth() && DEBUT.getDate() < d.getDate())) a--;
+  return a;
+}
 
 export function RechercheJeunes({
   jeunes,
@@ -25,56 +46,108 @@ export function RechercheJeunes({
   peutReassigner: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
+  const [filtre, setFiltre] = useState<"TOUS" | "ANNIVERSAIRE" | "MEDICAL" | "SANS_GROUPE">("TOUS");
   const [, startTransition] = useTransition();
+
+  const compteurs = useMemo(
+    () => ({
+      anniversaire: jeunes.filter(
+        (j) => j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance))
+      ).length,
+      medical: jeunes.filter((j) => j.medical || j.alimentaire).length,
+      sansGroupe: jeunes.filter((j) => !j.groupeId).length,
+    }),
+    [jeunes]
+  );
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    if (!q) return jeunes;
-    return jeunes.filter((j) =>
-      `${j.prenom} ${j.nom} ${j.pieu} ${j.groupe ?? ""}`.toLowerCase().includes(q)
-    );
-  }, [jeunes, recherche]);
+    return jeunes.filter((j) => {
+      if (
+        filtre === "ANNIVERSAIRE" &&
+        !(j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance)))
+      )
+        return false;
+      if (filtre === "MEDICAL" && !j.medical && !j.alimentaire) return false;
+      if (filtre === "SANS_GROUPE" && j.groupeId) return false;
+      if (!q) return true;
+      return `${j.prenom} ${j.nom} ${j.pieu} ${j.paroisse ?? ""} ${j.groupe ?? ""}`
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [jeunes, recherche, filtre]);
+
+  const onglets = [
+    { cle: "TOUS" as const, label: `Tous (${jeunes.length})` },
+    { cle: "ANNIVERSAIRE" as const, label: `🎂 Anniversaires (${compteurs.anniversaire})` },
+    { cle: "MEDICAL" as const, label: `⚕️ À suivre (${compteurs.medical})` },
+    { cle: "SANS_GROUPE" as const, label: `Sans groupe (${compteurs.sansGroupe})` },
+  ];
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">Jeunes</h1>
-        <p className="text-slate-500 text-sm">{portee} — {jeunes.length} au total</p>
+        <p className="text-slate-500 text-sm">
+          {portee} — {jeunes.length} au total
+        </p>
       </div>
+
       <input
         type="search"
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom, pieu ou groupe…"
+        placeholder="🔍 Rechercher par nom, pieu, paroisse ou groupe…"
         className="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-fsy bg-white"
       />
-      <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-left text-slate-500 border-b border-slate-200">
-            <tr>
-              <th className="p-3">Nom</th>
-              <th className="p-3">Sexe</th>
-              <th className="p-3">Pieu / District</th>
-              <th className="p-3">Groupe</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtres.map((j) => (
-              <tr key={j.id} className="hover:bg-slate-50">
-                <td className="p-3 font-medium">
-                  {j.prenom} {j.nom}
-                </td>
-                <td className="p-3">{j.sexe === "M" ? "G" : "F"}</td>
-                <td className="p-3 text-slate-600">{j.pieu}</td>
-                <td className="p-3">
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {onglets.map((o) => (
+          <button
+            key={o.cle}
+            onClick={() => setFiltre(o.cle)}
+            className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
+              filtre === o.cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      <ul className="space-y-2">
+        {filtres.map((j) => {
+          const anniv =
+            j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance));
+          const annule = j.statutInscription === "Annulé(e)";
+          return (
+            <li
+              key={j.id}
+              className={`bg-white rounded-xl shadow-sm p-3 ${annule ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className={`font-medium ${annule ? "line-through" : ""}`}>
+                    {j.prenom} {j.nom}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    {age(j.dateNaissance) !== null && `${age(j.dateNaissance)} ans · `}
+                    {j.sexe === "M" ? "Garçon" : "Fille"}
+                    {j.tailleTshirt && ` · T-shirt ${j.tailleTshirt}`}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    {j.pieu}
+                    {j.paroisse && ` · ${j.paroisse}`}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
                   {peutReassigner ? (
                     <select
                       value={j.groupeId ?? ""}
-                      onChange={(e) => {
-                        const val = e.target.value || null;
-                        startTransition(() => deplacerJeune(j.id, val));
-                      }}
-                      className="rounded-lg border border-slate-300 px-2 py-1 bg-white"
+                      onChange={(e) =>
+                        startTransition(() => deplacerJeune(j.id, e.target.value || null))
+                      }
+                      className="rounded-lg border border-slate-300 px-2 py-1.5 bg-white text-sm max-w-[8rem]"
                     >
                       <option value="">— Aucun —</option>
                       {groupes
@@ -86,21 +159,50 @@ export function RechercheJeunes({
                         ))}
                     </select>
                   ) : (
-                    j.groupe ?? "—"
+                    <span className="text-sm font-medium">{j.groupe ?? "—"}</span>
                   )}
-                </td>
-              </tr>
-            ))}
-            {filtres.length === 0 && (
-              <tr>
-                <td colSpan={4} className="p-4 text-slate-500">
-                  Aucun jeune trouvé.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                {anniv && (
+                  <span className="text-xs bg-amber-100 text-amber-800 rounded-full px-2 py-0.5">
+                    🎂 {fmtAnniv.format(new Date(j.dateNaissance!))}
+                  </span>
+                )}
+                {annule && (
+                  <span className="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5">
+                    Inscription annulée
+                  </span>
+                )}
+                {j.statutInscription.startsWith("En attente") && (
+                  <span className="text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5">
+                    En attente d'approbation
+                  </span>
+                )}
+                {j.alimentaire && (
+                  <span className="text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">
+                    🍽 {j.alimentaire}
+                  </span>
+                )}
+                {j.medical && (
+                  <span className="text-xs bg-red-50 text-red-700 rounded-full px-2 py-0.5">
+                    ⚕️ {j.medical}
+                  </span>
+                )}
+              </div>
+
+              {j.contactNom && (
+                <div className="text-xs text-slate-400 mt-1.5">
+                  Contact : {j.contactNom}
+                  {j.contactTelephone && ` · ${j.contactTelephone}`}
+                </div>
+              )}
+            </li>
+          );
+        })}
+        {filtres.length === 0 && <p className="text-slate-500">Aucun jeune trouvé.</p>}
+      </ul>
     </div>
   );
 }

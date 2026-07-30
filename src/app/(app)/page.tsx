@@ -28,7 +28,8 @@ export default async function Accueil() {
 
   const [annonces, activitesAujourdhui, stats, propositionsEnAttente] = await Promise.all([
     prisma.annonce.findMany({
-      orderBy: { createdAt: "desc" },
+      where: { datePublication: { lte: new Date() } },
+      orderBy: { datePublication: "desc" },
       take: 10,
       include: { creePar: true },
     }),
@@ -76,6 +77,17 @@ export default async function Accueil() {
     }
   }
 
+  // Anniversaires de la journée affichée (comparaison jour + mois)
+  const jeunesAnniv = await prisma.jeune.findMany({
+    where: { statutInscription: { not: "Annulé(e)" }, dateNaissance: { not: null } },
+    include: { groupe: true, pieu: true },
+  });
+  const anniversairesDuJour = jeunesAnniv.filter(
+    (j) =>
+      j.dateNaissance!.getDate() === dateJour.getDate() &&
+      j.dateNaissance!.getMonth() === dateJour.getMonth()
+  );
+
   // Journée de conférence correspondante (numéro + tenue vestimentaire)
   const finDateJour = new Date(dateJour);
   finDateJour.setDate(finDateJour.getDate() + 1);
@@ -109,6 +121,28 @@ export default async function Accueil() {
           <span className="block text-blue-200 mt-0.5">Moïse 6:34</span>
         </p>
       </div>
+
+      {/* Anniversaires du jour */}
+      {anniversairesDuJour.length > 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+          <div className="font-bold text-amber-900">
+            🎂 {anniversairesDuJour.length} anniversaire
+            {anniversairesDuJour.length > 1 ? "s" : ""}
+            {titreJour ? " ce jour-là" : " aujourd'hui"}
+          </div>
+          <ul className="text-sm text-amber-800 mt-1 space-y-0.5">
+            {anniversairesDuJour.map((j) => (
+              <li key={j.id}>
+                <span className="font-medium">
+                  {j.prenom} {j.nom}
+                </span>{" "}
+                — {dateJour.getFullYear() - j.dateNaissance!.getFullYear()} ans ·{" "}
+                {j.groupe?.nom ?? j.pieu.nom}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {propositionsEnAttente > 0 && (
         <Link
@@ -213,7 +247,7 @@ export default async function Accueil() {
                 <p className="text-sm text-slate-600">{a.contenu}</p>
                 <div className="text-xs text-slate-400 mt-1">
                   {a.creePar.prenom} {a.creePar.nom} —{" "}
-                  {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(a.createdAt)}
+                  {new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(a.datePublication)}
                 </div>
               </li>
             ))}
