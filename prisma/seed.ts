@@ -140,10 +140,16 @@ async function main() {
   };
 
   for (const j of JOURNEES) {
+    const donnees = {
+      date: dateDe(j.numero, "00:00"),
+      tenue: j.tenue,
+      tenueEncadrants: j.tenueEncadrants,
+      note: j.note,
+    };
     await prisma.journeeConference.upsert({
       where: { numero: j.numero },
-      update: { date: dateDe(j.numero, "00:00"), tenue: j.tenue, note: j.note },
-      create: { numero: j.numero, date: dateDe(j.numero, "00:00"), tenue: j.tenue, note: j.note },
+      update: donnees,
+      create: { numero: j.numero, ...donnees },
     });
   }
 
@@ -163,6 +169,11 @@ async function main() {
           type: a.type ?? "GENERAL",
           publicCible: a.publicCible ?? "TOUS",
           statut: a.statut ?? "PLANIFIE",
+          pourEncadrants: a.encadrants ?? false,
+          roleConseiller: a.r?.[0] ?? "ASSISTER",
+          roleAdjoint: a.r?.[1] ?? "ASSISTER",
+          roleCoordinateur: a.r?.[2] ?? "ASSISTER",
+          roleDirigeant: a.r?.[3] ?? "FACULTATIF",
           creeParId: coordinateur?.id,
         },
       });
@@ -190,7 +201,7 @@ async function main() {
         data: {
           titre: "Programme officiel chargé",
           contenu:
-            "Les horaires des jours 1 à 5 proviennent du manuel du participant FSY 2026. Seules les activités du jour 6 (départs) restent « À confirmer », ainsi que les lieux, à renseigner pour le site d'Abidjan Ouest. Pensez aussi aux tenues : tee-shirt FSY le 3e jour, vêtements du dimanche le 4e jour.",
+            "Les horaires proviennent du manuel du participant et du manuel de l'encadrant FSY 2026, de la veille de la conférence jusqu'aux départs du samedi 8 août à 7 h. Chaque activité indique le rôle attendu de votre niveau : le badge « Vous dirigez » signale ce dont vous êtes responsable.\n\nSeuls les horaires de la veille (visite du lieu, réunion d'accueil des conseillers) et les lieux restent à renseigner pour le site d'Abidjan Ouest.",
           cible: "COORDINATEURS",
           creeParId: dirigeant.id,
         },

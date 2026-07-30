@@ -9,70 +9,90 @@ Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidja
 
 ## Programme de la conférence
 
-Le programme chargé dans l'application (`prisma/programme-fsy2026.ts`) couvre les
-6 jours, du lundi 3 au samedi 8 août 2026 — **102 activités, dont 97 aux horaires
-officiels**.
+Le programme chargé dans l'application (`prisma/programme-fsy2026.ts`) couvre la veille
+et les 6 jours de la conférence, du dimanche 2 au samedi 8 août 2026 — **138 activités,
+dont 136 aux horaires officiels**.
 
-**Source** : *Manuel du participant — Conférence Jeunes, soyez forts 2026 : Marche avec
-moi* (PD80053002 140), programmes des 1er au 5e jours, complété par les canevas officiels
-des réunions spirituelles matinales des jours 2, 3 et 4 (PD80061859 140) pour les thèmes
-doctrinaux.
+**Sources**
+1. *Manuel du participant — Conférence Jeunes, soyez forts 2026 : Marche avec moi*
+   (PD80053002 140) : programmes des 1er au 5e jours.
+2. *Manuel de l'encadrant* (PD80049773 140) : emploi du temps des encadrants du jour zéro
+   au 6e jour, réunions d'encadrants, et **rôle attendu de chaque niveau hiérarchique pour
+   chaque activité**.
+3. Canevas des réunions spirituelles matinales des jours 2, 3 et 4 (PD80061859 140) :
+   thèmes doctrinaux.
 
-| Statut | Signification |
-|---|---|
-| **PLANIFIE** | Horaire officiel du manuel du participant (97 activités) |
-| **A_CONFIRMER** | Jour 6 (départs, absent du manuel) et lieux à renseigner (5 activités) |
-| MODIFIE | Changement apporté après publication |
-| ANNULE | Activité annulée |
+### Rôle attendu par activité
+
+C'est l'apport central du manuel de l'encadrant : pour chaque activité, il précise ce que
+fait chaque niveau. L'application affiche ce rôle et met en évidence ceux qui engagent une
+responsabilité directe (`★ Vous dirigez`, `★ Vous enseignez`, `★ Vous supervisez`,
+`★ Vous recevez l'appel`), par opposition à `Vous assistez`, `Si vous le souhaitez` ou
+`Si la tâche vous est attribuée`.
+
+Un conseiller ouvre l'application et voit ses **8 activités à diriger** du jour 2 (réunion
+spirituelle des participants, étude de l'Évangile, appels, bannière et cri de ralliement,
+directives du bal, « Réfléchir et revoir »…) sans avoir à les chercher dans le manuel.
+
+Le rôle sert aussi de filtre : les réunions d'encadrants qui ne concernent pas un niveau
+lui sont masquées. Un conseiller ne voit pas la réunion coordinateurs/adjoints de 13 h 50,
+ni la réunion couple dirigeant/instructeurs de 8 h 45.
 
 ### Structure des journées
 
-| Jour | Date | Tenue | Temps forts |
+| Jour | Date | Tenue encadrants | Tenue jeunes | Temps forts |
+|---|---|---|---|---|
+| **Veille** | dim. 2 août | Vêtements du dimanche | — | *Encadrants uniquement* : visite du lieu, réunion d'accueil des conseillers, message du couple dirigeant, entretiens et planification |
+| 1 | lun. 3 août | Tee-shirt encadrant | Décontractée | Réunion des encadrants ; arrivée 11h–13h ; rencontre du conseiller et de la compagnie ; réunion d'accueil ; soirée au foyer et fixation des buts |
+| 2 | mar. 4 août | Tee-shirt encadrant | Décontractée | **1er jour des cours** ; « Les montagnes fuiront » ; bannière et cri de ralliement ; **bal** |
+| 3 | mer. 5 août | Tee-shirt encadrant | **Tee-shirt FSY** | **Dernier jour des cours** ; « Demeure en moi » ; soirée jeux et cris de ralliement ; soirée plat préféré |
+| 4 | jeu. 6 août | Vêtements du dimanche | Vêtements du dimanche | Réunions et activités **séparées** JG/JF ; spectacle de variétés ; spectacle musical ; veillée ; **réunions de témoignage** |
+| 5 | ven. 7 août | Tee-shirt encadrant | Décontractée | Revue des buts ; activité du guide FSY ; « Vivre l'Évangile » ; bal ; message « À emporter chez soi » ; **veille de nuit** |
+| 6 | sam. 8 août | Tee-shirt encadrant | Décontractée | **Départs dès 7 h** : préparation 6h30, vérification des chambres 7h–7h30, réunion de clôture 7h30–8h30 |
+
+Ossature quotidienne (jours 2 à 5) : réunion adjoints/conseillers (7h00), réunion
+spirituelle des participants par groupe (7h15), petit-déjeuner, étude de l'Évangile en
+compagnie, réunion spirituelle du couple dirigeant, activités, appels, « Réfléchir et
+revoir » par groupe (21h45), extinction des feux (22h30) et réunion coordinateurs/adjoints.
+
+### Divergences entre les deux manuels
+
+Les manuels se contredisent sur trois points ; voici les arbitrages retenus, tous
+documentés en tête de `prisma/programme-fsy2026.ts` :
+
+| Point | Manuel du participant | Manuel de l'encadrant | Retenu |
 |---|---|---|---|
-| 1 | lun. 3 août | Décontractée | Arrivée 11h–13h, connaissance du conseiller et de la compagnie, réunion d'accueil, soirée au foyer et fixation des buts |
-| 2 | mar. 4 août | Décontractée | **1er jour des cours** ; réunion spirituelle « Les montagnes fuiront » ; bannière et cri de ralliement ; **bal** |
-| 3 | mer. 5 août | **Tee-shirt FSY** | **Dernier jour des cours** ; « Demeure en moi et je demeurerai en toi » ; soirée jeux et cris de ralliement ; soirée plat préféré |
-| 4 | jeu. 6 août | **Vêtements du dimanche** | Réunions spirituelles et activités **séparées** Jeunes Gens / Jeunes Filles ; spectacle de variétés ; spectacle musical ; veillée ; **réunions de témoignage** |
-| 5 | ven. 7 août | Décontractée | Évaluation des buts ; activité du guide FSY ; activité « Vivre l'Évangile » (histoire familiale) ; bal ; message « À emporter chez soi » |
-| 6 | sam. 8 août | Décontractée | Départs *(à confirmer)* |
+| J5, message « À emporter chez soi » | 20h15–21h45 | 20h15–20h45 | **Encadrant** — 21h45 chevauchait l'activité de 21h |
+| J6, réunion de clôture | absent | 7h30–8h *(tableau)* / 7h30–8h30 *(3 sections)* | **7h30–8h30** |
+| J4, répétition du medley | Jeunes Gens seulement | Jeunes Gens **et** Jeunes Filles | **Encadrant** |
 
-Chaque journée suit la même ossature : réunion spirituelle des participants (7h15, par
-groupe), petit-déjeuner, étude de l'Évangile, réunion spirituelle avec le couple
-dirigeant, activités, appels avec la compagnie, puis **« Réfléchir et revoir »** en
-groupe (21h45) et extinction des feux (22h30).
+### Statuts et ajustements locaux
 
-### Organisation des activités
-
-Le champ `type` indique qui se réunit :
-
-| Type | Sens |
+| Statut | Signification |
 |---|---|
-| `GENERAL` | Tout le monde ensemble |
-| `PAR_GROUPE` | Chaque groupe séparément, avec son conseiller (réunion spirituelle des participants, appels, « Réfléchir et revoir ») |
-| `PAR_COMPAGNIE` | Chaque compagnie séparément (soirée au foyer, cri de ralliement, témoignages) |
-| `COMPAGNIE` / `GROUPE` / `MULTI_GROUPE` | Cibles précises |
+| **PLANIFIE** | Horaire officiel des manuels (136 activités) |
+| **A_CONFIRMER** | Horaires de la veille laissés libres par le manuel (2 activités) et lieux à renseigner |
+| MODIFIE | Changement apporté après publication |
+| ANNULE | Activité annulée |
 
-Le champ `publicCible` (`TOUS` / `GARCONS` / `FILLES`) gère les activités séparées du
-jour 4 : un conseiller de groupe de filles ne voit pas la réunion des Jeunes Gens.
-
-### Ajustements locaux
-
-Le manuel est le manuel FSY *international* : les responsables d'Abidjan Ouest peuvent
-adapter certains créneaux et doivent renseigner les lieux. Tout se fait dans
+Les manuels sont les manuels FSY *internationaux* : les responsables d'Abidjan Ouest
+peuvent adapter certains créneaux et doivent renseigner les lieux. Tout se fait dans
 l'application (page Programme) : les coordinateurs principaux modifient directement,
 confirment activité par activité (**Confirmer**) ou journée entière (**Confirmer la
 journée**), et les coordinateurs adjoints proposent des modifications soumises à
 validation. Chaque changement est horodaté dans le journal d'audit.
 
-## Stack technique
+### Organisation des activités
 
-| Couche | Choix | Pourquoi |
-|---|---|---|
-| Framework | **Next.js 15** (App Router, Server Actions) | Frontend + backend dans une seule app, simple à héberger |
-| Style | **Tailwind CSS 4** | Design responsive mobile-first (les conseillers sont sur téléphone) |
-| Base de données | **SQLite + Prisma** | Zéro configuration ; migrable vers PostgreSQL en changeant une ligne |
-| Authentification | Sessions **JWT** en cookie httpOnly (jose) + bcrypt | Simple et sûr, pas de service externe |
-| Autorisation | **RBAC** à 4 niveaux + droits supplémentaires accordables | Correspond exactement à la hiérarchie FSY |
+| Type | Sens |
+|---|---|
+| `GENERAL` | Tout le monde ensemble |
+| `PAR_GROUPE` | Chaque groupe séparément, avec son conseiller |
+| `PAR_COMPAGNIE` | Chaque compagnie séparément |
+| `COMPAGNIE` / `GROUPE` / `MULTI_GROUPE` | Cibles précises |
+
+Le champ `publicCible` (`TOUS` / `GARCONS` / `FILLES`) gère les activités croisées du
+jour 4, et `pourEncadrants` distingue les réunions d'équipe des activités avec les jeunes.
 
 ## Démarrage
 
@@ -98,7 +118,7 @@ npm run dev       # http://localhost:3000
 - **Groupes** — réassignation dynamique : changer le conseiller d'un groupe, fusionner deux groupes, alerte de sur-capacité. Contrainte : groupe et conseiller du même sexe.
 - **Jeunes** — recherche par nom/pieu/groupe ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
 - **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs.
-- **Programme** — vue par jour (J1 à J6) avec **tenue vestimentaire du jour**, plages horaires (début → fin), création d'activités, public ciblé (tous / Jeunes Gens / Jeunes Filles), confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Les conseillers ne voient par défaut que les activités concernant leurs groupes.
+- **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers).
 - **Admin** — création de comptes, marquage présent/absent, octroi du droit de modification directe aux adjoints (couple dirigeant), **journal d'audit** (qui a fait quoi, quand).
 
@@ -124,7 +144,7 @@ Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`
 
 ```
 prisma/schema.prisma       # modèle de données commenté
-prisma/programme-fsy2026.ts # programme réel de la conférence (sources documentées)
+prisma/programme-fsy2026.ts # programme officiel (sources et arbitrages documentés)
 prisma/seed.ts             # équipe et jeunes de démonstration + chargement du programme
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission
 src/lib/auth.ts            # sessions JWT (cookie httpOnly)

@@ -9,12 +9,13 @@ import {
   confirmerJournee,
 } from "@/lib/actions";
 import {
-  activitePourMesGroupes,
+  activitePourMoi,
+  monRoleActivite,
   PUBLIC_LABELS,
   TYPE_LABELS,
   TYPES_CREATION,
 } from "@/lib/roles";
-import { Horaire, BadgesActivite } from "@/components/StatutActivite";
+import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 
 type ActiviteVue = {
   id: string;
@@ -26,6 +27,11 @@ type ActiviteVue = {
   type: string;
   statut: string;
   publicCible: string;
+  pourEncadrants: boolean;
+  roleConseiller: string;
+  roleAdjoint: string;
+  roleCoordinateur: string;
+  roleDirigeant: string;
   compagnieId: string | null;
   groupeIds: string[];
   cibles: string[];
@@ -42,7 +48,13 @@ type Proposition = {
   motif: string | null;
 };
 
-type Journee = { numero: number; date: string; tenue: string | null; note: string | null };
+type Journee = {
+  numero: number;
+  date: string;
+  tenue: string | null;
+  tenueEncadrants: string | null;
+  note: string | null;
+};
 
 const fmtJourCourt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric" });
 const fmtJourLong = new Intl.DateTimeFormat("fr-FR", {
@@ -58,6 +70,7 @@ export function Programme({
   groupes,
   journees,
   mesGroupes,
+  role,
   peutCreer,
   peutModifierDirect,
   peutProposer,
@@ -69,6 +82,7 @@ export function Programme({
   groupes: { id: string; nom: string }[];
   journees: Journee[];
   mesGroupes: { id: string; sexe: string; compagnieId: string | null }[];
+  role: string;
   peutCreer: boolean;
   peutModifierDirect: boolean;
   peutProposer: boolean;
@@ -78,7 +92,7 @@ export function Programme({
   const [editionId, setEditionId] = useState<string | null>(null);
   const [creation, setCreation] = useState(false);
   const [typeCreation, setTypeCreation] = useState("GENERAL");
-  const [pourMoi, setPourMoi] = useState(mesGroupes.length > 0);
+  const [pourMoi, setPourMoi] = useState(true);
   const [pending, startTransition] = useTransition();
 
   // Journée (numéro + tenue) par date, pour l'en-tête de chaque jour
@@ -89,9 +103,9 @@ export function Programme({
   }, [journees]);
 
   const pertinentes = useMemo(() => {
-    if (!pourMoi || mesGroupes.length === 0) return activites;
-    return activites.filter((a) => activitePourMesGroupes(a, mesGroupes));
-  }, [activites, pourMoi, mesGroupes]);
+    if (!pourMoi) return activites;
+    return activites.filter((a) => activitePourMoi(a, role, mesGroupes));
+  }, [activites, pourMoi, role, mesGroupes]);
 
   const jours = useMemo(() => {
     const m = new Map<string, Date>();
@@ -140,13 +154,21 @@ export function Programme({
         )}
       </div>
 
-      {nbAConfirmer > 0 && (
-        <p className="text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-600">
-          Horaires des jours 1 à 5 issus du <strong>manuel du participant FSY 2026</strong>.{" "}
-          <strong>{nbAConfirmer} activité(s) « À confirmer »</strong> : la journée des départs
-          et les lieux, à renseigner pour le site d'Abidjan Ouest.
-        </p>
-      )}
+      <p className="text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-600">
+        Horaires officiels du <strong>manuel du participant</strong> et du{" "}
+        <strong>manuel de l'encadrant</strong> FSY 2026. Le badge{" "}
+        <span className="bg-fsy text-white rounded-full px-2 py-0.5 text-xs font-medium">
+          ★ Vous dirigez
+        </span>{" "}
+        signale les activités dont vous êtes responsable.
+        {nbAConfirmer > 0 && (
+          <>
+            {" "}
+            <strong>{nbAConfirmer} activité(s) « À confirmer »</strong> : horaires de la
+            veille et lieux, à renseigner pour le site d'Abidjan Ouest.
+          </>
+        )}
+      </p>
 
       {/* Propositions en attente (coordinateurs) */}
       {peutValider && propositions.length > 0 && (
@@ -271,23 +293,24 @@ export function Programme({
               jourSelectionne === cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
             }`}
           >
-            J{journeeParDate.get(cle)?.numero ?? "?"} · {fmtJourCourt.format(date)}
+            {journeeParDate.get(cle)?.numero === 0
+              ? "Veille"
+              : `J${journeeParDate.get(cle)?.numero ?? "?"}`}{" "}
+            · {fmtJourCourt.format(date)}
           </button>
         ))}
       </div>
 
-      {/* Filtre « pertinentes pour mes groupes » (conseillers) */}
-      {mesGroupes.length > 0 && (
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input
-            type="checkbox"
-            checked={pourMoi}
-            onChange={(e) => setPourMoi(e.target.checked)}
-            className="w-4 h-4"
-          />
-          N'afficher que les activités concernant mes groupes
-        </label>
-      )}
+      {/* Filtre : n'afficher que ce qui me concerne */}
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={pourMoi}
+          onChange={(e) => setPourMoi(e.target.checked)}
+          className="w-4 h-4"
+        />
+        N'afficher que les activités qui me concernent
+      </label>
 
       {/* Liste des activités par jour */}
       {[...parJour.entries()].map(([cle, liste]) => {
@@ -298,11 +321,17 @@ export function Programme({
             <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
               <div>
                 <h2 className="font-bold text-slate-700 capitalize">
-                  {journee && `Jour ${journee.numero} — `}
+                  {journee &&
+                    (journee.numero === 0 ? "Veille — " : `Jour ${journee.numero} — `)}
                   {fmtJourLong.format(new Date(liste[0].debut))}
                 </h2>
-                {journee?.tenue && (
-                  <p className="text-sm text-fsy">👕 {journee.tenue}</p>
+                {journee?.tenueEncadrants && (
+                  <p className="text-sm text-fsy">
+                    👕 {journee.tenueEncadrants}
+                    {journee.tenue && journee.tenue !== journee.tenueEncadrants && (
+                      <span className="text-slate-400"> · jeunes : {journee.tenue}</span>
+                    )}
+                  </p>
                 )}
               </div>
               {peutValider && aConfirmerCeJour > 0 && (
@@ -329,10 +358,12 @@ export function Programme({
                         {a.titre}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <BadgeRole role={monRoleActivite(role, a)} />
                         <BadgesActivite
                           statut={a.statut}
                           publicCible={a.publicCible}
                           type={a.type}
+                          pourEncadrants={a.pourEncadrants}
                         />
                       </div>
                       {(a.lieu || a.cibles.length > 0) && (

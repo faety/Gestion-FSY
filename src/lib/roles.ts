@@ -72,11 +72,67 @@ export const TYPES_CREATION = [
   "MULTI_GROUPE",
 ] as const;
 
+// ---------- Rôle attendu pour une activité (manuel de l'encadrant) ----------
+
+export const ROLE_ACTIVITE_LABELS: Record<string, string> = {
+  DIRIGER: "Vous dirigez",
+  ENSEIGNER: "Vous enseignez",
+  SUPERVISER: "Vous supervisez",
+  AIDER: "Vous aidez",
+  ASSISTER: "Vous assistez",
+  RECEVOIR: "Vous recevez l'appel",
+  FACULTATIF: "Si vous le souhaitez",
+  SI_ATTRIBUE: "Si la tâche vous est attribuée",
+};
+
+// Rôles qui engagent une responsabilité directe : mis en avant dans l'interface
+const ROLES_ACTIFS = ["DIRIGER", "ENSEIGNER", "SUPERVISER", "RECEVOIR"];
+export const roleEstActif = (role: string) => ROLES_ACTIFS.includes(role);
+
+type RolesActivite = {
+  roleConseiller: string;
+  roleAdjoint: string;
+  roleCoordinateur: string;
+  roleDirigeant: string;
+};
+
+// Rôle attendu de cet utilisateur pour cette activité (null = ne le concerne pas)
+export function monRoleActivite(role: string, a: RolesActivite): string | null {
+  const valeur =
+    role === "CONSEILLER"
+      ? a.roleConseiller
+      : role === "ADJOINT"
+        ? a.roleAdjoint
+        : role === "COORDINATEUR"
+          ? a.roleCoordinateur
+          : a.roleDirigeant;
+  return valeur === "AUCUN" ? null : valeur;
+}
+
 // Une activité concerne-t-elle un groupe de ce sexe ?
 // ("M" = garçons, "F" = filles ; une activité TOUS concerne les deux)
 export function activitePourSexe(publicCible: string, sexe: string): boolean {
   if (publicCible === "TOUS") return true;
   return publicCible === (sexe === "M" ? "GARCONS" : "FILLES");
+}
+
+// Une activité me concerne-t-elle ? Combine le rôle attendu (les réunions
+// d'encadrants qui ne me concernent pas sont masquées) et, pour un conseiller,
+// le public et les groupes visés.
+export function activitePourMoi(
+  activite: {
+    type: string;
+    publicCible: string;
+    compagnieId: string | null;
+    groupeIds: string[];
+    pourEncadrants: boolean;
+  } & RolesActivite,
+  role: string,
+  mesGroupes: { id: string; sexe: string; compagnieId: string | null }[]
+): boolean {
+  if (monRoleActivite(role, activite) === null) return false;
+  if (activite.pourEncadrants) return true;
+  return activitePourMesGroupes(activite, mesGroupes);
 }
 
 // Une activité concerne-t-elle les groupes que dirige ce conseiller ?

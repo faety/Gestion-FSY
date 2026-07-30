@@ -34,10 +34,12 @@ export default async function ProgrammePage() {
         sexe: g.sexe,
         compagnieId: g.compagnieId,
       }))}
+      role={user.role}
       journees={journees.map((j) => ({
         numero: j.numero,
         date: j.date.toISOString(),
         tenue: j.tenue,
+        tenueEncadrants: j.tenueEncadrants,
         note: j.note,
       }))}
       activites={activites.map((a) => ({
@@ -50,6 +52,11 @@ export default async function ProgrammePage() {
         type: a.type,
         statut: a.statut,
         publicCible: a.publicCible,
+        pourEncadrants: a.pourEncadrants,
+        roleConseiller: a.roleConseiller,
+        roleAdjoint: a.roleAdjoint,
+        roleCoordinateur: a.roleCoordinateur,
+        roleDirigeant: a.roleDirigeant,
         compagnieId: a.compagnieId,
         groupeIds: a.groupes.map((g) => g.groupeId),
         cibles: [

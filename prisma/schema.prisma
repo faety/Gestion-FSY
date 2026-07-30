@@ -129,14 +129,15 @@ model Mouvement {
   @@index([carId, horodatage])
 }
 
-// Journée de la conférence : porte la tenue vestimentaire du jour, que les
-// conseillers doivent relayer à leur groupe (ex. jour 4 : vêtements du dimanche)
+// Journée de la conférence (0 = veille, réservée aux encadrants ; 1 à 6 = conférence)
+// Les tenues des participants et des encadrants diffèrent selon les jours.
 model JourneeConference {
-  id     String   @id @default(cuid())
-  numero Int      @unique // 1 à 6
-  date   DateTime
-  tenue  String?
-  note   String?
+  id              String   @id @default(cuid())
+  numero          Int      @unique
+  date            DateTime
+  tenue           String? // tenue des participants
+  tenueEncadrants String?
+  note            String?
 }
 
 // Activité du programme
@@ -160,6 +161,16 @@ model Activite {
   type        String   @default("GENERAL")
   statut      String   @default("PLANIFIE")
   publicCible String   @default("TOUS")
+  // Réunion réservée aux encadrants (les jeunes n'y participent pas)
+  pourEncadrants Boolean @default(false)
+  // Rôle attendu de chaque niveau, d'après le manuel de l'encadrant :
+  // DIRIGER | ENSEIGNER | SUPERVISER | AIDER | ASSISTER | RECEVOIR
+  // | FACULTATIF (assister si souhaité) | SI_ATTRIBUE (si la tâche est attribuée)
+  // | AUCUN (ne concerne pas ce niveau)
+  roleConseiller   String @default("ASSISTER")
+  roleAdjoint      String @default("ASSISTER")
+  roleCoordinateur String @default("ASSISTER")
+  roleDirigeant    String @default("FACULTATIF")
   compagnie   Compagnie? @relation(fields: [compagnieId], references: [id])
   compagnieId String?
   groupes     ActiviteGroupe[]

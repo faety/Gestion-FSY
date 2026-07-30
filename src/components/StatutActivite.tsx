@@ -1,4 +1,4 @@
-import { PUBLIC_LABELS, TYPE_LABELS } from "@/lib/roles";
+import { PUBLIC_LABELS, ROLE_ACTIVITE_LABELS, TYPE_LABELS, roleEstActif } from "@/lib/roles";
 
 const fmtHeure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
@@ -12,18 +12,42 @@ export function Horaire({ debut, fin }: { debut: string; fin?: string | null }) 
   );
 }
 
+// Rôle attendu de l'utilisateur pour l'activité (manuel de l'encadrant).
+// Mis en évidence quand il engage une responsabilité directe.
+export function BadgeRole({ role }: { role: string | null }) {
+  if (!role) return null;
+  const actif = roleEstActif(role);
+  return (
+    <span
+      className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+        actif ? "bg-fsy text-white" : "bg-slate-100 text-slate-500"
+      }`}
+    >
+      {actif && "★ "}
+      {ROLE_ACTIVITE_LABELS[role] ?? role}
+    </span>
+  );
+}
+
 // Badges de statut, d'organisation et de public ciblé
 export function BadgesActivite({
   statut,
   publicCible,
   type,
+  pourEncadrants,
 }: {
   statut: string;
   publicCible?: string;
   type?: string;
+  pourEncadrants?: boolean;
 }) {
   return (
     <>
+      {pourEncadrants && (
+        <span className="text-xs bg-indigo-100 text-indigo-700 rounded-full px-2 py-0.5">
+          Encadrants
+        </span>
+      )}
       {(type === "PAR_GROUPE" || type === "PAR_COMPAGNIE") && (
         <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">
           {TYPE_LABELS[type]}

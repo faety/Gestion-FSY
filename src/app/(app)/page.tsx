@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
-import { activitePourMesGroupes, annonceVisible, roleAuMoins } from "@/lib/roles";
-import { Horaire, BadgesActivite } from "@/components/StatutActivite";
+import { activitePourMoi, annonceVisible, monRoleActivite, roleAuMoins } from "@/lib/roles";
+import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 
 const fmtDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -83,15 +83,12 @@ export default async function Accueil() {
     where: { date: { gte: dateJour, lt: finDateJour } },
   });
 
-  const estConseiller = user.role === "CONSEILLER";
-  const activitesPourMoi = estConseiller
-    ? activitesJour.filter((a) =>
-        activitePourMesGroupes(
-          { ...a, groupeIds: a.groupes.map((g) => g.groupeId) },
-          mesGroupes
-        )
-      )
-    : activitesJour;
+  // Chaque activité est filtrée sur le rôle attendu de l'utilisateur (les
+  // réunions d'encadrants qui ne le concernent pas disparaissent) et, pour un
+  // conseiller, sur le public et les groupes visés.
+  const activitesPourMoi = activitesJour.filter((a) =>
+    activitePourMoi({ ...a, groupeIds: a.groupes.map((g) => g.groupeId) }, user.role, mesGroupes)
+  );
 
   return (
     <div className="space-y-6">
@@ -141,16 +138,20 @@ export default async function Accueil() {
           <h2 className="font-bold text-lg">
             {titreJour
               ? `Prochaine journée${journee ? ` — Jour ${journee.numero}` : ""}`
-              : estConseiller
-                ? "Mon programme du jour"
-                : "Programme du jour"}
+              : "Mon programme du jour"}
             {titreJour && (
               <span className="block text-sm font-normal text-slate-500 capitalize">
                 {titreJour}
               </span>
             )}
-            {journee?.tenue && (
-              <span className="block text-sm font-normal text-fsy">👕 {journee.tenue}</span>
+            {/* Tenue de l'encadrant, et celle des jeunes quand elle diffère */}
+            {journee?.tenueEncadrants && (
+              <span className="block text-sm font-normal text-fsy">
+                👕 {journee.tenueEncadrants}
+                {journee?.tenue && journee.tenue !== journee.tenueEncadrants && (
+                  <span className="text-slate-400"> · jeunes : {journee.tenue}</span>
+                )}
+              </span>
             )}
           </h2>
           <Link href="/programme" className="text-sm text-fsy hover:underline shrink-0">
@@ -169,10 +170,12 @@ export default async function Accueil() {
                     {a.titre}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <BadgeRole role={monRoleActivite(user.role, a)} />
                     <BadgesActivite
                       statut={a.statut}
                       publicCible={a.publicCible}
                       type={a.type}
+                      pourEncadrants={a.pourEncadrants}
                     />
                   </div>
                   {(a.lieu || a.compagnie || a.groupes.length > 0) && (
