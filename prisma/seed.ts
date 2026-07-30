@@ -5,8 +5,9 @@
 // officiel, les annonces d'anniversaire, le couple dirigeant et les deux
 // coordinateurs principaux.
 //
-// Données encore fictives : les coordinateurs adjoints et les conseillers, en
-// attente des listes officielles.
+// L'encadrement est réel lui aussi (prisma/encadrement.json) : couple dirigeant,
+// deux coordinateurs principaux, 10 adjoints et 52 conseillers. Seules les
+// affectations aux compagnies et aux groupes restent à décider.
 //
 // Ce script est rejouable : il est exécuté à chaque déploiement. Tout est soit
 // un upsert, soit protégé par un test « la table est-elle vide ? ». Il ne
@@ -18,6 +19,7 @@ import bcrypt from "bcryptjs";
 import { PROGRAMME, DATE_JOUR_1, JOURNEES, THEME_FSY } from "./programme-fsy2026";
 import { annoncesAnniversaires, anniversairePendantConference } from "./anniversaires";
 import participants from "./participants.json";
+import encadrement from "./encadrement.json";
 
 const prisma = new PrismaClient();
 
@@ -68,10 +70,6 @@ async function main() {
     "COORDINATEUR",
     "+225 0594254834"
   );
-
-  const PRENOMS_M = ["Kouadio", "Yao", "Koffi", "Marc", "Didier", "Serge", "Franck", "Olivier", "Armand", "Wilfried", "Éric", "Landry"];
-  const PRENOMS_F = ["Akissi", "Aya", "Affoué", "Grâce", "Estelle", "Sarah", "Rebecca", "Dorcas", "Émilie", "Prisca", "Nadège", "Clarisse"];
-  const NOMS = ["Kouassi", "N'Guessan", "Traoré", "Koné", "Ouattara", "Bamba", "Diabaté", "Yapi", "Gnahoré", "Aka", "Brou", "Ehouman"];
 
   // ---------- Jeunes (réels) ----------
   const dejaDesJeunes = await prisma.jeune.count();
@@ -154,51 +152,47 @@ async function main() {
     console.log(
       `   ${nbC} compagnies et ${nbG} groupes (affectation officielle) — ${affectes} jeunes affectés.`
     );
-
-    // Conseillers de démonstration sur les six premiers groupes, pour pouvoir
-    // tester l'application. Les autres groupes restent sans conseiller.
-    const groupes = await prisma.groupe.findMany({
-      orderBy: { nom: "asc" },
-      take: 6,
-    });
-    for (let i = 0; i < groupes.length; i++) {
-      const g = groupes[i];
-      const prenoms = g.sexe === "M" ? PRENOMS_M : PRENOMS_F;
-      const conseiller = await creerUser(
-        `conseiller${i + 1}@fsy2026.ci`,
-        NOMS[i % NOMS.length],
-        prenoms[i % prenoms.length],
-        g.sexe,
-        "CONSEILLER"
-      );
-      await prisma.groupe.update({ where: { id: g.id }, data: { conseillerId: conseiller.id } });
-    }
-
-    // Paires de coordinateurs adjoints de démonstration sur les trois premières compagnies
-    const compagnies = await prisma.compagnie.findMany({ orderBy: { numero: "asc" }, take: 3 });
-    for (let c = 0; c < compagnies.length; c++) {
-      for (const sexe of ["M", "F"] as const) {
-        const prenoms = sexe === "M" ? PRENOMS_M : PRENOMS_F;
-        const email = `adjoint${sexe.toLowerCase()}${c + 1}@fsy2026.ci`;
-        await prisma.user.upsert({
-          where: { email },
-          update: { compagnieId: compagnies[c].id },
-          create: {
-            email,
-            passwordHash: hash,
-            // Décalage de 8 : les conseillers de démonstration prennent les
-            // indices 0 à 5, on évite ainsi deux encadrants homonymes dans les
-            // listes de choix.
-            nom: NOMS[(c + 8) % NOMS.length],
-            prenom: prenoms[(c + 8) % prenoms.length],
-            sexe,
-            role: "ADJOINT",
-            compagnieId: compagnies[c].id,
-          },
-        });
-      }
-    }
   }
+
+  // ---------- Encadrement réel (listes officielles) ----------
+  // prisma/encadrement.json vient du rapprochement de deux documents : la liste
+  // des conseillers proposés par les pieux et districts, et la liste des
+  // personnes ayant confirmé leur présence avec leur rôle définitif.
+  //
+  // Les affectations aux compagnies et aux groupes ne figurent dans aucun des
+  // deux documents : elles se décident dans l'application — page Groupes pour
+  // les conseillers, page Administration pour les adjoints.
+  for (const p of encadrement) {
+    // Convention des listes officielles : le patronyme précède les prénoms.
+    // « Zilé Patricia Yro » se lit nom = Zilé, prénoms = Patricia Yro — comme
+    // « Kouassi Allegra Cédric » pour le coordinateur principal. Sans cela,
+    // l'accueil dirait « Bonjour Zilé », c'est-à-dire le nom de famille.
+    const mots = p.nom.trim().split(/\s+/);
+    const nom = mots[0];
+    const prenom = mots.slice(1).join(" ") || mots[0];
+    await prisma.user.upsert({
+      where: { email: p.email },
+      // Le rôle et l'orthographe du nom peuvent changer d'une liste à l'autre ;
+      // ni le sexe ni les affectations ne sont écrasés, car ils ont pu être
+      // corrigés à la main dans l'application.
+      update: { nom, prenom, role: p.role },
+      create: {
+        email: p.email,
+        passwordHash: hash,
+        nom,
+        prenom,
+        // Le sexe ne figure dans aucun document : il est déduit du prénom, et
+        // reste corrigeable. Quand il est indéterminé on retient « F », un
+        // groupe de filles sans conseillère étant plus difficile à combler.
+        sexe: p.sexe ?? "F",
+        role: p.role,
+      },
+    });
+  }
+  const nbAdjoints = encadrement.filter((p) => p.role === "ADJOINT").length;
+  console.log(
+    `   ${encadrement.length} encadrants : ${nbAdjoints} adjoints, ${encadrement.length - nbAdjoints} conseillers (affectations à faire dans l'application).`
+  );
 
   // ---------- Cars : un par pieu/district ----------
   // Le pointage est affecté étape par étape par le couple dirigeant ou les
@@ -342,8 +336,7 @@ async function main() {
   console.log("Comptes (mot de passe : fsy2026) :");
   console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
   console.log("  Coordinateurs principaux : cedric@fsy2026.ci · candela@fsy2026.ci");
-  console.log("  Adjoint (démo)           : adjointm1@fsy2026.ci");
-  console.log("  Conseiller (démo)        : conseiller1@fsy2026.ci");
+  console.log(`  Encadrants               : ${encadrement.length} comptes, adresses prenom.nom@fsy2026.ci`);
 }
 
 main()

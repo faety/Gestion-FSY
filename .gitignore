@@ -12,3 +12,4 @@ next-env.d.ts
 
 # Données personnelles des participants (mineurs) : jamais versionnées
 data/
+tsconfig.tsbuildinfo

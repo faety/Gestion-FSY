@@ -1,0 +1,622 @@
+[
+ {
+  "nom": "Magnon Senaho Thierry",
+  "role": "ADJOINT",
+  "sexe": "M",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Coprim",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "senaho.magnon@fsy2026.ci"
+ },
+ {
+  "nom": "Zilé Patricia Yro",
+  "role": "ADJOINT",
+  "sexe": "F",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Kotê",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "patricia.zile@fsy2026.ci"
+ },
+ {
+  "nom": "Kasso Inès Divine",
+  "role": "ADJOINT",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Lokoa",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "ines.kasso@fsy2026.ci"
+ },
+ {
+  "nom": "Fahe Monceguela Gedeon",
+  "role": "ADJOINT",
+  "sexe": "M",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Koweit 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "monceguela.fahe@fsy2026.ci"
+ },
+ {
+  "nom": "Komlanvi Sagesse",
+  "role": "ADJOINT",
+  "sexe": "F",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Chapuli",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "sagesse.komlanvi@fsy2026.ci"
+ },
+ {
+  "nom": "Tan Koffi Jean Louis",
+  "role": "ADJOINT",
+  "sexe": "M",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Sideci 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "koffi.tan@fsy2026.ci"
+ },
+ {
+  "nom": "Yasseu Roxane",
+  "role": "ADJOINT",
+  "sexe": "F",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Sideci 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "roxane.yasseu@fsy2026.ci"
+ },
+ {
+  "nom": "Gouet Singo Jocelin Abayomie",
+  "role": "ADJOINT",
+  "sexe": "M",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Bonikro",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "singo.gouet@fsy2026.ci"
+ },
+ {
+  "nom": "Oulai Fabrice",
+  "role": "ADJOINT",
+  "sexe": "M",
+  "unite": "District de Dabou",
+  "paroisse": "Songon 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "fabrice.oulai@fsy2026.ci"
+ },
+ {
+  "nom": "Kouassi Kouakou Bilé N'da Rokia",
+  "role": "ADJOINT",
+  "sexe": "F",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Selmer",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "kouakou.kouassi@fsy2026.ci"
+ },
+ {
+  "nom": "Comlanvi Grace",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Chapuli",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "grace.comlanvi@fsy2026.ci"
+ },
+ {
+  "nom": "Okon Wisdom Emmanuel",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Foncier",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "wisdom.okon@fsy2026.ci"
+ },
+ {
+  "nom": "Gue Mireille",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Ananeraie",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "mireille.gue@fsy2026.ci"
+ },
+ {
+  "nom": "Koudou Zegou Dorcas",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Sogefiha",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "zegou.koudou@fsy2026.ci"
+ },
+ {
+  "nom": "Traore Nassira",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Koweit 1",
+  "nonMR": false,
+  "source": "rattrapage",
+  "email": "nassira.traore@fsy2026.ci"
+ },
+ {
+  "nom": "Fleinde Bovande",
+  "role": "CONSEILLER",
+  "sexe": null,
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Sideci 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "bovande.fleinde@fsy2026.ci"
+ },
+ {
+  "nom": "Kouakou Kouadio Eric",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Toit Rouge",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "kouadio.kouakou@fsy2026.ci"
+ },
+ {
+  "nom": "Kouadio Vianney",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Niangon 4",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "vianney.kouadio@fsy2026.ci"
+ },
+ {
+  "nom": "Koné Mariam",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Autoroute",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "mariam.kone@fsy2026.ci"
+ },
+ {
+  "nom": "Touré Anah Stéphanie",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Niangon 5",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "anah.toure@fsy2026.ci"
+ },
+ {
+  "nom": "Adja Kevine",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "kevine.adja@fsy2026.ci"
+ },
+ {
+  "nom": "Kouamé Konan Roger",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Micao 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "konan.kouame@fsy2026.ci"
+ },
+ {
+  "nom": "Tano Flora",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Sideci 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "flora.tano@fsy2026.ci"
+ },
+ {
+  "nom": "Tea Grace",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Camp-Militaire",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "grace.tea@fsy2026.ci"
+ },
+ {
+  "nom": "Bohoussou Affoué Marie France",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Andokoi",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "affoue.bohoussou@fsy2026.ci"
+ },
+ {
+  "nom": "Trazié Lou Blanan Ruth Stéphanie",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Andokoi",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lou.trazie@fsy2026.ci"
+ },
+ {
+  "nom": "Doubi Bi Jocelin",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Santé",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "bi.doubi@fsy2026.ci"
+ },
+ {
+  "nom": "Gouda Annie",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Ananeraie",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "annie.gouda@fsy2026.ci"
+ },
+ {
+  "nom": "Roméo Comlanvi",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Chapuli",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "comlanvi.romeo@fsy2026.ci"
+ },
+ {
+  "nom": "Kie Lou Evelyne",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Adiopodoumé",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lou.kie@fsy2026.ci"
+ },
+ {
+  "nom": "Sere Nelly",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Koweit 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "nelly.sere@fsy2026.ci"
+ },
+ {
+  "nom": "Djiro Charlène",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Azito 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "charlene.djiro@fsy2026.ci"
+ },
+ {
+  "nom": "Angaman Lys",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Niangon 4",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lys.angaman@fsy2026.ci"
+ },
+ {
+  "nom": "Meubli Kadi Désirée",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Lokoa",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "kadi.meubli@fsy2026.ci"
+ },
+ {
+  "nom": "Adjehi Falonne",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Azito 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "falonne.adjehi@fsy2026.ci"
+ },
+ {
+  "nom": "Sae Lauriane",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Niangon 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lauriane.sae@fsy2026.ci"
+ },
+ {
+  "nom": "Dion Junior",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Base CIE 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "junior.dion@fsy2026.ci"
+ },
+ {
+  "nom": "Therassou Bossemin",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "bossemin.therassou@fsy2026.ci"
+ },
+ {
+  "nom": "Zirignon Carole",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "carole.zirignon@fsy2026.ci"
+ },
+ {
+  "nom": "Elvire Tibe Roxane",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "tibe.elvire@fsy2026.ci"
+ },
+ {
+  "nom": "Dea Grace",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "homonyme à vérifier",
+  "email": "grace.dea@fsy2026.ci"
+ },
+ {
+  "nom": "Zamble Armelle Dimitri",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "District de Dabou",
+  "paroisse": "Songon 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "armelle.zamble@fsy2026.ci"
+ },
+ {
+  "nom": "Niondo Noellie",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "noellie.niondo@fsy2026.ci"
+ },
+ {
+  "nom": "Kutcha Jemima",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Cité Verte",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "jemima.kutcha@fsy2026.ci"
+ },
+ {
+  "nom": "Dion Ruth",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Base CIE 1",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "ruth.dion@fsy2026.ci"
+ },
+ {
+  "nom": "Mahan Z. Théodora",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Abobodoumé",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "theodora.mahan@fsy2026.ci"
+ },
+ {
+  "nom": "Dipléi Lisette Andréa",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Niangon Central",
+  "paroisse": "Base CIE 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lisette.diplei@fsy2026.ci"
+ },
+ {
+  "nom": "Koné Issouf Yves",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Résidentiel",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "issouf.kone@fsy2026.ci"
+ },
+ {
+  "nom": "Meaguisseu Aimé",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": null,
+  "paroisse": null,
+  "nonMR": false,
+  "source": "nouveau",
+  "email": "aime.meaguisseu@fsy2026.ci"
+ },
+ {
+  "nom": "Dadi Lucien Junior Axel",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Selmer",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "lucien.dadi@fsy2026.ci"
+ },
+ {
+  "nom": "Djiké Claude",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Adiopodoumé",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "claude.djike@fsy2026.ci"
+ },
+ {
+  "nom": "Arthur Koko",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Ghandi",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "koko.arthur@fsy2026.ci"
+ },
+ {
+  "nom": "Konan Kevin",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Yopougon Attié",
+  "paroisse": "Koweit 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "kevin.konan@fsy2026.ci"
+ },
+ {
+  "nom": "Zou Bi Stéphane",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Toit Rouge",
+  "paroisse": "Kotê",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "bi.zou@fsy2026.ci"
+ },
+ {
+  "nom": "Tah Zoro Bi Ange",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "District de Dabou",
+  "paroisse": "Songon 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "zoro.tah@fsy2026.ci"
+ },
+ {
+  "nom": "Sadou Phares",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Azito 3",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "phares.sadou@fsy2026.ci"
+ },
+ {
+  "nom": "N'Goran Marc Arthur",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Ornella",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "marc.goran@fsy2026.ci"
+ },
+ {
+  "nom": "Tayié Bi Ezechiel",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Azito 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "bi.tayie@fsy2026.ci"
+ },
+ {
+  "nom": "Yasseu Juvenal",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon South",
+  "paroisse": "Sideci 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "juvenal.yasseu@fsy2026.ci"
+ },
+ {
+  "nom": "Gah Alfred",
+  "role": "CONSEILLER",
+  "sexe": "M",
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Ananeraie",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "alfred.gah@fsy2026.ci"
+ },
+ {
+  "nom": "Tanoh",
+  "role": "CONSEILLER",
+  "sexe": null,
+  "unite": "Pieu de Niangon North",
+  "paroisse": "Ananeraie",
+  "nonMR": false,
+  "source": "rattrapage",
+  "email": "tanoh@fsy2026.ci"
+ },
+ {
+  "nom": "Blesson Grâce",
+  "role": "CONSEILLER",
+  "sexe": "F",
+  "unite": "Pieu de Selmer",
+  "paroisse": "Nouveau Quartier 2",
+  "nonMR": false,
+  "source": "apparié",
+  "email": "grace.blesson@fsy2026.ci"
+ }
+]

@@ -122,6 +122,64 @@ Les deux derniers cas demandent une vérification auprès du pieu : ce sont soit
 doublons de saisie, soit deux jeunes homonymes. La page **Pieux et districts** les
 signale, avec les éléments permettant de trancher.
 
+## Équipe d'encadrement
+
+**62 encadrants** (10 coordinateurs adjoints, 52 conseillers) s'ajoutent au couple
+dirigeant et aux deux coordinateurs principaux. La liste vient du rapprochement de deux
+documents officiels :
+
+| Document | Contenu |
+|---|---|
+| Suivi des conseillers proposés par les pieux | 91 propositions, avec téléphone et paroisse |
+| Liste des coordinateurs adjoints et conseillers | Les personnes ayant **confirmé leur présence**, avec leur rôle définitif |
+
+Les noms sont écrits différemment d'un document à l'autre — ordre inversé, accents
+absents, variantes d'orthographe. Le rapprochement (`scripts/` hors dépôt) compare des
+ensembles de mots avec tolérance aux fautes de frappe :
+
+- **54 personnes** retrouvées dans les deux documents, avec leur téléphone et leur paroisse ;
+- **8 personnes** absentes du premier document — ce sont des remplaçantes ;
+- **37 propositions non retenues**, dont Kouassi Allegra Cédric et Yao Aquicy Candela Eméraude, promus coordinateurs principaux ;
+- **1 doublon** dans la liste de confirmation (Trazié Bénié Ruth), écarté.
+
+Convention de nommage : dans les listes officielles **le patronyme précède les prénoms**
+(« Zilé Patricia Yro » = nom Zilé, prénoms Patricia Yro), comme pour « Kouassi Allegra
+Cédric ». L'application respecte cet ordre, sans quoi l'accueil dirait « Bonjour Zilé ».
+
+### Le sexe est déduit, et corrigeable
+
+Il ne figure dans aucun des deux documents. Il est déduit du prénom, ce qui laisse
+**deux cas indéterminés** (Fleinde Bovande et Tanoh), enregistrés comme femmes par défaut
+— un groupe de filles sans conseillère étant plus difficile à combler. Le sexe compte :
+un conseiller n'encadre qu'un groupe du même sexe, et l'application refuse l'inverse.
+
+### Les affectations restent à décider
+
+Aucun des deux documents ne dit **qui encadre quelle compagnie ni quel groupe**. Les
+comptes sont donc créés sans affectation :
+
+- **conseillers → groupes** : page *Groupes*, un sélecteur par groupe (même sexe imposé) ;
+- **adjoints → compagnies** : page *Administration*, un sélecteur par adjoint.
+
+Deux écarts à connaître, que l'application signale d'elle-même :
+
+| Besoin | Disponible | Écart |
+|---|--:|--:|
+| 36 groupes de filles | 30 conseillères | **6 groupes** sans conseillère |
+| 36 groupes de garçons | 22 conseillers | **14 groupes** sans conseiller |
+| 36 compagnies × 2 adjoints | 10 adjoints (5 F / 5 H) | 5 compagnies au plus avec une paire complète |
+
+### Coordonnées
+
+Comme pour les participants, **les numéros de téléphone ne sont pas versionnés**.
+`prisma/encadrement.json` ne contient que le nom, le rôle, le sexe, l'unité et la
+paroisse. Les 54 numéros connus vivent dans `data/encadrement-contacts.json`, hors dépôt,
+chargés par :
+
+```bash
+npm run import:contacts
+```
+
 ## Rapports quotidiens des encadrants
 
 Chaque conseiller, adjoint, coordinateur principal et membre du couple dirigeant remplit
@@ -359,17 +417,17 @@ Voir la section **Base de données** pour l'hébergement et le déploiement.
 
 ### Comptes (mot de passe : `fsy2026`)
 
-Le couple dirigeant et les deux coordinateurs principaux sont les personnes
-réelles. Les adjoints et conseillers restent des comptes de démonstration, en
-attente de la liste officielle de l'encadrement.
+**66 comptes, tous réels.** Chacun se connecte avec `prenom.nom@fsy2026.ci`.
 
-| Rôle | Email | Personne |
-|---|---|---|
-| Couple dirigeant | `berenger@fsy2026.ci` · `armande@fsy2026.ci` | Bérenger et Armande Dahakpoin |
-| Coordinateur principal | `cedric@fsy2026.ci` | Kouassi Allegra Cédric |
-| Coordinatrice principale | `candela@fsy2026.ci` | Yao Aquicy Candela Eméraude |
-| Coordinateur adjoint *(démo)* | `adjointm1@fsy2026.ci` | — |
-| Conseiller *(démo)* | `conseiller1@fsy2026.ci` | — |
+| Rôle | Nombre | Exemple |
+|---|--:|---|
+| Couple dirigeant | 2 | `berenger@fsy2026.ci` · `armande@fsy2026.ci` |
+| Coordinateurs principaux | 2 | `cedric@fsy2026.ci` · `candela@fsy2026.ci` |
+| Coordinateurs adjoints | 10 | `patricia.zile@fsy2026.ci` |
+| Conseillers et conseillères | 52 | `kevine.adja@fsy2026.ci` |
+
+Le mot de passe est le même pour tous au premier accès. La liste complète des
+adresses est visible sur la page **Administration**.
 
 ## Page publique
 
@@ -419,6 +477,7 @@ Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`
 prisma/schema.prisma       # modèle de données commenté
 prisma/programme-fsy2026.ts # programme officiel (sources et arbitrages documentés)
 prisma/participants.json   # 650 inscrits, champs non sensibles (versionné)
+prisma/encadrement.json    # 62 encadrants : nom, rôle, sexe, unité (sans téléphone)
 prisma/anniversaires.ts    # fenêtre du 2 au 8 août et génération des annonces J-2/J-1/jour J
 src/lib/criteres.ts        # critères d'âge officiels, formule des conseillers, doublons probables
 src/lib/perimetre.ts       # unités écartées du fichier d'inscription officiel
@@ -428,7 +487,8 @@ src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de poin
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
 src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
-scripts/importer-sensibles.ts # charge les données médicales et contacts depuis data/ (hors dépôt)
+scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/
+scripts/importer-contacts-encadrement.ts # charge les numéros des encadrants depuis data/
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission
 src/lib/auth.ts            # sessions JWT (cookie httpOnly)
 src/lib/actions.ts         # toutes les mutations (server actions) avec contrôle d'accès + audit
@@ -498,8 +558,6 @@ local (`postgresql://utilisateur@127.0.0.1:5432/fsy`).
 3. Charger les données sensibles des participants avec `npm run import:sensibles`
    depuis une machine ayant accès à la base (le fichier source n'est pas
    versionné, et le déploiement ne le contient donc pas).
-4. **Le programme et les 650 participants sont réels**, ainsi que le couple dirigeant
-   (Bérenger et Armande Dahakpoin) et les deux coordinateurs principaux (Kouassi Allegra
-   Cédric et Yao Aquicy Candela Eméraude). Les **adjoints et conseillers** restent des
-   comptes de démonstration, en attente des listes officielles : 102 conseillers et
-   36 paires d'adjoints à créer, et 72 groupes à pourvoir.
+4. **Toutes les données sont réelles** : le programme, les 650 participants et les
+   66 comptes d'encadrement. Il reste à décider, dans l'application, quel conseiller
+   encadre quel groupe et quel adjoint dirige quelle compagnie.

@@ -537,6 +537,28 @@ export async function supprimerRapport(rapportId: string) {
   revalidatePath("/rapports/final");
 }
 
+// Rattache un coordinateur adjoint à une compagnie. Les listes officielles
+// donnent les rôles, pas les affectations : celles-ci se décident dans
+// l'application, une fois les présences confirmées.
+export async function affecterCompagnie(userId: string, compagnieId: string | null) {
+  const user = await exiger("COORDINATEUR");
+  const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  if (cible.role !== "ADJOINT") {
+    throw new Error("Seuls les coordinateurs adjoints dirigent une compagnie.");
+  }
+  const compagnie = compagnieId
+    ? await prisma.compagnie.findUniqueOrThrow({ where: { id: compagnieId } })
+    : null;
+  await prisma.user.update({ where: { id: userId }, data: { compagnieId } });
+  await journaliser(
+    user.id,
+    "AFFECTATION_COMPAGNIE",
+    `${cible.prenom} ${cible.nom} → ${compagnie?.nom ?? "aucune compagnie"}`
+  );
+  revalidatePath("/admin");
+  revalidatePath("/organigramme");
+}
+
 // Paramètres signés permettant au navigateur d'envoyer une photo directement à
 // Cloudinary. La signature est courte (Cloudinary refuse un horodatage trop
 // ancien), on la demande donc au moment de choisir la photo.

@@ -6,6 +6,7 @@ import {
   creerUtilisateur,
   basculerDroitModification,
   basculerActif,
+  affecterCompagnie,
 } from "@/lib/actions";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
@@ -84,7 +85,37 @@ export default async function AdminPage() {
                   </td>
                   <td className="p-3">{ROLE_LABELS[u.role as Role] ?? u.role}</td>
                   <td className="p-3 text-slate-600">
-                    {u.compagnie?.nom ?? u.groupesDiriges.map((g) => g.nom).join(", ") ?? "—"}
+                    {u.role === "ADJOINT" ? (
+                      // Les listes officielles donnent les rôles, pas les
+                      // affectations : elles se décident ici.
+                      <form
+                        action={async (donnees: FormData) => {
+                          "use server";
+                          await affecterCompagnie(
+                            u.id,
+                            String(donnees.get("compagnieId") ?? "") || null
+                          );
+                        }}
+                      >
+                        <select
+                          name="compagnieId"
+                          defaultValue={u.compagnieId ?? ""}
+                          className="rounded-lg border border-slate-300 px-2 py-1.5 bg-white text-sm"
+                        >
+                          <option value="">— Aucune —</option>
+                          {compagnies.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.nom}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="ml-1.5 text-xs text-fsy hover:underline">
+                          Affecter
+                        </button>
+                      </form>
+                    ) : (
+                      (u.groupesDiriges.map((g) => g.nom).join(", ") || "—")
+                    )}
                   </td>
                   {estDirigeant && (
                     <td className="p-3">
