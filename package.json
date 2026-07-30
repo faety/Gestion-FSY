@@ -5,10 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && DATABASE_URL=file:./demo.db prisma db push --skip-generate && DATABASE_URL=file:./demo.db tsx prisma/seed.ts && next build",
+    "build": "prisma generate && prisma db push --skip-generate && tsx prisma/seed.ts && next build",
     "start": "next start",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "import:sensibles": "tsx scripts/importer-sensibles.ts"
   },

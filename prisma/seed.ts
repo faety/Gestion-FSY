@@ -1,11 +1,18 @@
 // Amorçage de la base — FSY 2026 Abidjan Ouest
 //
-// Données réelles : les 663 participants inscrits (prisma/participants.json), les
+// Données réelles : les 650 participants inscrits (prisma/participants.json), les
 // pieux/districts, les cars, la structure des groupes et compagnies, le programme
-// officiel et les annonces d'anniversaire.
+// officiel, les annonces d'anniversaire, le couple dirigeant et les deux
+// coordinateurs principaux.
 //
-// Données encore fictives : l'équipe d'encadrement (couple dirigeant,
-// coordinateurs, adjoints, conseillers), en attente des listes officielles.
+// Données encore fictives : les coordinateurs adjoints et les conseillers, en
+// attente des listes officielles.
+//
+// Ce script est rejouable : il est exécuté à chaque déploiement. Tout est soit
+// un upsert, soit protégé par un test « la table est-elle vide ? ». Il ne
+// supprime que les annonces d'anniversaire, qu'il régénère aussitôt. Les
+// rapports quotidiens, les pointages de cars et les activités créées par les
+// coordinateurs ne sont jamais touchés.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { PROGRAMME, DATE_JOUR_1, JOURNEES, THEME_FSY } from "./programme-fsy2026";
@@ -25,7 +32,7 @@ async function main() {
     pieuxParNom.set(nom, pieu.id);
   }
 
-  // ---------- Équipe d'encadrement (encore fictive) ----------
+  // ---------- Équipe d'encadrement ----------
   const creerUser = (
     email: string,
     nom: string,
@@ -308,11 +315,12 @@ async function main() {
         creeParId: dirigeant.id,
       },
     });
+    const nbCompagnies = await prisma.compagnie.count();
     await prisma.annonce.create({
       data: {
         titre: `Effectifs : ${nbAttendus} jeunes attendus, ${nbGroupes - nbAvecConseiller} conseillers à recruter`,
         contenu:
-          `${nbAttendus} inscriptions actives réparties en ${nbGroupes} groupes de onze jeunes maximum, constitués par tranche d'âge (13-15 et 16 ans et plus) et par sexe, conformément au manuel de l'encadrant.\n\n` +
+          `${nbAttendus} inscriptions actives réparties selon l'affectation officielle : ${nbCompagnies} compagnies de deux groupes — groupe 1 pour les filles, groupe 2 pour les garçons — soit ${nbGroupes} groupes de neuf jeunes en moyenne. Les âges et les pieux y sont volontairement mélangés.\n\n` +
           `${nbAvecConseiller} groupes ont un conseiller ; il reste donc ${nbGroupes - nbAvecConseiller} conseillers à affecter. Les groupes sans conseiller apparaissent en évidence sur la page Groupes.`,
         cible: "COORDINATEURS",
         creeParId: dirigeant.id,
@@ -322,8 +330,8 @@ async function main() {
       data: {
         titre: "Inscriptions à vérifier",
         contenu:
-          "Sept inscriptions méritent une vérification : six participants ont plus de 18 ans au 3 août (20, 20, 21, 22, 23 et 28 ans) alors qu'ils sont enregistrés comme participants, et une date de naissance était saisie « 0012-08-23 », corrigée en « 2012-08-23 » à l'import.\n\n" +
-          "Ces jeunes figurent dans les listes ; ajustez leur inscription ou leur rôle si nécessaire.",
+          "Sept inscriptions approuvées méritent une vérification : six participants ont plus de 18 ans au 3 août (20, 20, 21, 22, 23 et 28 ans) alors qu'ils sont enregistrés comme participants, et une date de naissance est saisie « 0012-08-23 » — elle est conservée telle quelle et signalée, pas corrigée d'office.\n\n" +
+          "Trois personnes apparaissent aussi deux fois parmi les inscriptions approuvées. La page Pieux et districts détaille ces cas avec les éléments permettant de trancher.",
         cible: "COORDINATEURS",
         creeParId: dirigeant.id,
       },

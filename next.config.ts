@@ -7,10 +7,6 @@ const nextConfig: NextConfig = {
     // navigateur ; la limite par défaut d'une action serveur (1 Mo) est juste.
     serverActions: { bodySizeLimit: "4mb" },
   },
-  // Inclut la base de démonstration dans les fonctions serverless (Vercel)
-  outputFileTracingIncludes: {
-    "/**": ["./prisma/demo.db"],
-  },
 };
 
 export default nextConfig;

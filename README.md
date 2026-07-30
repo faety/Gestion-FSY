@@ -324,10 +324,13 @@ jour 4, et `pourEncadrants` distingue les réunions d'équipe des activités ave
 ## Démarrage
 
 ```bash
+cp .env.example .env    # renseigner DATABASE_URL (PostgreSQL) et AUTH_SECRET
 npm install
-npm run setup     # génère le client Prisma, crée la base, insère les données de démo
-npm run dev       # http://localhost:3000
+npm run setup           # client Prisma, schéma, données réelles
+npm run dev             # http://localhost:3000
 ```
+
+Voir la section **Base de données** pour l'hébergement et le déploiement.
 
 ### Comptes (mot de passe : `fsy2026`)
 
@@ -408,16 +411,62 @@ src/app/(app)/…            # pages protégées (layout exige une session), à 
 src/components/…           # composants interactifs (pointage car, rapport, recherche, programme…)
 ```
 
+## Base de données
+
+**PostgreSQL**, hébergé chez [Neon](https://neon.tech). Une seule variable
+d'environnement est nécessaire :
+
+| Variable | Rôle |
+|---|---|
+| `DATABASE_URL` | Chaîne de connexion PostgreSQL (Neon → projet → *Connection string*) |
+| `AUTH_SECRET` | Secret de signature des sessions — `openssl rand -base64 48` |
+
+Le schéma et les données sont installés **par le build** : la commande
+`npm run build` enchaîne `prisma generate`, `prisma db push`, l'amorçage, puis
+`next build`. Il n'y a donc aucune étape manuelle après avoir renseigné
+`DATABASE_URL` — le premier déploiement crée les tables et charge les 650
+participants, les 36 compagnies, les 8 cars, le programme et les annonces.
+
+L'amorçage (`prisma/seed.ts`) est **rejouable** : il s'exécute à chaque
+déploiement sans rien détruire. Tout y est soit un `upsert`, soit protégé par un
+test « la table est-elle vide ? ». Les seules suppressions portent sur les
+annonces d'anniversaire, régénérées aussitôt. Vérifié en conditions réelles :
+après un second `db push` + amorçage, rapports quotidiens, pointages de cars,
+affectations et activités créées à la main sont tous intacts.
+
+`prisma db push` refuse les changements destructeurs sans `--accept-data-loss` :
+une modification de schéma incompatible fait **échouer le déploiement** au lieu
+de perdre des données.
+
+Sur Vercel, chaque fonction serverless est un processus distinct.
+`src/lib/db.ts` ajoute donc `connection_limit=1` à l'URL en environnement
+Vercel, pour qu'une cinquantaine d'encadrants connectés simultanément n'épuisent
+pas les connexions autorisées par la base.
+
+### Développement local
+
+```bash
+cp .env.example .env        # renseigner DATABASE_URL et AUTH_SECRET
+npm install
+npm run setup               # client Prisma, schéma, données
+npm run import:sensibles    # données médicales et contacts (data/, hors dépôt)
+npm run dev                 # http://localhost:3000
+```
+
+N'importe quelle instance PostgreSQL convient — Neon, Supabase, ou un serveur
+local (`postgresql://utilisateur@127.0.0.1:5432/fsy`).
+
 ## Mise en production
 
-1. Définir `AUTH_SECRET` (longue valeur aléatoire) dans `.env`.
-2. `npm run build && npm start` sur un serveur Node (Railway, Render, VPS…).
-   Pour Vercel, remplacer SQLite par PostgreSQL (Neon/Supabase) : changer
-   `provider = "postgresql"` dans `prisma/schema.prisma` et `DATABASE_URL`.
-3. **Le programme et les 650 participants sont réels**, ainsi que le couple dirigeant
+1. Renseigner `DATABASE_URL` et `AUTH_SECRET` dans les variables
+   d'environnement de l'hébergeur (sur Vercel : *Settings → Environment
+   Variables*, pour Production, Preview et Development).
+2. Déployer. Le build installe le schéma et les données tout seul.
+3. Charger les données sensibles des participants avec `npm run import:sensibles`
+   depuis une machine ayant accès à la base (le fichier source n'est pas
+   versionné, et le déploiement ne le contient donc pas).
+4. **Le programme et les 650 participants sont réels**, ainsi que le couple dirigeant
    (Bérenger et Armande Dahakpoin) et les deux coordinateurs principaux (Kouassi Allegra
    Cédric et Yao Aquicy Candela Eméraude). Les **adjoints et conseillers** restent des
    comptes de démonstration, en attente des listes officielles : 102 conseillers et
    36 paires d'adjoints à créer, et 72 groupes à pourvoir.
-4. Charger les données sensibles des participants avec `npm run import:sensibles` (le
-   fichier source n'est pas versionné).

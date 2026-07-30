@@ -1,26 +1,18 @@
 import { PrismaClient } from "@prisma/client";
-import fs from "node:fs";
-import path from "node:path";
 
-// Sur Vercel (serverless), le système de fichiers du projet est en lecture
-// seule : on copie la base de démonstration embarquée vers /tmp au premier
-// démarrage. Attention : /tmp est éphémère — pour une vraie mise en
-// production, utiliser PostgreSQL (voir README).
-function resoudreUrlBase(): string | undefined {
-  if (process.env.VERCEL) {
-    const cible = "/tmp/fsy.db";
-    if (!fs.existsSync(cible)) {
-      const demo = path.join(process.cwd(), "prisma", "demo.db");
-      fs.copyFileSync(demo, cible);
-    }
-    return `file:${cible}`;
-  }
-  return process.env.DATABASE_URL;
+// PostgreSQL (Neon). Sur Vercel, chaque fonction serverless est un processus
+// séparé : sans limite, quelques dizaines d'encadrants connectés en même temps
+// épuiseraient les connexions autorisées par la base. On demande donc une seule
+// connexion par instance, réutilisée d'une requête à l'autre.
+function urlBase(): string | undefined {
+  const url = process.env.DATABASE_URL;
+  if (!url || !process.env.VERCEL || url.includes("connection_limit=")) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}connection_limit=1&pool_timeout=20`;
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl: resoudreUrlBase() });
+  globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl: urlBase() });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
