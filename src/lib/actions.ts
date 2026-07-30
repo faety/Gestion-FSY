@@ -9,6 +9,7 @@ import { journaliser } from "./audit";
 import { peutModifierDirectement, roleAuMoins } from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
+import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -402,11 +403,33 @@ export async function soumettreRapport(formData: FormData) {
     } else reponses[cle] = String(valeur ?? "").slice(0, 2000);
   }
 
-  // Photos : envoyées en data URL, déjà redimensionnées par le navigateur.
+  // Photos. Deux formes possibles, selon que Cloudinary est configuré :
+  //   - « cloudinary:<publicId>:<largeur>:<hauteur> » quand le navigateur a
+  //     envoyé la photo directement à Cloudinary ;
+  //   - une data URL, ancien mode conservé comme repli.
   const photos = formData
     .getAll("photos")
     .map((p) => String(p))
-    .filter((p) => p.startsWith("data:image/") && p.length < 900_000)
+    .map((p) => {
+      if (p.startsWith("cloudinary:")) {
+        const [, publicId, largeur, hauteur] = p.split(":");
+        // Un identifiant hors du dossier de l'application est refusé : sinon un
+        // formulaire trafiqué ferait pointer une photo vers un autre fichier du
+        // compte Cloudinary.
+        if (!publicId || !publicIdValide(publicId)) return null;
+        return {
+          publicId,
+          largeur: Number(largeur) || null,
+          hauteur: Number(hauteur) || null,
+          image: null,
+        };
+      }
+      if (p.startsWith("data:image/") && p.length < 900_000) {
+        return { publicId: null, largeur: null, hauteur: null, image: p };
+      }
+      return null;
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null)
     .slice(0, 2);
 
   // État avant enregistrement : sert à distinguer un premier envoi d'une
@@ -452,13 +475,24 @@ export async function soumettreRapport(formData: FormData) {
   });
 
   // Les photos sont remplacées en bloc : le formulaire renvoie toujours l'état
-  // complet de la sélection.
+  // complet de la sélection. Celles qui ne sont plus là sont aussi supprimées
+  // chez Cloudinary, pour ne pas y accumuler des fichiers orphelins.
+  const avant = await prisma.photoRapport.findMany({
+    where: { rapportId: rapport.id },
+    select: { publicId: true },
+  });
+  const gardees = new Set(photos.map((p) => p.publicId).filter(Boolean));
+  const aSupprimer = avant
+    .map((p) => p.publicId)
+    .filter((id): id is string => Boolean(id) && !gardees.has(id));
+
   await prisma.photoRapport.deleteMany({ where: { rapportId: rapport.id } });
   if (photos.length > 0) {
     await prisma.photoRapport.createMany({
-      data: photos.map((image) => ({ rapportId: rapport.id, image })),
+      data: photos.map((p) => ({ rapportId: rapport.id, ...p })),
     });
   }
+  await supprimerPhotos(aSupprimer);
 
   await journaliser(
     user.id,
@@ -486,15 +520,29 @@ export async function soumettreRapport(formData: FormData) {
 
 export async function supprimerRapport(rapportId: string) {
   const user = await exiger("CONSEILLER");
-  const rapport = await prisma.rapportQuotidien.findUniqueOrThrow({ where: { id: rapportId } });
+  const rapport = await prisma.rapportQuotidien.findUniqueOrThrow({
+    where: { id: rapportId },
+    include: { photos: { select: { publicId: true } } },
+  });
   // Chacun supprime le sien ; les coordinateurs peuvent supprimer un doublon.
   if (rapport.auteurId !== user.id && !roleAuMoins(user.role, "COORDINATEUR")) {
     throw new Error("Vous ne pouvez supprimer que vos propres rapports.");
   }
   await prisma.rapportQuotidien.delete({ where: { id: rapportId } });
+  await supprimerPhotos(
+    rapport.photos.map((p) => p.publicId).filter((id): id is string => Boolean(id))
+  );
   await journaliser(user.id, "RAPPORT_SUPPRIME", `Jour ${rapport.jour}`);
   revalidatePath("/rapports");
   revalidatePath("/rapports/final");
+}
+
+// Paramètres signés permettant au navigateur d'envoyer une photo directement à
+// Cloudinary. La signature est courte (Cloudinary refuse un horodatage trop
+// ancien), on la demande donc au moment de choisir la photo.
+export async function demanderSignaturePhoto() {
+  await exiger("CONSEILLER");
+  return signerEnvoi();
 }
 
 // ---------- Administration (couple dirigeant) ----------

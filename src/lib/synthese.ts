@@ -30,7 +30,7 @@ export type RapportBrut = {
   detailAide: string | null;
   points: number;
   auteur: { id: string; prenom: string; nom: string; role: string };
-  photos: { id: string; image: string }[];
+  photos: { id: string; publicId: string | null; image: string | null }[];
 };
 
 export type Journee = { numero: number; date: Date };
@@ -193,9 +193,12 @@ export function construireSynthese(
     .filter((d) => d.texte.trim())
     .sort((a, b) => a.jour - b.jour);
 
+  // Les URL d'affichage sont calculées par la page : la synthèse reste
+  // indépendante du service de stockage.
   const photos = rapports.flatMap((r) =>
     r.photos.map((p) => ({
       id: p.id,
+      publicId: p.publicId,
       image: p.image,
       jour: r.jour,
       auteur: nomComplet(r.auteur),

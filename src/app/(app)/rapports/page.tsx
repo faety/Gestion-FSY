@@ -10,6 +10,7 @@ import {
   niveau,
   sectionsPour,
 } from "@/lib/rapports";
+import { CLOUDINARY_ACTIF, urlPhoto } from "@/lib/cloudinary";
 import { FormulaireRapport } from "@/components/FormulaireRapport";
 
 const fmtJour = new Intl.DateTimeFormat("fr-FR", {
@@ -163,6 +164,7 @@ export default async function RapportsPage({
         jour={journee.numero}
         libelleJour={libelleJournee(journee.numero, journee.date)}
         sections={sectionsPour(user.role)}
+        cloudinaryActif={CLOUDINARY_ACTIF}
         existant={
           monRapport
             ? {
@@ -172,7 +174,14 @@ export default async function RapportsPage({
                 aAmeliorer: monRapport.aAmeliorer,
                 besoinAide: monRapport.besoinAide,
                 detailAide: monRapport.detailAide ?? "",
-                photos: monRapport.photos.map((p) => p.image),
+                photos: monRapport.photos.map((p) => ({
+                  publicId: p.publicId ?? undefined,
+                  largeur: p.largeur ?? undefined,
+                  hauteur: p.hauteur ?? undefined,
+                  // Vignette signée pour une photo chez Cloudinary, data URL
+                  // pour celles envoyées avant sa mise en place.
+                  apercu: p.publicId ? (urlPhoto(p.publicId, 600) ?? "") : (p.image ?? ""),
+                })),
                 points: monRapport.points,
               }
             : null

@@ -5,6 +5,7 @@ import { getUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import { libelleJour } from "@/lib/rapports";
 import { construireSynthese, syntheseEnTexte, type Comptage } from "@/lib/synthese";
+import { urlPhoto } from "@/lib/cloudinary";
 import { ExportSynthese } from "@/components/ExportSynthese";
 
 const TITRE = "Rapport final — FSY 2026 Abidjan Ouest";
@@ -19,7 +20,7 @@ export default async function RapportFinalPage() {
       orderBy: [{ jour: "asc" }, { createdAt: "asc" }],
       include: {
         auteur: { select: { id: true, prenom: true, nom: true, role: true } },
-        photos: { select: { id: true, image: true } },
+        photos: { select: { id: true, publicId: true, image: true } },
       },
     }),
     prisma.journeeConference.findMany({
@@ -289,20 +290,31 @@ export default async function RapportFinalPage() {
         <section className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="font-bold mb-3">📷 Photos des rapports ({s.photos.length})</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {s.photos.map((p) => (
-              <figure key={p.id}>
-                {/* Images en data URL issues de la base : next/image n'apporterait rien */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.image}
-                  alt={`${libelleJour(p.jour)} — ${p.auteur}`}
-                  className="rounded-lg w-full aspect-square object-cover"
-                />
-                <figcaption className="text-xs text-slate-400 mt-1">
-                  {libelleJour(p.jour)} · {p.auteur}
-                </figcaption>
-              </figure>
-            ))}
+            {s.photos.map((p) => {
+              // Vignette de 400 px produite par Cloudinary : la synthèse reste
+              // légère même avec des centaines de photos. L'appui ouvre la
+              // photo entière, elle aussi servie par une URL signée.
+              const vignette = p.publicId ? urlPhoto(p.publicId, 400) : p.image;
+              const entiere = p.publicId ? urlPhoto(p.publicId) : p.image;
+              if (!vignette) return null;
+              return (
+                <figure key={p.id}>
+                  <a href={entiere ?? vignette} target="_blank" rel="noopener noreferrer">
+                    {/* Vignette signée ou data URL héritée : next/image n'apporterait rien */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={vignette}
+                      alt={`${libelleJour(p.jour)} — ${p.auteur}`}
+                      loading="lazy"
+                      className="rounded-lg w-full aspect-square object-cover"
+                    />
+                  </a>
+                  <figcaption className="text-xs text-slate-400 mt-1">
+                    {libelleJour(p.jour)} · {p.auteur}
+                  </figcaption>
+                </figure>
+              );
+            })}
           </div>
         </section>
       )}

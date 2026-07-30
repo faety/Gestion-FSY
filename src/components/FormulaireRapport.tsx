@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { soumettreRapport } from "@/lib/actions";
+import { demanderSignaturePhoto, soumettreRapport } from "@/lib/actions";
 import {
   AMBIANCES,
   BAREME,
@@ -14,8 +14,20 @@ import { Celebration } from "./Celebration";
 
 type Valeurs = Record<string, string | string[] | Record<string, string>>;
 
+// Une photo, telle que le formulaire la manipule.
+//   - envoyée à Cloudinary : publicId + une URL d'aperçu pour l'afficher ;
+//   - repli sans Cloudinary : dataUrl, conservée en base comme avant.
+export type PhotoRapport = {
+  publicId?: string;
+  largeur?: number;
+  hauteur?: number;
+  apercu: string; // ce que la vignette affiche
+  dataUrl?: string;
+};
+
 // Les photos sont réduites dans le navigateur : un téléphone produit des JPEG de
-// plusieurs mégaoctets, inutilisables tels quels dans une action serveur.
+// plusieurs mégaoctets. Utile dans les deux cas — cela évite la limite de taille
+// d'une action serveur, et économise le forfait de données de l'encadrant.
 const COTE_MAX = 1100;
 const POIDS_CIBLE = 190_000; // caractères de data URL, soit ~140 ko d'image
 
@@ -50,11 +62,46 @@ async function reduireImage(fichier: File): Promise<string> {
   return url;
 }
 
+// Envoi direct du navigateur vers Cloudinary : la photo ne passe pas par
+// l'application. La signature est demandée juste avant, Cloudinary refusant un
+// horodatage trop ancien.
+async function envoyerACloudinary(dataUrl: string): Promise<PhotoRapport> {
+  const sig = await demanderSignaturePhoto();
+  if (!sig) throw new Error("Cloudinary n'est pas configuré.");
+
+  const corps = new FormData();
+  corps.set("file", dataUrl);
+  corps.set("api_key", sig.apiKey);
+  corps.set("timestamp", String(sig.timestamp));
+  corps.set("folder", sig.folder);
+  corps.set("type", sig.type);
+  corps.set("signature", sig.signature);
+
+  const reponse = await fetch(
+    `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+    { method: "POST", body: corps }
+  );
+  if (!reponse.ok) {
+    const detail = await reponse.text();
+    throw new Error(`Cloudinary a refusé l'envoi (${reponse.status}) : ${detail.slice(0, 200)}`);
+  }
+  const r = await reponse.json();
+  return {
+    publicId: r.public_id,
+    largeur: r.width,
+    hauteur: r.height,
+    // Aperçu local : la photo est déjà dans le navigateur, pas besoin de la
+    // retélécharger depuis Cloudinary pour afficher la vignette.
+    apercu: dataUrl,
+  };
+}
+
 export function FormulaireRapport({
   jour,
   libelleJour,
   sections,
   existant,
+  cloudinaryActif,
 }: {
   jour: number;
   libelleJour: string;
@@ -66,9 +113,10 @@ export function FormulaireRapport({
     aAmeliorer: string;
     besoinAide: boolean;
     detailAide: string;
-    photos: string[];
+    photos: PhotoRapport[];
     points: number;
   } | null;
+  cloudinaryActif: boolean;
 }) {
   const [ambiance, setAmbiance] = useState(existant?.ambiance ?? "");
   const [valeurs, setValeurs] = useState<Valeurs>(existant?.reponses ?? {});
@@ -76,7 +124,7 @@ export function FormulaireRapport({
   const [aAmeliorer, setAAmeliorer] = useState(existant?.aAmeliorer ?? "");
   const [besoinAide, setBesoinAide] = useState(existant?.besoinAide ?? false);
   const [detailAide, setDetailAide] = useState(existant?.detailAide ?? "");
-  const [photos, setPhotos] = useState<string[]>(existant?.photos ?? []);
+  const [photos, setPhotos] = useState<PhotoRapport[]>(existant?.photos ?? []);
   const [chargementPhoto, setChargementPhoto] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [resultat, setResultat] = useState<{
@@ -122,13 +170,22 @@ export function FormulaireRapport({
     setChargementPhoto(true);
     setErreur(null);
     try {
-      const nouvelles: string[] = [];
+      const nouvelles: PhotoRapport[] = [];
       for (const f of Array.from(fichiers).slice(0, 2 - photos.length)) {
-        nouvelles.push(await reduireImage(f));
+        const dataUrl = await reduireImage(f);
+        nouvelles.push(
+          cloudinaryActif
+            ? await envoyerACloudinary(dataUrl)
+            : { apercu: dataUrl, dataUrl }
+        );
       }
       setPhotos((p) => [...p, ...nouvelles].slice(0, 2));
-    } catch {
-      setErreur("Cette image n'a pas pu être préparée. Essayez une autre photo.");
+    } catch (e) {
+      setErreur(
+        e instanceof Error && e.message.startsWith("Cloudinary")
+          ? `L'envoi de la photo a échoué. ${e.message}`
+          : "Cette image n'a pas pu être préparée. Essayez une autre photo."
+      );
     } finally {
       setChargementPhoto(false);
       if (inputPhoto.current) inputPhoto.current.value = "";
@@ -150,7 +207,14 @@ export function FormulaireRapport({
     data.set("aAmeliorer", aAmeliorer);
     if (besoinAide) data.set("besoinAide", "on");
     data.set("detailAide", detailAide);
-    for (const p of photos) data.append("photos", p);
+    for (const p of photos) {
+      data.append(
+        "photos",
+        p.publicId
+          ? `cloudinary:${p.publicId}:${p.largeur ?? 0}:${p.hauteur ?? 0}`
+          : (p.dataUrl ?? p.apercu)
+      );
+    }
 
     startTransition(async () => {
       try {
@@ -411,16 +475,22 @@ export function FormulaireRapport({
         <div>
           <h2 className="font-bold">📷 Une ou deux photos (facultatif)</h2>
           <p className="text-sm text-slate-500">
-            Un moment de la journée. Les photos sont réduites automatiquement avant l'envoi.
+            Un moment de la journée. Les photos sont réduites automatiquement avant l'envoi
+            {cloudinaryActif && ", et ne sont visibles que depuis l'application"}.
           </p>
         </div>
         {photos.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
             {photos.map((p, i) => (
               <div key={i} className="relative">
-                {/* Image locale en data URL : next/image n'apporterait rien ici */}
+                {/* Aperçu déjà présent dans le navigateur, ou vignette signée
+                    renvoyée par le serveur : next/image n'apporterait rien. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p} alt={`Photo ${i + 1}`} className="rounded-lg w-full aspect-square object-cover" />
+                <img
+                  src={p.apercu}
+                  alt={`Photo ${i + 1}`}
+                  className="rounded-lg w-full aspect-square object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
@@ -436,7 +506,7 @@ export function FormulaireRapport({
         {photos.length < 2 && (
           <label className="block">
             <span className="inline-block rounded-lg border-2 border-dashed border-slate-300 px-4 py-3 text-sm text-slate-600 w-full text-center cursor-pointer">
-              {chargementPhoto ? "Préparation…" : "＋ Ajouter une photo"}
+              {chargementPhoto ? "Envoi en cours…" : "＋ Ajouter une photo"}
             </span>
             <input
               ref={inputPhoto}

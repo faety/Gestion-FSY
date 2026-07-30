@@ -180,8 +180,33 @@ sans créer de doublon.
 
 Les photos sont réduites **dans le navigateur** avant l'envoi : côté ramené à 1100 px, puis
 baisse de la qualité JPEG et, si cela ne suffit pas, réduction de la taille — jusqu'à
-tenir sous ~140 ko. Elles sont conservées en data URL dans la base, sans service de
-stockage externe à administrer.
+tenir sous ~140 ko. Cela économise le forfait de données de l'encadrant.
+
+Elles sont ensuite stockées chez **Cloudinary** (`src/lib/cloudinary.ts`). Le navigateur
+les envoie **directement** à Cloudinary, sans passer par l'application : c'est plus rapide
+sur une connexion mobile, et cela contourne la limite de taille d'une action serveur. La
+clé secrète ne quitte jamais le serveur, qui se contente de signer l'envoi.
+
+**Les photos sont protégées.** Elles sont déposées en type `authenticated` : Cloudinary ne
+les sert que par une URL signée que seule l'application peut produire. Ce sont des images
+prises pendant une activité de mineurs ; elles n'ont pas à être accessibles à qui
+tomberait sur le lien.
+
+La base ne conserve qu'un identifiant. Cloudinary produit la taille demandée à la volée :
+vignette de 400 px sur la synthèse, 600 px dans le formulaire, 1400 px à l'appui. Sans
+cela, la page de synthèse intégrait toutes les photos dans son HTML — mesuré à **43 ko
+avec Cloudinary**, contre plusieurs centaines de mégaoctets à plein effectif.
+
+Retirer une photo la supprime aussi chez Cloudinary. Cette suppression est **bornée à
+4 secondes** : le ménage ne doit jamais retarder l'enregistrement d'un rapport. Au pire un
+fichier reste chez Cloudinary, sans conséquence — il n'est plus référencé.
+
+Trois variables d'environnement suffisent : `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`. **Si elles sont absentes, tout retombe sur
+l'ancien stockage en base** : l'application reste utilisable sans Cloudinary, une panne du
+service n'empêche pas de remettre un rapport, et les photos déjà envoyées de cette façon
+restent lisibles. Pour servir les photos en accès libre par lien plutôt qu'en URL signée,
+ajouter `CLOUDINARY_PHOTOS_PUBLIQUES=1`.
 
 ### Rapport final
 
@@ -401,6 +426,7 @@ src/lib/theme.ts           # thème de l'année, partagé par l'application et l
 src/lib/etapes-car.ts      # les trois étapes de pointage aux cars
 src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de points, niveaux
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
+src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts depuis data/ (hors dépôt)
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission
@@ -416,10 +442,17 @@ src/components/…           # composants interactifs (pointage car, rapport, re
 **PostgreSQL**, hébergé chez [Neon](https://neon.tech). Une seule variable
 d'environnement est nécessaire :
 
-| Variable | Rôle |
-|---|---|
-| `DATABASE_URL` | Chaîne de connexion PostgreSQL (Neon → projet → *Connection string*) |
-| `AUTH_SECRET` | Secret de signature des sessions — `openssl rand -base64 48` |
+| Variable | Rôle | Obligatoire |
+|---|---|---|
+| `DATABASE_URL` | Chaîne de connexion PostgreSQL (Neon → projet → *Connection string*) | oui |
+| `AUTH_SECRET` | Secret de signature des sessions — `openssl rand -base64 48` | oui |
+| `CLOUDINARY_CLOUD_NAME` | Stockage des photos de rapport | non |
+| `CLOUDINARY_API_KEY` | idem | non |
+| `CLOUDINARY_API_SECRET` | idem — à ne mettre que dans les variables de l'hébergeur | non |
+| `CLOUDINARY_PHOTOS_PUBLIQUES` | `1` pour servir les photos par lien libre au lieu d'une URL signée | non |
+
+Sans les variables Cloudinary, les photos sont conservées dans la base : l'application
+fonctionne, mais la page de synthèse devient lourde dès quelques centaines de photos.
 
 Le schéma et les données sont installés **par le build** : la commande
 `npm run build` enchaîne `prisma generate`, `prisma db push`, l'amorçage, puis

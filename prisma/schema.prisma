@@ -302,13 +302,21 @@ model RapportQuotidien {
   @@index([jour])
 }
 
-// Photo jointe à un rapport : image JPEG redimensionnée par le navigateur avant
-// envoi, conservée en data URL (aucun service de stockage externe à administrer).
+// Photo jointe à un rapport.
+//
+// Deux modes, selon que Cloudinary est configuré ou non :
+//   - publicId renseigné : la photo est chez Cloudinary, qui produit la taille
+//     demandée à la volée (vignette pour la synthèse, image entière à l'appui) ;
+//   - image renseigné : ancien mode, la photo est conservée en data URL dans la
+//     base. Les photos déjà envoyées de cette façon restent lisibles.
 model PhotoRapport {
   id        String           @id @default(cuid())
   rapport   RapportQuotidien @relation(fields: [rapportId], references: [id], onDelete: Cascade)
   rapportId String
-  image     String
+  publicId  String?
+  largeur   Int?
+  hauteur   Int?
+  image     String?
   legende   String?
 }
 
