@@ -26,17 +26,41 @@ async function main() {
   }
 
   // ---------- Équipe d'encadrement (encore fictive) ----------
-  const creerUser = (email: string, nom: string, prenom: string, sexe: string, role: string) =>
+  const creerUser = (
+    email: string,
+    nom: string,
+    prenom: string,
+    sexe: string,
+    role: string,
+    telephone?: string
+  ) =>
     prisma.user.upsert({
       where: { email },
-      update: {},
-      create: { email, passwordHash: hash, nom, prenom, sexe, role },
+      update: { nom, prenom, telephone },
+      create: { email, passwordHash: hash, nom, prenom, sexe, role, telephone },
     });
 
-  await creerUser("berenger@fsy2026.ci", "Kouamé", "Bérenger", "M", "DIRIGEANT");
-  await creerUser("epouse@fsy2026.ci", "Kouamé", "Élisabeth", "F", "DIRIGEANT");
-  await creerUser("coordinateur@fsy2026.ci", "Assi", "Emmanuel", "M", "COORDINATEUR");
-  await creerUser("coordinatrice@fsy2026.ci", "Tano", "Victoire", "F", "COORDINATEUR");
+  // Couple dirigeant de la conférence (réel)
+  await creerUser("berenger@fsy2026.ci", "Dahakpoin", "Bérenger", "M", "DIRIGEANT");
+  await creerUser("armande@fsy2026.ci", "Dahakpoin", "Armande", "F", "DIRIGEANT");
+
+  // Coordinateurs principaux (réels) — un homme et une femme
+  await creerUser(
+    "cedric@fsy2026.ci",
+    "Kouassi",
+    "Allegra Cédric",
+    "M",
+    "COORDINATEUR",
+    "+225 0574653742"
+  );
+  await creerUser(
+    "candela@fsy2026.ci",
+    "Yao",
+    "Aquicy Candela Eméraude",
+    "F",
+    "COORDINATEUR",
+    "+225 0594254834"
+  );
 
   const PRENOMS_M = ["Kouadio", "Yao", "Koffi", "Marc", "Didier", "Serge", "Franck", "Olivier", "Armand", "Wilfried", "Éric", "Landry"];
   const PRENOMS_F = ["Akissi", "Aya", "Affoué", "Grâce", "Estelle", "Sarah", "Rebecca", "Dorcas", "Émilie", "Prisca", "Nadège", "Clarisse"];
@@ -155,8 +179,11 @@ async function main() {
           create: {
             email,
             passwordHash: hash,
-            nom: NOMS[(c + 5) % NOMS.length],
-            prenom: prenoms[(c + 5) % prenoms.length],
+            // Décalage de 8 : les conseillers de démonstration prennent les
+            // indices 0 à 5, on évite ainsi deux encadrants homonymes dans les
+            // listes de choix.
+            nom: NOMS[(c + 8) % NOMS.length],
+            prenom: prenoms[(c + 8) % prenoms.length],
             sexe,
             role: "ADJOINT",
             compagnieId: compagnies[c].id,
@@ -167,7 +194,9 @@ async function main() {
   }
 
   // ---------- Cars : un par pieu/district ----------
-  const conseillers = await prisma.user.findMany({ where: { role: "CONSEILLER" } });
+  // Le pointage est affecté étape par étape par le couple dirigeant ou les
+  // coordinateurs principaux (page Cars). Aucune affectation par défaut : les
+  // cars sans personne désignée sont signalés dans l'application.
   let numeroCar = 0;
   for (const nom of nomsPieux) {
     numeroCar++;
@@ -178,7 +207,6 @@ async function main() {
       create: {
         nom: `Car ${numeroCar} — ${nom}`,
         pieuId: pieuxParNom.get(nom)!,
-        responsableId: conseillers[(numeroCar - 1) % Math.max(conseillers.length, 1)]?.id,
         // Un car de 70 places par tranche de 70 jeunes attendus
         capacite: Math.max(70, Math.ceil(nbJeunes / 70) * 70),
       },
@@ -205,8 +233,9 @@ async function main() {
     });
   }
 
-  const coordinateur = await prisma.user.findUnique({
-    where: { email: "coordinateur@fsy2026.ci" },
+  const coordinateur = await prisma.user.findFirst({
+    where: { role: "COORDINATEUR" },
+    orderBy: { email: "asc" },
   });
   const dirigeant = await prisma.user.findUnique({ where: { email: "berenger@fsy2026.ci" } });
 
@@ -302,11 +331,11 @@ async function main() {
   }
 
   console.log("✅ Base initialisée.");
-  console.log("Comptes de démonstration (mot de passe : fsy2026) :");
-  console.log("  Dirigeant     : berenger@fsy2026.ci");
-  console.log("  Coordinateur  : coordinateur@fsy2026.ci");
-  console.log("  Adjoint       : adjointm1@fsy2026.ci");
-  console.log("  Conseiller    : conseiller1@fsy2026.ci");
+  console.log("Comptes (mot de passe : fsy2026) :");
+  console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
+  console.log("  Coordinateurs principaux : cedric@fsy2026.ci · candela@fsy2026.ci");
+  console.log("  Adjoint (démo)           : adjointm1@fsy2026.ci");
+  console.log("  Conseiller (démo)        : conseiller1@fsy2026.ci");
 }
 
 main()

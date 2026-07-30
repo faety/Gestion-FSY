@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { validerMouvement, annulerDernierMouvement } from "@/lib/actions";
+import {
+  validerMouvement,
+  annulerDernierMouvement,
+  affecterPointageCar,
+  retirerPointageCar,
+} from "@/lib/actions";
+import { ETAPES_CAR, type EtapeCar } from "@/lib/etapes-car";
+import { ROLE_LABELS, type Role } from "@/lib/roles";
 
 type JeuneCar = {
   id: string;
@@ -9,30 +16,46 @@ type JeuneCar = {
   prenom: string;
   sexe: string;
   groupe: string | null;
-  statut: string | null; // dernier mouvement : MONTEE | ARRIVEE | DEPART | null
+  statut: string | null; // dernière étape validée, pour le badge
+  etapes: string[]; // toutes les étapes déjà validées
+  medical: string | null;
+  alimentaire: string | null;
 };
 
-const ETAPES = [
-  { type: "MONTEE", label: "Montée au pieu", badge: "🚌 Monté", couleur: "blue" },
-  { type: "ARRIVEE", label: "Arrivée au site", badge: "✅ Arrivé", couleur: "green" },
-  { type: "DEPART", label: "Départ du site", badge: "🏠 Parti", couleur: "orange" },
-] as const;
+type Affectation = { etape: string; userId: string; nom: string; role: string };
+type Encadrant = { id: string; nom: string; role: string; sexe: string };
+
+const COULEURS: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-700",
+  green: "bg-green-100 text-green-700",
+  orange: "bg-orange-100 text-orange-700",
+};
 
 export function ValidationCar({
   car,
   jeunes,
+  affectations,
+  encadrants,
+  droits,
+  peutAffecter,
+  monId,
   historique,
-  peutValider,
 }: {
-  car: { id: string; nom: string; capacite: number; responsable: string | null };
+  car: { id: string; nom: string; capacite: number; pieu: string };
   jeunes: JeuneCar[];
+  affectations: Affectation[];
+  encadrants: Encadrant[];
+  droits: Record<string, boolean>;
+  peutAffecter: boolean;
+  monId: string;
   historique: { id: string; type: string; jeune: string; par: string; heure: string }[] | null;
-  peutValider: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
-  const [etape, setEtape] = useState<"MONTEE" | "ARRIVEE" | "DEPART">("MONTEE");
+  const [etape, setEtape] = useState<EtapeCar>("MONTEE");
   const [pending, startTransition] = useTransition();
   const [enCours, setEnCours] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [gestion, setGestion] = useState(false);
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -42,13 +65,27 @@ export function ValidationCar({
     );
   }, [jeunes, recherche]);
 
-  const nbParEtape = (type: string) => jeunes.filter((j) => j.statut === type).length;
+  const nbParEtape = (cle: string) => jeunes.filter((j) => j.etapes.includes(cle)).length;
+  const pointeursDe = (cle: string) => affectations.filter((a) => a.etape === cle);
+  const jePeuxCocher = droits[etape] ?? false;
+  const etapeCourante = ETAPES_CAR.find((e) => e.cle === etape)!;
+
+  const lancer = (fn: () => Promise<void>) => {
+    setErreur(null);
+    startTransition(async () => {
+      try {
+        await fn();
+      } catch (e) {
+        setErreur(e instanceof Error ? e.message : "Erreur inattendue");
+      }
+    });
+  };
 
   function basculer(jeune: JeuneCar) {
-    if (!peutValider || pending) return;
+    if (!jePeuxCocher || pending) return;
     setEnCours(jeune.id);
-    startTransition(async () => {
-      if (jeune.statut === etape) {
+    lancer(async () => {
+      if (jeune.etapes.includes(etape)) {
         await annulerDernierMouvement(jeune.id, car.id, etape);
       } else {
         await validerMouvement(jeune.id, car.id, etape);
@@ -58,14 +95,11 @@ export function ValidationCar({
   }
 
   const badge = (statut: string | null) => {
-    const e = ETAPES.find((x) => x.type === statut);
+    const e = ETAPES_CAR.find((x) => x.cle === statut);
     if (!e) return null;
-    const couleurs: Record<string, string> = {
-      blue: "bg-blue-100 text-blue-700",
-      green: "bg-green-100 text-green-700",
-      orange: "bg-orange-100 text-orange-700",
-    };
-    return <span className={`text-xs rounded-full px-2 py-0.5 ${couleurs[e.couleur]}`}>{e.badge}</span>;
+    return (
+      <span className={`text-xs rounded-full px-2 py-0.5 ${COULEURS[e.couleur]}`}>{e.badge}</span>
+    );
   };
 
   return (
@@ -73,25 +107,107 @@ export function ValidationCar({
       <div>
         <h1 className="text-2xl font-bold">{car.nom}</h1>
         <p className="text-slate-500 text-sm">
-          Responsable : {car.responsable ?? "—"} — {jeunes.length} jeunes rattachés
+          {car.pieu} · {jeunes.length} jeunes attendus · capacité {car.capacite}
         </p>
       </div>
 
+      {erreur && <p className="text-sm text-red-700 bg-red-50 rounded-lg p-3">{erreur}</p>}
+
       {/* Sélecteur d'étape */}
       <div className="flex gap-2 flex-wrap">
-        {ETAPES.map((e) => (
+        {ETAPES_CAR.map((e) => (
           <button
-            key={e.type}
-            onClick={() => setEtape(e.type)}
+            key={e.cle}
+            onClick={() => setEtape(e.cle)}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-              etape === e.type
+              etape === e.cle
                 ? "bg-fsy text-white"
                 : "bg-white text-slate-600 shadow-sm hover:bg-slate-50"
             }`}
           >
-            {e.label} ({nbParEtape(e.type)}/{jeunes.length})
+            {e.label} ({nbParEtape(e.cle)}/{jeunes.length})
           </button>
         ))}
+      </div>
+
+      {/* Qui coche cette étape */}
+      <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <div className="font-medium">{etapeCourante.label}</div>
+            <p className="text-sm text-slate-500">{etapeCourante.description}</p>
+          </div>
+          {peutAffecter && (
+            <button
+              onClick={() => setGestion(!gestion)}
+              className="text-sm text-fsy hover:underline shrink-0"
+            >
+              {gestion ? "Fermer" : "Affecter…"}
+            </button>
+          )}
+        </div>
+
+        <div className="mt-2 text-sm">
+          {pointeursDe(etape).length === 0 ? (
+            <span className="text-amber-700">
+              Personne d'affecté — tout encadrant peut cocher pour le moment.
+            </span>
+          ) : (
+            <ul className="flex flex-wrap gap-1.5">
+              {pointeursDe(etape).map((a) => (
+                <li
+                  key={a.userId}
+                  className="text-xs bg-fsy-light text-fsy-dark rounded-full px-2.5 py-1 flex items-center gap-1.5"
+                >
+                  {a.nom}
+                  <span className="text-fsy/60">
+                    {ROLE_LABELS[a.role as Role]?.split(" ")[0]}
+                  </span>
+                  {a.userId === monId && <strong>· vous</strong>}
+                  {peutAffecter && (
+                    <button
+                      disabled={pending}
+                      onClick={() =>
+                        lancer(() => retirerPointageCar(car.id, etape, a.userId))
+                      }
+                      className="text-red-500 hover:text-red-700 ml-0.5"
+                      aria-label={`Retirer ${a.nom}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {gestion && peutAffecter && (
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            <label className="text-sm text-slate-600">
+              Ajouter une personne pour « {etapeCourante.label} » :
+            </label>
+            <select
+              defaultValue=""
+              disabled={pending}
+              onChange={(e) => {
+                const userId = e.target.value;
+                e.currentTarget.value = "";
+                if (userId) lancer(() => affecterPointageCar(car.id, etape, userId));
+              }}
+              className="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2.5 bg-white text-sm"
+            >
+              <option value="">— Choisir —</option>
+              {encadrants
+                .filter((e) => !pointeursDe(etape).some((a) => a.userId === e.id))
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.nom} — {ROLE_LABELS[e.role as Role] ?? e.role}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Recherche rapide */}
@@ -103,9 +219,10 @@ export function ValidationCar({
         className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-fsy bg-white"
       />
 
-      {!peutValider && (
-        <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-2">
-          Vous êtes en lecture seule sur ce car.
+      {!jePeuxCocher && (
+        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          Vous n'êtes pas affecté au pointage « {etapeCourante.label} » de ce car : lecture
+          seule. Demandez aux coordinateurs de vous affecter si nécessaire.
         </p>
       )}
 
@@ -115,12 +232,12 @@ export function ValidationCar({
           <li className="p-4 text-slate-500 text-sm">Aucun jeune trouvé.</li>
         )}
         {filtres.map((j) => {
-          const coche = j.statut === etape;
+          const coche = j.etapes.includes(etape);
           return (
             <li key={j.id}>
               <button
                 onClick={() => basculer(j)}
-                disabled={!peutValider || pending}
+                disabled={!jePeuxCocher || pending}
                 className="w-full flex items-center gap-3 px-3 py-3.5 text-left hover:bg-slate-50 active:bg-slate-100 transition disabled:cursor-default"
               >
                 <span
@@ -138,6 +255,13 @@ export function ValidationCar({
                     {j.sexe === "M" ? "Garçon" : "Fille"}
                     {j.groupe && ` — ${j.groupe}`}
                   </span>
+                  {(j.medical || j.alimentaire) && (
+                    <span className="block text-xs text-red-700 mt-0.5">
+                      {j.medical && `⚕️ ${j.medical}`}
+                      {j.medical && j.alimentaire && " · "}
+                      {j.alimentaire && `🍽 ${j.alimentaire}`}
+                    </span>
+                  )}
                 </span>
                 {badge(j.statut)}
               </button>
@@ -156,7 +280,7 @@ export function ValidationCar({
             {historique.map((h) => (
               <li key={h.id} className="flex justify-between gap-2 text-slate-600">
                 <span>
-                  {h.type === "MONTEE" ? "🚌" : h.type === "ARRIVEE" ? "✅" : "🏠"} {h.jeune}
+                  {ETAPES_CAR.find((e) => e.cle === h.type)?.badge.split(" ")[0]} {h.jeune}
                   <span className="text-slate-400"> par {h.par}</span>
                 </span>
                 <span className="text-slate-400 font-mono whitespace-nowrap">

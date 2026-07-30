@@ -39,7 +39,7 @@ export const getUtilisateur = cache(async () => {
     if (!payload.sub) return null;
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { pieu: true, compagnie: true, groupesDiriges: true, carsResponsable: true },
+      include: { pieu: true, compagnie: true, groupesDiriges: true },
     });
     return user && user.actif ? user : null;
   } catch {

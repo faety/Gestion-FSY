@@ -20,13 +20,14 @@ export default async function OrganigrammePage() {
     }),
   ]);
 
+  // Le téléphone est cliquable : sur mobile, un appui suffit pour appeler.
   const Carte = ({
     titre,
     personnes,
     couleur,
   }: {
     titre: string;
-    personnes: string[];
+    personnes: { nom: string; telephone: string | null }[];
     couleur: string;
   }) => (
     <div className={`rounded-xl p-4 ${couleur}`}>
@@ -35,8 +36,13 @@ export default async function OrganigrammePage() {
         <div className="text-sm opacity-60">Non assigné</div>
       ) : (
         personnes.map((p) => (
-          <div key={p} className="font-medium">
-            {p}
+          <div key={p.nom} className="mt-1 first:mt-0">
+            <div className="font-medium">{p.nom}</div>
+            {p.telephone && (
+              <a href={`tel:${p.telephone.replace(/\s/g, "")}`} className="text-sm underline opacity-80">
+                {p.telephone}
+              </a>
+            )}
           </div>
         ))
       )}
@@ -50,13 +56,19 @@ export default async function OrganigrammePage() {
       <div className="max-w-md mx-auto space-y-3">
         <Carte
           titre="Couple dirigeant"
-          personnes={dirigeants.map((d) => `${d.prenom} ${d.nom}`)}
+          personnes={dirigeants.map((d) => ({
+            nom: `${d.prenom} ${d.nom}`,
+            telephone: d.telephone,
+          }))}
           couleur="bg-fsy-dark text-white text-center"
         />
         <div className="text-center text-slate-300">│</div>
         <Carte
           titre="Coordinateurs principaux"
-          personnes={coordinateurs.map((c) => `${c.prenom} ${c.nom}`)}
+          personnes={coordinateurs.map((c) => ({
+            nom: `${c.prenom} ${c.nom}`,
+            telephone: c.telephone,
+          }))}
           couleur="bg-fsy text-white text-center"
         />
       </div>

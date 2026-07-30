@@ -7,6 +7,7 @@ import { prisma } from "./db";
 import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
 import { peutModifierDirectement, roleAuMoins } from "./roles";
+import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -41,9 +42,28 @@ export async function seDeconnecter() {
 
 // ---------- Arrivées / départs (cars) ----------
 
+// Qui peut cocher les noms pour un car et une étape ?
+// Les personnes affectées à cette étape, et toujours les coordinateurs
+// principaux et le couple dirigeant. Si personne n'est affecté, tout encadrant
+// peut cocher — pour ne bloquer personne le jour même.
+async function verifierDroitDePointage(
+  user: { id: string; role: string },
+  carId: string,
+  etape: string
+) {
+  if (roleAuMoins(user.role, "COORDINATEUR")) return;
+  const affectations = await prisma.affectationCar.findMany({ where: { carId, etape } });
+  if (affectations.length === 0) return;
+  if (affectations.some((a) => a.userId === user.id)) return;
+  throw new Error(
+    `Vous n'êtes pas affecté au pointage « ${etapeCar(etape)?.label ?? etape} » de ce car.`
+  );
+}
+
 export async function validerMouvement(jeuneId: string, carId: string, type: string) {
   const user = await exiger("CONSEILLER");
-  if (!["MONTEE", "ARRIVEE", "DEPART"].includes(type)) throw new Error("Type invalide");
+  if (!ETAPES_VALIDES.includes(type)) throw new Error("Étape invalide");
+  await verifierDroitDePointage(user, carId, type);
   const jeune = await prisma.jeune.findUniqueOrThrow({ where: { id: jeuneId } });
   await prisma.mouvement.create({
     data: { type, jeuneId, carId, valideParId: user.id },
@@ -59,6 +79,7 @@ export async function validerMouvement(jeuneId: string, carId: string, type: str
 
 export async function annulerDernierMouvement(jeuneId: string, carId: string, type: string) {
   const user = await exiger("CONSEILLER");
+  await verifierDroitDePointage(user, carId, type);
   const dernier = await prisma.mouvement.findFirst({
     where: { jeuneId, carId, type },
     orderBy: { horodatage: "desc" },
@@ -67,6 +88,47 @@ export async function annulerDernierMouvement(jeuneId: string, carId: string, ty
     await prisma.mouvement.delete({ where: { id: dernier.id } });
     await journaliser(user.id, "MOUVEMENT_ANNULE", `${type} jeune ${jeuneId}`);
   }
+  revalidatePath(`/cars/${carId}`);
+  revalidatePath("/cars");
+}
+
+// ---------- Affectation du pointage des cars ----------
+
+// Le couple dirigeant et les coordinateurs principaux désignent, pour chaque car
+// et chaque étape, qui coche les noms des jeunes.
+export async function affecterPointageCar(carId: string, etape: string, userId: string) {
+  const user = await exiger("COORDINATEUR");
+  if (!ETAPES_VALIDES.includes(etape)) throw new Error("Étape invalide");
+  const [car, cible] = await Promise.all([
+    prisma.car.findUniqueOrThrow({ where: { id: carId } }),
+    prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+  ]);
+  await prisma.affectationCar.upsert({
+    where: { carId_etape_userId: { carId, etape, userId } },
+    update: {},
+    create: { carId, etape, userId },
+  });
+  await journaliser(
+    user.id,
+    "POINTAGE_AFFECTE",
+    `${cible.prenom} ${cible.nom} → ${etapeCar(etape)?.label} de ${car.nom}`
+  );
+  revalidatePath(`/cars/${carId}`);
+  revalidatePath("/cars");
+}
+
+export async function retirerPointageCar(carId: string, etape: string, userId: string) {
+  const user = await exiger("COORDINATEUR");
+  const [car, cible] = await Promise.all([
+    prisma.car.findUniqueOrThrow({ where: { id: carId } }),
+    prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+  ]);
+  await prisma.affectationCar.deleteMany({ where: { carId, etape, userId } });
+  await journaliser(
+    user.id,
+    "POINTAGE_RETIRE",
+    `${cible.prenom} ${cible.nom} — ${etapeCar(etape)?.label} de ${car.nom}`
+  );
   revalidatePath(`/cars/${carId}`);
   revalidatePath("/cars");
 }

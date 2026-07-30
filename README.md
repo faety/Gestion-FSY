@@ -225,22 +225,27 @@ npm run setup     # génère le client Prisma, crée la base, insère les donné
 npm run dev       # http://localhost:3000
 ```
 
-### Comptes de démonstration (mot de passe : `fsy2026`)
+### Comptes (mot de passe : `fsy2026`)
 
-| Rôle | Email |
-|---|---|
-| Couple dirigeant | `berenger@fsy2026.ci` |
-| Coordinateur principal | `coordinateur@fsy2026.ci` |
-| Coordinateur adjoint | `adjointm1@fsy2026.ci` |
-| Conseiller | `conseiller1@fsy2026.ci` |
+Le couple dirigeant et les deux coordinateurs principaux sont les personnes
+réelles. Les adjoints et conseillers restent des comptes de démonstration, en
+attente de la liste officielle de l'encadrement.
+
+| Rôle | Email | Personne |
+|---|---|---|
+| Couple dirigeant | `berenger@fsy2026.ci` · `armande@fsy2026.ci` | Bérenger et Armande Dahakpoin |
+| Coordinateur principal | `cedric@fsy2026.ci` | Kouassi Allegra Cédric |
+| Coordinatrice principale | `candela@fsy2026.ci` | Yao Aquicy Candela Eméraude |
+| Coordinateur adjoint *(démo)* | `adjointm1@fsy2026.ci` | — |
+| Conseiller *(démo)* | `conseiller1@fsy2026.ci` | — |
 
 ## Modules
 
 - **Accueil** — statistiques en direct, programme du jour (filtré par groupe pour les conseillers), dernières annonces, alertes de validations en attente.
-- **Cars** — pointage des jeunes par étape (montée au pieu, arrivée au site, départ), recherche rapide par nom, horodatage de chaque validation, historique complet.
+- **Cars** — pointage des jeunes aux **trois étapes** : *départ du pieu* (montée dans le car au pieu ou district), *arrivée au site*, *retour le dernier jour* (montée dans le car le samedi 8 août). Recherche rapide par nom, horodatage de chaque validation, historique complet, alertes médicales et alimentaires affichées à côté du nom. **Le couple dirigeant et les coordinateurs principaux désignent, car par car et étape par étape, qui coche les noms** — un ou plusieurs conseillers, conseillères, coordinateurs ou coordinatrices. Les autres encadrants voient la liste en lecture seule. Tant que personne n'est désigné pour une étape, tout encadrant peut cocher : le jour même, personne ne doit être bloqué. La page Cars signale combien de pointages restent sans personne affectée.
 - **Groupes** — réassignation dynamique : changer le conseiller d'un groupe, fusionner deux groupes, alerte de sur-capacité. Contrainte : groupe et conseiller du même sexe.
 - **Jeunes** — 663 inscrits réels : recherche par nom/pieu/paroisse/groupe, âge, taille de t-shirt, statut d'inscription, badges 🎂 anniversaire, ⚕️ médical et 🍽 alimentaire, contact d'urgence ; filtres par onglet (anniversaires, à suivre, sans groupe) ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
-- **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs.
+- **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs. Les numéros de téléphone du couple et des coordinateurs principaux sont cliquables pour appeler directement depuis le téléphone.
 - **Pieux et districts** *(coordinateurs et adjoints)* — effectifs par unité, statuts d'inscription, **contrôle des critères d'âge officiels**, **conseillers à proposer** selon la formule officielle, et profil attendu des conseillers.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.

@@ -37,7 +37,7 @@ model User {
   compagnieId String?
 
   groupesDiriges     Groupe[]
-  carsResponsable    Car[]
+  affectationsCars   AffectationCar[]
   mouvementsValides  Mouvement[]
   annoncesCreees     Annonce[]
   activitesCreees    Activite[]
@@ -123,16 +123,33 @@ model Jeune {
   @@index([dateNaissance])
 }
 
-// Car (bus) assigné à un pieu, avec un conseiller responsable des validations
+// Car (bus) assigné à un pieu. Les personnes chargées de cocher les noms sont
+// désignées étape par étape (voir AffectationCar).
 model Car {
-  id            String  @id @default(cuid())
-  nom           String  @unique
-  capacite      Int     @default(70)
-  pieu          Pieu    @relation(fields: [pieuId], references: [id])
-  pieuId        String
-  responsable   User?   @relation(fields: [responsableId], references: [id])
-  responsableId String?
-  mouvements    Mouvement[]
+  id           String  @id @default(cuid())
+  nom          String  @unique
+  capacite     Int     @default(70)
+  pieu         Pieu    @relation(fields: [pieuId], references: [id])
+  pieuId       String
+  mouvements   Mouvement[]
+  affectations AffectationCar[]
+}
+
+// Qui coche les noms, pour un car et une étape donnés. Désigné par le couple
+// dirigeant ou les coordinateurs principaux. Plusieurs personnes peuvent être
+// affectées à une même étape sur un car chargé.
+// etape: MONTEE (départ du pieu) | ARRIVEE (arrivée au site)
+//        | DEPART (montée dans les cars le dernier jour, retour)
+model AffectationCar {
+  id     String @id @default(cuid())
+  car    Car    @relation(fields: [carId], references: [id], onDelete: Cascade)
+  carId  String
+  etape  String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([carId, etape, userId])
+  @@index([userId])
 }
 
 // Mouvement : chaque validation d'arrivée/départ, horodatée
