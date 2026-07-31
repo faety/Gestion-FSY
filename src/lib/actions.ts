@@ -463,13 +463,18 @@ export async function sInscrire(
   const prenom = String(formData.get("prenom") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim() || null;
   const sexe = String(formData.get("sexe") ?? "");
-  const role = String(formData.get("role") ?? "CONSEILLER");
   const motDePasse = String(formData.get("motDePasse") ?? "");
+
+  // L'appel ne se déclare pas soi-même. Plusieurs personnes se sont inscrites
+  // comme coordinateur adjoint sans l'être — de bonne foi, le formulaire le
+  // proposait. Chacun entre donc comme conseiller, et les coordinateurs
+  // principaux corrigent depuis l'administration ceux qui exercent un autre
+  // appel. Un rôle qu'on s'attribue soi-même n'est pas un rôle.
+  const role = "CONSEILLER";
 
   if (!email.includes("@")) return { erreur: "Adresse électronique invalide." };
   if (!nom || !prenom) return { erreur: "Indiquez votre nom et votre prénom." };
   if (sexe !== "M" && sexe !== "F") return { erreur: "Indiquez si vous êtes un homme ou une femme." };
-  if (!["CONSEILLER", "ADJOINT"].includes(role)) return { erreur: "Rôle invalide." };
   if (motDePasse.length < MDP_MINIMUM) {
     return { erreur: `Choisissez un mot de passe d'au moins ${MDP_MINIMUM} caractères.` };
   }
@@ -1358,6 +1363,79 @@ export async function creerUtilisateur(formData: FormData) {
   });
   await journaliser(user.id, "UTILISATEUR_CREE", `${prenom} ${nom} (${role})`);
   revalidatePath("/admin");
+}
+
+/**
+ * Change l'appel d'un encadrant.
+ *
+ * Plusieurs personnes se sont inscrites comme coordinateur adjoint sans l'être :
+ * le formulaire le proposait, elles ont coché de bonne foi. Les coordinateurs
+ * principaux corrigent ici.
+ *
+ * Deux garde-fous. On ne touche qu'aux conseillers et aux adjoints, et l'on ne
+ * peut attribuer que ces deux appels : sans cela, un coordinateur pourrait se
+ * hisser lui-même — ou hisser quelqu'un — au rang de couple dirigeant. Et le
+ * changement emporte ce qui n'a plus de sens : un conseiller devenu adjoint
+ * rend ses groupes, un adjoint redevenu conseiller rend sa compagnie et les
+ * droits nominatifs qui allaient avec sa charge.
+ */
+export async function changerAppel(userId: string, nouveauRole: "CONSEILLER" | "ADJOINT") {
+  const auteur = await exiger("COORDINATEUR");
+  if (!["CONSEILLER", "ADJOINT"].includes(nouveauRole)) throw new Error("Appel invalide.");
+
+  const cible = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    include: { groupesDiriges: { select: { id: true, nom: true } } },
+  });
+  if (!["CONSEILLER", "ADJOINT"].includes(cible.role)) {
+    throw new Error(
+      "Seul l'appel d'un conseiller ou d'un coordinateur adjoint se change ici."
+    );
+  }
+  if (cible.role === nouveauRole) return { ok: true, inchange: true };
+
+  const consequences: string[] = [];
+
+  await prisma.$transaction(async (tx) => {
+    if (nouveauRole === "ADJOINT") {
+      // Un adjoint dirige une compagnie, pas des groupes.
+      if (cible.groupesDiriges.length > 0) {
+        await tx.groupe.updateMany({
+          where: { conseillerId: cible.id },
+          data: { conseillerId: null },
+        });
+        consequences.push(
+          `${cible.groupesDiriges.length} groupe(s) rendus : ${cible.groupesDiriges
+            .map((g) => g.nom)
+            .join(", ")}`
+        );
+      }
+    } else {
+      // Redevenu conseiller : la compagnie et les droits liés à la charge
+      // d'adjoint tombent. Un conseiller qui garderait « Bien-être » verrait
+      // les alertes de tous les jeunes sans que personne l'ait voulu.
+      if (cible.compagnieId) consequences.push("compagnie rendue");
+      if (lireDroits(cible.droitsSupplementaires).length > 0) {
+        consequences.push("droits nominatifs retirés");
+      }
+      await tx.user.update({
+        where: { id: cible.id },
+        data: { compagnieId: null, droitsSupplementaires: "[]" },
+      });
+    }
+    await tx.user.update({ where: { id: cible.id }, data: { role: nouveauRole } });
+  });
+
+  await journaliser(
+    auteur.id,
+    "APPEL_MODIFIE",
+    `${cible.prenom} ${cible.nom} : ${cible.role} → ${nouveauRole}` +
+      (consequences.length ? ` (${consequences.join(" ; ")})` : "")
+  );
+  revalidatePath("/admin");
+  revalidatePath("/organigramme");
+  revalidatePath("/sante");
+  return { ok: true, consequences };
 }
 
 /** Accorde ou retire un droit nominatif. Réservé au couple dirigeant. */

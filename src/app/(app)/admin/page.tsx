@@ -13,6 +13,7 @@ import { DROITS, lireDroits } from "@/lib/roles";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
 import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
+import { ChangerAppel } from "@/components/ChangerAppel";
 import { EMAIL_ACTIF, diagnosticEnvoi, estAdresseDAttente } from "@/lib/email";
 import { candidats, rapprochementSur } from "@/lib/rapprochement";
 import {
@@ -311,7 +312,20 @@ export default async function AdminPage() {
                       {u.email}
                     </div>
                   </td>
-                  <td className="p-3">{ROLE_LABELS[u.role as Role] ?? u.role}</td>
+                  <td className="p-3">
+                    <div>{ROLE_LABELS[u.role as Role] ?? u.role}</div>
+                    {/* L'appel se corrige : plusieurs personnes se sont
+                        inscrites comme adjoint sans l'être. */}
+                    {["CONSEILLER", "ADJOINT"].includes(u.role) && (
+                      <ChangerAppel
+                        userId={u.id}
+                        nom={`${u.prenom} ${u.nom}`}
+                        role={u.role}
+                        aDesGroupes={u.groupesDiriges.length > 0}
+                        aUneCompagnie={Boolean(u.compagnieId)}
+                      />
+                    )}
+                  </td>
                   <td className="p-3 text-slate-600">
                     {u.role === "ADJOINT" ? (
                       // Les listes officielles donnent les rôles, pas les

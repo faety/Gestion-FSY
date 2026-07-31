@@ -80,7 +80,10 @@ export function voitToutesLesAlertes(user: {
   droitsSupplementaires: string;
 }): boolean {
   if (roleAuMoins(user.role, "COORDINATEUR")) return true;
-  return aLeDroit(user, "BIEN_ETRE");
+  // Le droit ne vaut qu'au niveau adjoint. Le changement d'appel efface déjà
+  // les droits d'un adjoint redevenu conseiller ; ce second verrou évite qu'un
+  // droit oublié quelque part ouvre les dossiers médicaux de tous les jeunes.
+  return roleAuMoins(user.role, "ADJOINT") && aLeDroit(user, "BIEN_ETRE");
 }
 
 export const CIBLES_ANNONCE = ["TOUS", "COORDINATEURS", "ADJOINTS", "CONSEILLERS"] as const;

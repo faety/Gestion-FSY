@@ -624,6 +624,26 @@ génère un mot de passe provisoire de la forme `QFYX-2223`, affiché **une seul
 lui demande aussitôt d'en choisir un nouveau. Le provisoire n'est stocké nulle part en
 clair : le régénérer est la seule façon d'en obtenir un autre.
 
+### L'appel se corrige, il ne se déclare pas
+
+Le formulaire d'inscription proposait de choisir son appel. Plusieurs personnes s'y sont
+inscrites comme coordinateur adjoint sans l'être — de bonne foi, puisque le choix leur
+était offert. **Ce champ a été retiré** : chacun entre comme conseiller, et le serveur
+impose ce rôle même si le champ est réintroduit dans le formulaire.
+
+Les **coordinateurs principaux** corrigent ensuite depuis l'administration, par « Changer
+d'appel ». Deux garde-fous :
+
+- l'opération ne porte que sur les conseillers et les adjoints, et ne peut attribuer que
+  ces deux appels — sinon un coordinateur pourrait se hisser, ou hisser quelqu'un, au rang
+  de couple dirigeant ;
+- le changement **emporte ce qui n'a plus de sens** : un conseiller devenu adjoint rend ses
+  groupes, un adjoint redevenu conseiller rend sa compagnie **et ses droits nominatifs**.
+  Un conseiller qui garderait le droit « Bien-être » verrait les dossiers médicaux de tous
+  les jeunes sans que personne l'ait voulu.
+
+Les conséquences sont annoncées avant confirmation, et consignées au journal d'audit.
+
 ### Demande de compte
 
 La page de connexion propose **Demander un accès**. Le formulaire recueille nom, prénoms,
@@ -818,6 +838,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Recevoir une attestation | ✅ | ✅ | ✅ | — |
 | Délivrer / révoquer les attestations | — | — | — | ✅ |
 | Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
+| Changer l'appel d'un conseiller ou d'un adjoint | — | — | ✅ | ✅ |
 | Accorder les droits nominatifs | — | — | — | ✅ |
 | Gérer permissions et présences, audit | — | — | — | ✅ |
 

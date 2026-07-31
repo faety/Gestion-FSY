@@ -89,15 +89,6 @@ export default function InscriptionPage() {
                 <option value="M">Un homme</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium mb-1">
-                Votre appel
-              </label>
-              <select id="role" name="role" defaultValue="CONSEILLER" className={champ}>
-                <option value="CONSEILLER">Conseiller / Conseillère</option>
-                <option value="ADJOINT">Coordinateur adjoint</option>
-              </select>
-            </div>
           </div>
 
           <ChampMotDePasse
