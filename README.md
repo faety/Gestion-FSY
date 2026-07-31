@@ -487,13 +487,25 @@ Deux variables d'environnement suffisent :
 
 ```
 RESEND_API_KEY=re_…
-EMAIL_EXPEDITEUR=FSY 2026 <bonjour@fsy.ci>
+EMAIL_EXPEDITEUR=bonjour@fsy.ci    # l'adresse suffit : le nom est ajouté
+EMAIL_NOM=FSY 2026                # facultatif : nom affiché, « FSY 2026 » par défaut
 SITE_URL=https://fsy.ci           # facultatif : adresse publique, par défaut https://fsy.ci
 ```
 
+`EMAIL_EXPEDITEUR` accepte l'adresse seule ou la forme complète
+`FSY 2026 <bonjour@fsy.ci>`. Dans le premier cas l'application ajoute le nom d'affichage :
+sans lui, la boîte de réception montre la partie gauche de l'adresse, et le message arrive
+signé **« bonjour »** au milieu de la liste. La page Administration affiche l'expéditeur
+tel qu'il sera réellement envoyé.
+
 Le domaine de l'expéditeur doit être **vérifié chez Resend** (enregistrements DNS SPF et
 DKIM à ajouter là où est hébergé `fsy.ci`). Sans cette vérification, Resend n'accepte
-d'écrire qu'à l'adresse du titulaire du compte.
+d'écrire qu'à l'adresse du titulaire du compte. Le forfait gratuit ne vérifie **qu'un seul
+domaine** : l'expéditeur doit donc être sur celui-là.
+
+L'avatar affiché à côté du nom vient de la messagerie du destinataire, pas du message.
+Y faire figurer le logo demanderait un enregistrement BIMI, qui suppose une politique
+DMARC en application et un certificat payant — hors de propos ici.
 
 > **Attention en ajoutant des enregistrements DNS sous un sous-domaine.** La zone `fsy.ci`
 > possède un caractère générique `*.fsy.ci` qui pointe vers Vercel : n'importe quel

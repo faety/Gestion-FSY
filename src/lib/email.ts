@@ -27,8 +27,31 @@ export const emailPlausible = (email: string) =>
   /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email.trim());
 
 const CLEF = process.env.RESEND_API_KEY;
-/** Ex. : « FSY 2026 <bonjour@fsy.ci> ». Le domaine doit être vérifié chez Resend. */
-const EXPEDITEUR = process.env.EMAIL_EXPEDITEUR;
+
+/**
+ * Nom affiché dans la boîte de réception.
+ *
+ * Sans lui, la messagerie retombe sur la partie gauche de l'adresse : un
+ * message signé « bonjour » au milieu d'une liste, ce qui ne ressemble à rien
+ * et n'aide personne à reconnaître d'où il vient.
+ */
+const NOM_EXPEDITEUR = process.env.EMAIL_NOM?.trim() || "FSY 2026";
+
+/**
+ * Expéditeur au format attendu : « FSY 2026 <bonjour@fsy.ci> ».
+ *
+ * On accepte aussi l'adresse seule et l'on ajoute le nom — composer un en-tête
+ * conforme à la main est un piège inutile, et l'oubli ne se voit qu'une fois le
+ * message reçu.
+ */
+function composerExpediteur(brut: string | undefined): string | undefined {
+  const v = brut?.trim();
+  if (!v) return undefined;
+  if (v.includes("<")) return v;
+  return `${NOM_EXPEDITEUR} <${v}>`;
+}
+
+const EXPEDITEUR = composerExpediteur(process.env.EMAIL_EXPEDITEUR);
 
 export const EMAIL_ACTIF = Boolean(CLEF && EXPEDITEUR);
 
@@ -54,6 +77,9 @@ export function diagnosticEnvoi() {
       );
     }
     if (!brut.includes("@")) soucis.push("L'expéditeur ne contient pas d'adresse.");
+    if (!/^[^<]+</.test(brut)) {
+      soucis.push("L'expéditeur n'a pas de nom affiché : la messagerie montrerait l'adresse.");
+    }
     // Contrôle volontairement strict, y compris sur les sous-domaines : le
     // forfait gratuit de Resend ne vérifie qu'un seul domaine, et écrire depuis
     // un sous-domaine qui n'est plus celui-là est l'erreur qui coûte le plus de
