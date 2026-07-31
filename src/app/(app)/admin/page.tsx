@@ -12,6 +12,11 @@ import {
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
 import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
 import { EMAIL_ACTIF, estAdresseDAttente } from "@/lib/email";
+import { candidats, rapprochementSur } from "@/lib/rapprochement";
+import {
+  RapprochementInscription,
+  type Suggestion,
+} from "@/components/RapprochementInscription";
 import { RemiseAZero } from "@/components/RemiseAZero";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
@@ -38,6 +43,24 @@ export default async function AdminPage() {
   const equipe = utilisateurs.filter((u) => u.valide);
   const sansAdresse = equipe.filter((u) => estAdresseDAttente(u.email)).length;
 
+  // Pour chaque inscription, les comptes déjà en base qui pourraient être la
+  // même personne. Le rapprochement se fait sur les mots du nom : les listes
+  // officielles inversaient l'ordre du prénom et du nom, et personne ne
+  // redonne ses trois prénoms en s'inscrivant.
+  const suggestions: Record<string, Suggestion[]> = {};
+  for (const u of enAttente) {
+    suggestions[u.id] = candidats(u, equipe).map((c) => ({
+      id: c.compte.id,
+      nom: `${c.compte.prenom} ${c.compte.nom}`,
+      email: c.compte.email,
+      role: ROLE_LABELS[c.compte.role as Role] ?? c.compte.role,
+      detail:
+        c.compte.groupesDiriges.map((g) => g.nom).join(", ") ||
+        (c.compte.compagnie?.nom ?? "sans affectation"),
+      fiabilite: rapprochementSur(c),
+    }));
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">⚙️ Administration</h1>
@@ -51,6 +74,11 @@ export default async function AdminPage() {
           <p className="text-sm text-amber-800">
             Ces personnes ne pourront pas se connecter tant que vous n'aurez pas validé.
             Vérifiez qu'elles font bien partie de l'encadrement.
+          </p>
+          <p className="text-sm text-amber-900 bg-amber-100 rounded-lg p-2.5 mt-2">
+            <strong>Regardez d'abord les rapprochements proposés.</strong> Quelqu'un qui figure
+            déjà dans les listes officielles doit être <em>rattaché</em> à son compte, pas
+            validé comme nouveau : sinon il en aura deux, et son groupe restera sur l'ancien.
           </p>
           <ul className="mt-3 space-y-2">
             {enAttente.map((u) => (
@@ -92,6 +120,14 @@ export default async function AdminPage() {
                       Refuser
                     </button>
                   </form>
+                </div>
+
+                <div className="w-full">
+                  <RapprochementInscription
+                    inscriptionId={u.id}
+                    nomInscrit={`${u.prenom} ${u.nom}`}
+                    suggestions={suggestions[u.id] ?? []}
+                  />
                 </div>
               </li>
             ))}

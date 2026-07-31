@@ -455,6 +455,32 @@ son adresse. Il n'y a donc rien à distribuer individuellement.
 
 La liste complète des adresses est visible sur la page **Administration**.
 
+### Rattacher une inscription à un compte existant
+
+Une inscription crée **un compte neuf**. Or les 66 comptes d'amorçage existent déjà, avec
+le rôle issu des listes officielles, la compagnie et le groupe. Quand quelqu'un qui y
+figure s'inscrit avec sa vraie adresse, il se retrouve donc avec **deux comptes** : il se
+connecte au nouveau, qui est vide, et ne voit aucun jeune — son groupe étant resté sur
+l'ancien. À la clôture, il recevrait deux attestations dont une sans effectif.
+
+La page Administration propose donc, sous chaque inscription en attente, les comptes déjà
+en base qui pourraient être la même personne. **Rattacher** conserve l'ancien compte — avec
+son rôle, sa compagnie, son groupe, ses rapports — et y transporte ce que l'inscription
+apporte : la vraie adresse, le mot de passe choisi, le téléphone. Le doublon disparaît.
+
+Le rapprochement se fait sur les **mots du nom**, sans tenir compte de l'ordre ni des
+accents : les deux listes officielles inversaient prénom et patronyme, et personne ne
+redonne ses trois prénoms en s'inscrivant. « Marie France Bohoussou » retrouve donc
+« Bohoussou Affoué Marie France ».
+
+Chaque proposition porte un degré de confiance — *certain*, *probable*, *à vérifier* — et
+**rien n'est jamais fusionné automatiquement** : la liste contient des homonymes (Dea Grace
+et Tea Grace), et confondre deux personnes serait pire que le doublon. Un rapprochement
+fondé sur un seul mot commun n'est jamais annoncé comme certain.
+
+Un compte qui a déjà servi — rapport écrit, groupe confié, pointages, attestation — ne peut
+pas être rattaché : l'opération l'effacerait. L'application refuse et le dit.
+
 ### Envoi d'e-mails (Resend)
 
 Deux variables d'environnement suffisent :
@@ -687,6 +713,7 @@ src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de poin
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
 src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
 src/lib/email.ts           # envoi par Resend, gabarits des messages, adresses d'attente
+src/lib/rapprochement.ts   # inscriptions ↔ comptes existants : proximité des noms
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/
 scripts/importer-contacts-encadrement.ts # charge les numéros des encadrants depuis data/

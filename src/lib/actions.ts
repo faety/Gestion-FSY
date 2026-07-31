@@ -381,6 +381,81 @@ export async function sInscrire(
   return { ok: true };
 }
 
+/**
+ * Rattache une inscription à un compte déjà en base : c'est la même personne.
+ *
+ * Le compte conservé est l'ancien — c'est lui qui porte le rôle issu des listes
+ * officielles, la compagnie, le groupe, les rapports déjà remis. On lui
+ * transporte ce que l'inscription apporte de neuf : la vraie adresse, le mot de
+ * passe choisi par la personne, le téléphone. Puis le doublon disparaît.
+ *
+ * L'inverse — garder le nouveau compte — perdrait les affectations, et le jeune
+ * du groupe se retrouverait sans conseiller la veille du départ.
+ */
+export async function rattacherInscription(inscriptionId: string, compteId: string) {
+  const auteur = await exiger("COORDINATEUR");
+  if (inscriptionId === compteId) throw new Error("Un compte ne se rattache pas à lui-même.");
+
+  const [inscription, compte] = await Promise.all([
+    prisma.user.findUniqueOrThrow({
+      where: { id: inscriptionId },
+      include: {
+        _count: {
+          select: {
+            rapports: true,
+            groupesDiriges: true,
+            mouvementsValides: true,
+            affectationsCars: true,
+          },
+        },
+        attestation: { select: { id: true } },
+      },
+    }),
+    prisma.user.findUniqueOrThrow({ where: { id: compteId } }),
+  ]);
+
+  // Le rattachement supprime le compte d'inscription. S'il porte déjà quelque
+  // chose — un rapport écrit, un groupe confié, des pointages — le supprimer
+  // effacerait du travail. Dans ce cas on refuse, et l'affaire se règle à la
+  // main plutôt qu'en perdant des données sans le dire.
+  const n = inscription._count;
+  const porte = n.rapports + n.groupesDiriges + n.mouvementsValides + n.affectationsCars;
+  if (porte > 0 || inscription.attestation) {
+    throw new Error(
+      "Ce compte a déjà servi (rapports, groupe, pointages ou attestation). " +
+        "Rattacher l'effacerait : réglez le doublon à la main."
+    );
+  }
+  if (!compte.valide) throw new Error("Le compte de destination n'est pas validé.");
+
+  await prisma.$transaction(async (tx) => {
+    // L'adresse est unique en base : il faut libérer celle de l'inscription
+    // avant de la poser sur le compte conservé.
+    await tx.auditLog.deleteMany({ where: { userId: inscription.id } });
+    await tx.reinitialisationMotDePasse.deleteMany({ where: { userId: inscription.id } });
+    await tx.user.delete({ where: { id: inscription.id } });
+    await tx.user.update({
+      where: { id: compte.id },
+      data: {
+        email: inscription.email,
+        passwordHash: inscription.passwordHash,
+        telephone: inscription.telephone ?? compte.telephone,
+        // La personne vient de choisir ce mot de passe : rien à lui imposer.
+        doitChangerMotDePasse: false,
+      },
+    });
+  });
+
+  await journaliser(
+    auteur.id,
+    "INSCRIPTION_RATTACHEE",
+    `${inscription.prenom} ${inscription.nom} (${inscription.email}) → compte de ${compte.prenom} ${compte.nom} (${compte.email})`
+  );
+  await envoyer({ a: inscription.email, ...courrielCompteValide(compte.prenom) });
+  revalidatePath("/admin");
+  return { nom: `${compte.prenom} ${compte.nom}`, email: inscription.email };
+}
+
 export async function deciderInscription(userId: string, accepter: boolean) {
   const auteur = await exiger("COORDINATEUR");
   const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
