@@ -41,16 +41,41 @@ async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSE
 
 // ---------- Authentification ----------
 
+/** Au-delà, on cesse de répondre à cette adresse pendant la fenêtre. */
+const ESSAIS_MAX = 8;
+const FENETRE_ESSAIS_MS = 15 * 60_000;
+
 export async function seConnecter(
   _prev: { erreur?: string } | undefined,
   formData: FormData
 ) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const motDePasse = String(formData.get("motDePasse") ?? "");
+
+  // Trop d'échecs récents sur cette adresse : on cesse de répondre pendant un
+  // quart d'heure. Le compte n'est pas verrouillé — verrouiller serait un moyen
+  // commode d'empêcher quelqu'un de travailler le jour du départ.
+  const echecs = await prisma.tentativeConnexion.count({
+    where: {
+      email,
+      reussie: false,
+      createdAt: { gt: new Date(Date.now() - FENETRE_ESSAIS_MS) },
+    },
+  });
+  if (echecs >= ESSAIS_MAX) {
+    return {
+      erreur:
+        "Trop de tentatives sur cette adresse. Patientez un quart d'heure, " +
+        "ou demandez un mot de passe provisoire aux coordinateurs principaux.",
+    };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await bcrypt.compare(motDePasse, user.passwordHash))) {
+    await prisma.tentativeConnexion.create({ data: { email, reussie: false } });
     return { erreur: "Email ou mot de passe incorrect." };
   }
+  await prisma.tentativeConnexion.create({ data: { email, reussie: true } });
   // Un compte en attente ou désactivé reçoit un message qui dit quoi faire,
   // plutôt que « mot de passe incorrect » qui enverrait la personne chercher au
   // mauvais endroit.

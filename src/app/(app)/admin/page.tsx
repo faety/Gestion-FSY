@@ -45,6 +45,10 @@ export default async function AdminPage() {
   const equipe = utilisateurs.filter((u) => u.valide);
   const sansAdresse = equipe.filter((u) => estAdresseDAttente(u.email)).length;
   const diagnostic = diagnosticEnvoi();
+  // Un compte encore sur son mot de passe initial est un compte que son
+  // titulaire n'a jamais ouvert : n'importe qui connaissant l'adresse peut le
+  // prendre de vitesse, puisque le mot de passe d'amorçage est commun.
+  const jamaisOuverts = equipe.filter((u) => u.doitChangerMotDePasse).length;
 
   // Pour chaque inscription, les comptes déjà en base qui pourraient être la
   // même personne. Le rapprochement se fait sur les mots du nom : les listes
@@ -172,6 +176,26 @@ export default async function AdminPage() {
           </button>
         </form>
       </section>
+
+      {jamaisOuverts > 0 && (
+        <section className="bg-red-50 border border-red-300 rounded-xl p-4">
+          <h2 className="font-bold text-red-900">
+            🔐 {jamaisOuverts} compte{jamaisOuverts > 1 ? "s" : ""} jamais ouvert
+            {jamaisOuverts > 1 ? "s" : ""}
+          </h2>
+          <p className="text-sm text-red-800 mt-1">
+            Ces personnes n'ont pas encore choisi leur mot de passe : le leur est celui
+            distribué au départ, commun à tous. Tant qu'elles ne se connectent pas, quelqu'un
+            qui devine leur adresse peut prendre leur compte de vitesse et les en exclure.
+          </p>
+          <p className="text-sm text-red-800 mt-2">
+            Demandez-leur d'ouvrir l'application et de choisir un mot de passe. Pour celles qui
+            ne le feront pas avant le 3 août, utilisez « Mot de passe oublié » dans le tableau
+            ci-dessous : cela remplace le mot de passe commun par un provisoire propre à
+            chacune.
+          </p>
+        </section>
+      )}
 
       {/* Envoi d'e-mails : tant que des comptes portent un identifiant
           d'attente, le « mot de passe oublié » ne peut pas les atteindre. Autant

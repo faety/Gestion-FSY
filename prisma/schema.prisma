@@ -387,6 +387,21 @@ model ReinitialisationMotDePasse {
   @@index([userId, createdAt])
 }
 
+// Tentatives de connexion, pour freiner les essais en série.
+//
+// Les comptes d'amorçage partagent un mot de passe initial, et les adresses se
+// devinent à partir des noms : sans limitation, essayer une centaine de
+// combinaisons ne coûte rien. On ne bloque pas le compte — ce serait un moyen
+// commode d'empêcher quelqu'un de travailler — on ralentit l'adresse visée.
+model TentativeConnexion {
+  id        String   @id @default(cuid())
+  email     String
+  reussie   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
 // Journal d'audit : qui a fait quoi, à quelle heure
 model AuditLog {
   id        String   @id @default(cuid())

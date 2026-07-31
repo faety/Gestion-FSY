@@ -5,16 +5,45 @@ import { cache } from "react";
 import { prisma } from "./db";
 
 const COOKIE_NAME = "fsy_session";
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET ?? "fsy-dev-secret"
-);
+
+// Secret de signature des sessions.
+//
+// Il retombait sur une constante écrite dans ce fichier, donc publiée avec le
+// dépôt : sans AUTH_SECRET en production, n'importe qui pouvait forger un jeton
+// pour n'importe quel compte, y compris le couple dirigeant, et lire les
+// données médicales de six cent cinquante mineurs. Un repli silencieux est le
+// pire des cas — tout fonctionne, et rien ne signale que la porte est ouverte.
+//
+// Le calcul est différé plutôt que fait à l'import : la compilation ne dispose
+// pas toujours des variables d'environnement, et il n'y a pas de raison de la
+// faire échouer pour cela.
+let cle: Uint8Array | null = null;
+
+function secretDeSignature(): Uint8Array {
+  if (cle) return cle;
+  const brut = process.env.AUTH_SECRET;
+  if (!brut || brut.length < 24) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "AUTH_SECRET est absent ou trop court (24 caractères au minimum). " +
+          "Les sessions ne peuvent pas être signées sûrement. " +
+          "Générez-en un avec : openssl rand -base64 48"
+      );
+    }
+    console.warn(
+      "AUTH_SECRET absent : secret de développement utilisé. Ne jamais faire cela en production."
+    );
+    return (cle = new TextEncoder().encode("secret-de-developpement-local-uniquement"));
+  }
+  return (cle = new TextEncoder().encode(brut));
+}
 
 export async function creerSession(userId: string) {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("14d")
-    .sign(secret);
+    .sign(secretDeSignature());
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -36,7 +65,7 @@ export const getUtilisateur = cache(async () => {
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secretDeSignature());
     if (!payload.sub) return null;
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },

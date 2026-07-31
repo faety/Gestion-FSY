@@ -2,22 +2,14 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { verifierAge } from "@/lib/criteres";
+import { porteeJeunes } from "@/lib/portee";
 import { RechercheJeunes } from "@/components/RechercheJeunes";
 
 export default async function JeunesPage() {
   const user = await exigerUtilisateur();
 
-  // Portée selon le rôle : conseiller → son groupe ; adjoint → sa compagnie ;
-  // coordinateur/dirigeant → tout le monde
-  let where = {};
-  let portee = "Tous les jeunes";
-  if (user.role === "CONSEILLER") {
-    where = { groupeId: { in: user.groupesDiriges.map((g) => g.id) } };
-    portee = "Les jeunes de votre groupe";
-  } else if (user.role === "ADJOINT" && user.compagnieId) {
-    where = { groupe: { compagnieId: user.compagnieId } };
-    portee = `Les jeunes de votre compagnie (${user.compagnie?.nom})`;
-  }
+  // Portée fermée par défaut : voir src/lib/portee.ts.
+  const { where, libelle: portee } = porteeJeunes(user);
 
   const jeunes = await prisma.jeune.findMany({
     where,

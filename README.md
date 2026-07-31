@@ -725,6 +725,55 @@ féminin, avec les effectifs réels. Beaucoup de jeunes adultes ne savent pas va
 type d'expérience ; leur donner la phrase est sans doute le service le plus concret rendu
 ici.
 
+## Sécurité
+
+### Ce que l'application garantit
+
+- **Toute mutation passe par un contrôle d'accès.** Les 41 actions serveur commencent par
+  `exiger(rôle)` ou par la vérification de la session ; les cinq qui ne le font pas sont
+  celles d'avant-connexion (connexion, inscription, mot de passe oublié), chacune avec ses
+  propres protections.
+- **La portée des données suit le rôle**, appliquée dans la requête et non à l'affichage :
+  un conseiller ne reçoit jamais du serveur les jeunes d'un autre groupe.
+- **Le mot de passe oublié ne révèle pas qui a un compte** : réponse identique dans tous
+  les cas, jeton haché en base, valable trois heures, à usage unique.
+- **Les photos de mineurs** sont servies par URL signée, jamais par lien libre.
+- **Aucun secret n'est versionné** : `data/` et `.env` sont exclus du dépôt.
+
+### AUTH_SECRET est obligatoire en production
+
+Le secret de signature des sessions retombait sur une constante écrite dans le code, donc
+publiée avec le dépôt : sans `AUTH_SECRET`, n'importe qui pouvait forger un jeton pour
+n'importe quel compte. Le repli silencieux était le pire des cas — tout fonctionnait, et
+rien ne signalait que la porte était ouverte. L'application **refuse désormais de signer
+une session** en production sans un secret d'au moins 24 caractères.
+
+```bash
+openssl rand -base64 48    # valeur à poser dans AUTH_SECRET
+```
+
+### Une portée vide plutôt qu'une portée totale
+
+La règle de visibilité des jeunes vivait dans les pages, en `if / else if` : un adjoint
+**sans compagnie** ne tombait dans aucune branche, son filtre restait vide, et il voyait les
+650 jeunes avec leurs renseignements médicaux. Or l'inscription permet de se déclarer
+adjoint, et un adjoint fraîchement validé n'a pas encore de compagnie.
+
+`src/lib/portee.ts` centralise la règle et la ferme par défaut : tout cas non prévu ne
+montre rien plutôt que tout.
+
+### Le mot de passe d'amorçage est un risque tant qu'il subsiste
+
+Les comptes créés par l'amorçage partagent le même mot de passe initial, et les adresses se
+déduisent des noms. Tant qu'une personne ne s'est pas connectée, quelqu'un qui devine son
+adresse peut prendre son compte de vitesse et l'en exclure — le changement imposé à la
+première connexion protège le compte, pas son propriétaire légitime.
+
+Deux mesures : la page Administration **compte les comptes jamais ouverts** et dit quoi
+faire ; et les tentatives de connexion sont limitées à **huit échecs par quart d'heure et
+par adresse**. On ne verrouille pas le compte — verrouiller serait un moyen commode
+d'empêcher quelqu'un de travailler le jour du départ.
+
 ## Page publique
 
 `/` est une page de présentation accessible sans compte : thème de l'année, dates,
