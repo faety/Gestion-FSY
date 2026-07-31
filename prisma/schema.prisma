@@ -54,6 +54,7 @@ model User {
   rapports           RapportQuotidien[]
   attestation        Attestation?
   attestationsDelivrees Attestation[] @relation("Delivreur")
+  reinitialisations  ReinitialisationMotDePasse[]
   auditLogs          AuditLog[]
 
   createdAt DateTime @default(now())
@@ -357,6 +358,27 @@ model Attestation {
   // de vérification doit pouvoir répondre « ce document n'est plus valable ».
   revoqueeLe      DateTime?
   motifRevocation String?
+}
+
+// Demande de réinitialisation de mot de passe.
+//
+// Le jeton n'est jamais conservé en clair : seule son empreinte SHA-256 est
+// enregistrée. Quelqu'un qui lirait la base ne pourrait donc pas s'en servir
+// pour prendre la main sur un compte — il lui manquerait la valeur d'origine,
+// qui n'existe que dans le lien envoyé par e-mail.
+model ReinitialisationMotDePasse {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  empreinte String   @unique
+  expireLe  DateTime
+  // Horodatée à l'emploi : un lien ne sert qu'une fois, et l'on garde la trace
+  // plutôt que d'effacer, pour pouvoir enquêter après coup.
+  utiliseLe DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure

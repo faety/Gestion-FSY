@@ -10,7 +10,8 @@ import {
   deciderInscription,
 } from "@/lib/actions";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
-import { BoutonMotDePasse } from "@/components/OutilsCompte";
+import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
+import { EMAIL_ACTIF, estAdresseDAttente } from "@/lib/email";
 import { RemiseAZero } from "@/components/RemiseAZero";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
@@ -35,6 +36,7 @@ export default async function AdminPage() {
 
   const enAttente = utilisateurs.filter((u) => !u.valide);
   const equipe = utilisateurs.filter((u) => u.valide);
+  const sansAdresse = equipe.filter((u) => estAdresseDAttente(u.email)).length;
 
   return (
     <div className="space-y-6">
@@ -126,6 +128,42 @@ export default async function AdminPage() {
         </form>
       </section>
 
+      {/* Envoi d'e-mails : tant que des comptes portent un identifiant
+          d'attente, le « mot de passe oublié » ne peut pas les atteindre. Autant
+          le dire ici, avec le compte exact. */}
+      <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        <div>
+          <h2 className="font-bold">✉️ Envoi d'e-mails</h2>
+          <p className="text-sm text-slate-500">
+            Sert au lien « mot de passe oublié » et à prévenir une personne dont l'inscription
+            vient d'être validée.
+          </p>
+        </div>
+
+        <p
+          className={`text-sm rounded-lg p-3 border ${
+            EMAIL_ACTIF
+              ? "bg-green-50 border-green-200 text-green-900"
+              : "bg-slate-50 border-slate-200 text-slate-700"
+          }`}
+        >
+          {EMAIL_ACTIF
+            ? "✅ Configuré. Les messages partent par Resend."
+            : "Non configuré : il manque RESEND_API_KEY et EMAIL_EXPEDITEUR dans les variables d'environnement. Sans cela, le mot de passe oublié reste manuel — le bouton ci-dessous, dans le tableau."}
+        </p>
+
+        {sansAdresse > 0 && (
+          <p className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900">
+            ⚠️ <strong>{sansAdresse} comptes</strong> sur {equipe.length} portent encore un
+            identifiant fabriqué à partir du nom (<span className="font-mono">@fsy2026.ci</span>).
+            Aucun message ne peut y arriver. Chacun peut enregistrer sa vraie adresse depuis
+            « Mon mot de passe » ; sinon, saisissez-la ici avec « Adresse à renseigner ».
+          </p>
+        )}
+
+        <EssaiEmail actif={EMAIL_ACTIF} />
+      </section>
+
       {estDirigeant && <RemiseAZero choses={CHOSES_A_EFFACER} />}
 
       <section className="bg-white rounded-xl shadow-sm overflow-x-auto">
@@ -148,7 +186,13 @@ export default async function AdminPage() {
                 <tr key={u.id} className={!u.actif ? "opacity-50" : ""}>
                   <td className="p-3">
                     <div className="font-medium">{u.prenom} {u.nom}</div>
-                    <div className="text-xs text-slate-400">{u.email}</div>
+                    <div
+                      className={`text-xs ${
+                        estAdresseDAttente(u.email) ? "text-amber-700" : "text-slate-400"
+                      }`}
+                    >
+                      {u.email}
+                    </div>
                   </td>
                   <td className="p-3">{ROLE_LABELS[u.role as Role] ?? u.role}</td>
                   <td className="p-3 text-slate-600">
@@ -187,6 +231,12 @@ export default async function AdminPage() {
                   <td className="p-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <BoutonMotDePasse userId={u.id} nom={`${u.prenom} ${u.nom}`} />
+                      <BoutonAdresse
+                        userId={u.id}
+                        nom={`${u.prenom} ${u.nom}`}
+                        email={u.email}
+                        attente={estAdresseDAttente(u.email)}
+                      />
                       {u.doitChangerMotDePasse && (
                         <span className="text-xs text-amber-700 whitespace-nowrap">
                           mot de passe provisoire

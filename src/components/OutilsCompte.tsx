@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { reinitialiserMotDePasse } from "@/lib/actions";
+import { definirEmail, envoyerEmailDEssai, reinitialiserMotDePasse } from "@/lib/actions";
 
 // Génère un mot de passe provisoire et l'affiche une seule fois, à dicter de
 // vive voix. Il n'est stocké nulle part en clair : la seule façon de le revoir
@@ -82,5 +82,115 @@ export function BoutonMotDePasse({ userId, nom }: { userId: string; nom: string 
         </div>
       )}
     </>
+  );
+}
+
+// Enregistre la vraie adresse de quelqu'un qui ne peut plus se connecter — donc
+// qui ne peut pas la saisir lui-même. Sans cela, un compte à identifiant
+// d'attente resterait à jamais hors de portée du « mot de passe oublié ».
+export function BoutonAdresse({
+  userId,
+  nom,
+  email,
+  attente,
+}: {
+  userId: string;
+  nom: string;
+  email: string;
+  attente: boolean;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const [valeur, setValeur] = useState(attente ? "" : email);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [pending, demarrer] = useTransition();
+
+  if (!ouvert) {
+    return (
+      <button
+        onClick={() => setOuvert(true)}
+        className={`text-xs rounded-full px-3 py-1 whitespace-nowrap ${
+          attente
+            ? "bg-amber-100 hover:bg-amber-200 text-amber-900"
+            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+        }`}
+        title={`Enregistrer l'adresse e-mail de ${nom}`}
+      >
+        {ok ? "✓ Adresse enregistrée" : attente ? "Adresse à renseigner" : "Changer l'adresse"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 space-y-1 min-w-[200px]">
+      <input
+        autoFocus
+        type="email"
+        value={valeur}
+        onChange={(e) => setValeur(e.target.value)}
+        placeholder="adresse@exemple.com"
+        className="w-full border border-slate-300 rounded-lg px-2 py-1 text-sm"
+      />
+      {erreur && <p className="text-xs text-red-700">{erreur}</p>}
+      <div className="flex gap-2">
+        <button
+          disabled={pending || !valeur.includes("@")}
+          onClick={() =>
+            demarrer(async () => {
+              setErreur(null);
+              const r = await definirEmail(userId, valeur);
+              if (r && "erreur" in r && r.erreur) setErreur(r.erreur);
+              else {
+                setOk(true);
+                setOuvert(false);
+              }
+            })
+          }
+          className="text-xs bg-fsy hover:bg-fsy-dark text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-40"
+        >
+          {pending ? "…" : "Enregistrer"}
+        </button>
+        <button
+          onClick={() => setOuvert(false)}
+          className="text-xs bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5"
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Vérifie que Resend est bien configuré, en s'écrivant à soi-même. Plus court
+// que d'attendre qu'un encadrant signale ne rien avoir reçu.
+export function EssaiEmail({ actif }: { actif: boolean }) {
+  const [message, setMessage] = useState<{ ok?: string; erreur?: string } | null>(null);
+  const [pending, demarrer] = useTransition();
+
+  return (
+    <div className="space-y-2">
+      <button
+        disabled={pending || !actif}
+        onClick={() =>
+          demarrer(async () => {
+            setMessage(null);
+            setMessage(await envoyerEmailDEssai());
+          })
+        }
+        className="bg-slate-100 hover:bg-slate-200 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
+      >
+        {pending ? "Envoi…" : "M'envoyer un message d'essai"}
+      </button>
+      {message?.ok && (
+        <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg p-2">
+          ✅ {message.ok}
+        </p>
+      )}
+      {message?.erreur && (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+          {message.erreur}
+        </p>
+      )}
+    </div>
   );
 }

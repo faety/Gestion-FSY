@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "./db";
 import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
@@ -13,6 +13,16 @@ import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapport
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
+import {
+  EMAIL_ACTIF,
+  SITE,
+  courrielCompteValide,
+  courrielEssai,
+  courrielReinitialisation,
+  emailPlausible,
+  envoyer,
+  estAdresseDAttente,
+} from "./email";
 import {
   ROLES_ATTESTABLES,
   RAPPORTS_POSSIBLES,
@@ -129,6 +139,201 @@ export async function reinitialiserMotDePasse(userId: string) {
   return { provisoire, nom: `${cible.prenom} ${cible.nom}`, email: cible.email };
 }
 
+// ---------- Mot de passe oublié, par e-mail ----------
+
+const VALIDITE_LIEN_HEURES = 3;
+/** Au-delà, on cesse d'envoyer : ni harcèlement d'une boîte, ni facture de messagerie. */
+const DEMANDES_MAX_PAR_HEURE = 3;
+
+const empreinte = (jeton: string) => createHash("sha256").update(jeton).digest("hex");
+
+/**
+ * Demande d'un lien de réinitialisation.
+ *
+ * La réponse est **toujours la même**, que l'adresse existe ou non : sinon ce
+ * formulaire deviendrait un moyen commode de découvrir qui fait partie de
+ * l'encadrement. Les cas particuliers se règlent en interne, pas à l'écran.
+ */
+type Retour = { message?: string; erreur?: string };
+
+export async function demanderReinitialisation(
+  _prev: Retour | undefined,
+  formData: FormData
+): Promise<Retour> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email) return { erreur: "Indiquez votre adresse e-mail." };
+
+  const reponse: Retour = {
+    message:
+      "Si cette adresse correspond à un compte, un lien vient d'y être envoyé. " +
+      "Il est valable trois heures. Pensez à regarder dans les indésirables.",
+  };
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.actif || !user.valide) return reponse;
+
+  // Adresse d'attente : aucune boîte derrière, le lien n'arriverait nulle part.
+  // On ne le dit pas ici — la personne s'adressera au couple dirigeant, qui a
+  // le mot de passe provisoire.
+  if (estAdresseDAttente(user.email) || !EMAIL_ACTIF) {
+    await journaliser(user.id, "REINITIALISATION_IMPOSSIBLE", user.email);
+    return reponse;
+  }
+
+  const recentes = await prisma.reinitialisationMotDePasse.count({
+    where: { userId: user.id, createdAt: { gt: new Date(Date.now() - 3600_000) } },
+  });
+  if (recentes >= DEMANDES_MAX_PAR_HEURE) return reponse;
+
+  // Les liens précédents deviennent caducs : un seul lien vivant à la fois.
+  await prisma.reinitialisationMotDePasse.updateMany({
+    where: { userId: user.id, utiliseLe: null },
+    data: { utiliseLe: new Date() },
+  });
+
+  const jeton = randomBytes(32).toString("base64url");
+  await prisma.reinitialisationMotDePasse.create({
+    data: {
+      userId: user.id,
+      empreinte: empreinte(jeton),
+      expireLe: new Date(Date.now() + VALIDITE_LIEN_HEURES * 3600_000),
+    },
+  });
+
+  const courriel = courrielReinitialisation(
+    user.prenom,
+    `${SITE}/reinitialiser/${jeton}`,
+    VALIDITE_LIEN_HEURES
+  );
+  const envoi = await envoyer({ a: user.email, ...courriel });
+  await journaliser(
+    user.id,
+    envoi.envoye ? "REINITIALISATION_DEMANDEE" : "REINITIALISATION_NON_ENVOYEE",
+    envoi.envoye ? user.email : `${user.email} — ${envoi.raison}`
+  );
+  return reponse;
+}
+
+/** Le jeton est-il utilisable ? Sert à la page avant d'afficher le formulaire. */
+export async function verifierJeton(jeton: string) {
+  const demande = await prisma.reinitialisationMotDePasse.findUnique({
+    where: { empreinte: empreinte(jeton) },
+    include: { user: { select: { prenom: true, actif: true, valide: true } } },
+  });
+  if (!demande || demande.utiliseLe || demande.expireLe < new Date()) return null;
+  if (!demande.user.actif || !demande.user.valide) return null;
+  return { prenom: demande.user.prenom };
+}
+
+export async function reinitialiserParJeton(
+  _prev: { erreur?: string } | undefined,
+  formData: FormData
+) {
+  const jeton = String(formData.get("jeton") ?? "");
+  const nouveau = String(formData.get("nouveau") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+
+  if (nouveau.length < MDP_MINIMUM) {
+    return { erreur: `Choisissez au moins ${MDP_MINIMUM} caractères.` };
+  }
+  if (nouveau !== confirmation) return { erreur: "Les deux saisies ne correspondent pas." };
+
+  const demande = await prisma.reinitialisationMotDePasse.findUnique({
+    where: { empreinte: empreinte(jeton) },
+    include: { user: true },
+  });
+  if (!demande || demande.utiliseLe || demande.expireLe < new Date()) {
+    return { erreur: "Ce lien n'est plus valable. Demandez-en un nouveau." };
+  }
+  if (!demande.user.actif || !demande.user.valide) {
+    return { erreur: "Ce compte n'est pas actif. Adressez-vous au couple dirigeant." };
+  }
+
+  // Le marquage et le changement vont ensemble : si l'un échoue, aucun des deux
+  // ne doit passer, sinon le lien resterait utilisable une seconde fois.
+  await prisma.$transaction([
+    prisma.reinitialisationMotDePasse.update({
+      where: { id: demande.id },
+      data: { utiliseLe: new Date() },
+    }),
+    prisma.user.update({
+      where: { id: demande.userId },
+      data: {
+        passwordHash: await bcrypt.hash(nouveau, 10),
+        doitChangerMotDePasse: false,
+      },
+    }),
+  ]);
+  await journaliser(demande.userId, "MOT_DE_PASSE_REINITIALISE_PAR_LIEN", demande.user.email);
+  redirect("/login?reinitialise=1");
+}
+
+// ---------- Adresse e-mail ----------
+//
+// Les 66 comptes d'amorçage portent un identifiant fabriqué à partir du nom.
+// Tant qu'il n'est pas remplacé par une vraie adresse, aucun e-mail ne peut
+// arriver — d'où ces deux actions, l'une pour soi, l'autre pour le couple
+// dirigeant et les coordinateurs principaux.
+
+async function poserEmail(
+  userId: string,
+  brut: string,
+  parAuteur: string
+): Promise<{ ok?: boolean; erreur?: string; email?: string }> {
+  const email = brut.trim().toLowerCase();
+  if (!emailPlausible(email)) return { erreur: "Cette adresse ne semble pas valide." };
+  if (estAdresseDAttente(email)) {
+    return { erreur: "Indiquez une vraie adresse : le domaine fsy2026.ci n'existe pas." };
+  }
+  const occupee = await prisma.user.findUnique({ where: { email } });
+  if (occupee && occupee.id !== userId) {
+    return { erreur: "Cette adresse est déjà utilisée par un autre compte." };
+  }
+  const avant = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  await prisma.user.update({ where: { id: userId }, data: { email } });
+  await journaliser(parAuteur, "EMAIL_MODIFIE", `${avant.email} → ${email}`);
+  return { ok: true, email };
+}
+
+export async function changerMonEmail(
+  _prev: { erreur?: string; ok?: boolean } | undefined,
+  formData: FormData
+): Promise<{ erreur?: string; ok?: boolean }> {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  const r = await poserEmail(user.id, String(formData.get("email") ?? ""), user.id);
+  if (r.erreur) return { erreur: r.erreur };
+  revalidatePath("/mot-de-passe");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function definirEmail(userId: string, email: string) {
+  const auteur = await exiger("COORDINATEUR");
+  const r = await poserEmail(userId, email, auteur.id);
+  revalidatePath("/admin");
+  return r;
+}
+
+/** Vérifie la configuration Resend en s'écrivant à soi-même. */
+export async function envoyerEmailDEssai() {
+  const user = await exiger("COORDINATEUR");
+  if (!EMAIL_ACTIF) {
+    return { erreur: "L'envoi d'e-mails n'est pas configuré (RESEND_API_KEY, EMAIL_EXPEDITEUR)." };
+  }
+  if (estAdresseDAttente(user.email)) {
+    return {
+      erreur:
+        "Votre compte porte encore une adresse d'attente. Enregistrez votre vraie adresse avant d'essayer.",
+    };
+  }
+  const envoi = await envoyer({ a: user.email, ...courrielEssai(user.prenom) });
+  await journaliser(user.id, "EMAIL_ESSAI", envoi.envoye ? user.email : String(envoi.raison));
+  return envoi.envoye
+    ? { ok: `Message envoyé à ${user.email}.` }
+    : { erreur: `Échec : ${envoi.detail ?? envoi.raison}` };
+}
+
 // ---------- Inscription ----------
 
 // Toute inscription attend la validation des coordinateurs principaux : c'est
@@ -181,6 +386,10 @@ export async function deciderInscription(userId: string, accepter: boolean) {
   const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   if (accepter) {
     await prisma.user.update({ where: { id: userId }, data: { valide: true } });
+    // La personne attend ce signal : sans lui, elle réessaierait de se
+    // connecter au hasard. L'échec de l'envoi ne remet pas la validation en
+    // cause — le compte est ouvert de toute façon.
+    await envoyer({ a: cible.email, ...courrielCompteValide(cible.prenom) });
   } else {
     // Refus : le compte est supprimé, la personne peut se réinscrire si c'est
     // une erreur. Rien n'y est encore rattaché puisqu'elle n'a pas pu se connecter.

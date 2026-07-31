@@ -455,7 +455,61 @@ son adresse. Il n'y a donc rien à distribuer individuellement.
 
 La liste complète des adresses est visible sur la page **Administration**.
 
-### Mot de passe oublié
+### Envoi d'e-mails (Resend)
+
+Deux variables d'environnement suffisent :
+
+```
+RESEND_API_KEY=re_…
+EMAIL_EXPEDITEUR=FSY 2026 <bonjour@2026.fsy.ci>
+SITE_URL=https://2026.fsy.ci      # facultatif, sert à composer les liens
+```
+
+Le domaine de l'expéditeur doit être **vérifié chez Resend** (enregistrements DNS SPF et
+DKIM à ajouter là où est hébergé `fsy.ci`). Sans cette vérification, Resend n'accepte
+d'écrire qu'à l'adresse du titulaire du compte.
+
+**Sans ces variables, l'application fonctionne exactement comme avant.** Rien ne lève :
+le « mot de passe oublié » répond la même chose, et le repli manuel (mot de passe
+provisoire dicté par un coordinateur) reste la voie normale. La page Administration
+affiche l'état de la configuration et permet de s'envoyer un message d'essai.
+
+Un envoi qui échoue ne fait jamais échouer l'action métier : une messagerie indisponible
+n'empêche personne de changer son mot de passe, et ne bloque pas la validation d'une
+inscription.
+
+#### Les adresses des 66 comptes ne reçoivent rien
+
+Les comptes créés à l'amorçage portent un identifiant **fabriqué à partir du nom**
+(`prenom.nom@fsy2026.ci`) : ce domaine n'existe pas, et les listes officielles ne
+donnaient aucune adresse. Écrire à ces adresses ne produirait que des rejets, ce qui
+abîmerait la réputation d'envoi du vrai domaine — l'application ne le tente donc jamais.
+
+Deux façons de régulariser :
+
+- **chacun pour soi** — « Mon mot de passe » signale l'identifiant d'attente et propose
+  d'enregistrer sa vraie adresse, qui devient alors l'identifiant de connexion ;
+- **par l'administration** — le bouton *Adresse à renseigner*, dans le tableau de l'équipe,
+  pour quelqu'un qui ne peut justement plus se connecter.
+
+La page Administration compte en permanence les comptes encore concernés.
+
+### Mot de passe oublié par e-mail
+
+Depuis la page de connexion, *Mot de passe oublié ?* envoie un lien valable **trois
+heures**, à usage unique. Le jeton n'est jamais conservé en clair : seule son empreinte
+SHA-256 est enregistrée, si bien que la lecture de la base ne permet pas de prendre la
+main sur un compte.
+
+La réponse affichée est **toujours la même**, que l'adresse existe ou non — sinon ce
+formulaire deviendrait un moyen commode de découvrir qui fait partie de l'encadrement.
+Trois demandes par heure et par compte au maximum, et toute nouvelle demande annule le
+lien précédent.
+
+### Mot de passe oublié, de vive voix
+
+Le repli quand la personne n'a pas d'adresse joignable — c'est le cas de tous les comptes
+d'amorçage tant qu'ils n'ont pas été régularisés.
 
 Sur la page **Administration**, chaque ligne porte un bouton *Mot de passe oublié*. Il
 génère un mot de passe provisoire de la forme `QFYX-2223`, affiché **une seule fois** pour
@@ -632,6 +686,7 @@ src/lib/etapes-car.ts      # les trois étapes de pointage aux cars
 src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de points, niveaux
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
 src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
+src/lib/email.ts           # envoi par Resend, gabarits des messages, adresses d'attente
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/
 scripts/importer-contacts-encadrement.ts # charge les numéros des encadrants depuis data/

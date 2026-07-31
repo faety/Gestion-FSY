@@ -1,9 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { seConnecter } from "@/lib/actions";
+
+// Après une réinitialisation réussie, on revient ici : sans un mot, la personne
+// ne saurait pas si son nouveau mot de passe a bien été pris en compte.
+function MessageRetour() {
+  const params = useSearchParams();
+  if (!params.get("reinitialise")) return null;
+  return (
+    <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+      ✅ Votre nouveau mot de passe est enregistré. Connectez-vous avec.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(seConnecter, undefined);
@@ -16,6 +29,9 @@ export default function LoginPage() {
         </div>
         <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
         <p className="text-center text-slate-500 mb-6">Abidjan Ouest — Gestion de l'événement</p>
+        <Suspense fallback={null}>
+          <MessageRetour />
+        </Suspense>
         <form action={action} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
@@ -43,6 +59,11 @@ export default function LoginPage() {
           {state?.erreur && (
             <p className="text-sm text-red-600 bg-red-50 rounded-lg p-2">{state.erreur}</p>
           )}
+          <div className="text-right -mt-1">
+            <Link href="/mot-de-passe-oublie" className="text-sm text-fsy hover:underline">
+              Mot de passe oublié ?
+            </Link>
+          </div>
           <button
             type="submit"
             disabled={pending}
