@@ -7,6 +7,7 @@ import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import { NavLinks } from "@/components/NavLinks";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
+import { Avatar } from "@/components/Avatar";
 import { SITE_AFFICHE } from "@/lib/site";
 
 export default async function AppLayout({
@@ -45,6 +46,7 @@ export default async function AppLayout({
     ...(estCoordinateur
       ? [{ href: "/rapports/final", label: "Rapport final", icone: "📊" }]
       : []),
+    { href: "/profil", label: "Mon profil", icone: "🙋" },
     { href: "/attestation", label: "Mon attestation", icone: "🎓" },
     ...(user.role === "DIRIGEANT"
       ? [{ href: "/attestations", label: "Attestations", icone: "🏅" }]
@@ -64,12 +66,25 @@ export default async function AppLayout({
             <Logo taille={32} clair />
             FSY 2026
           </Link>
-          <div className="text-sm text-blue-200 truncate">
-            {user.prenom}
-            <span className="hidden sm:inline">
-              {" "}{user.nom} — {ROLE_LABELS[user.role as Role]}
+          {/* Le portrait mène au profil : c'est là qu'on le cherche d'instinct,
+              et cela donne enfin un chemin vers le changement de mot de passe. */}
+          <Link
+            href="/profil"
+            className="flex items-center gap-2 min-w-0 hover:opacity-80 transition"
+          >
+            <Avatar
+              prenom={user.prenom}
+              nom={user.nom}
+              photoPublicId={user.photoPublicId}
+              taille={30}
+            />
+            <span className="text-sm text-blue-200 truncate">
+              {user.prenom}
+              <span className="hidden sm:inline">
+                {" "}{user.nom} — {ROLE_LABELS[user.role as Role]}
+              </span>
             </span>
-          </div>
+          </Link>
           <form action={seDeconnecter}>
             <button className="text-sm bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">
               Déconnexion

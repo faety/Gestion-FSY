@@ -17,7 +17,17 @@
 
 import { v2 as cloudinary } from "cloudinary";
 
-const DOSSIER = "fsy2026/rapports";
+// Deux usages, deux dossiers. Les photos de rapport montrent des mineurs ; les
+// photos de profil sont celles d'encadrants adultes qui les déposent eux-mêmes.
+// Les unes comme les autres sont servies par URL signée, mais les séparer
+// permet de les distinguer d'un coup d'œil chez Cloudinary et d'en effacer un
+// jeu sans toucher à l'autre.
+export const DOSSIERS = {
+  rapports: "fsy2026/rapports",
+  profils: "fsy2026/profils",
+} as const;
+
+export type Dossier = keyof typeof DOSSIERS;
 
 export const CLOUDINARY_ACTIF = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME &&
@@ -54,15 +64,16 @@ export type SignatureEnvoi = {
 // La clé secrète ne quitte jamais le serveur, et la photo ne transite pas par
 // l'application : c'est plus rapide sur une connexion mobile, et cela contourne
 // la limite de taille des actions serveur.
-export function signerEnvoi(): SignatureEnvoi | null {
+export function signerEnvoi(dossier: Dossier = "rapports"): SignatureEnvoi | null {
   if (!CLOUDINARY_ACTIF) return null;
+  const folder = DOSSIERS[dossier];
   const timestamp = Math.round(Date.now() / 1000);
-  const aSigner = { folder: DOSSIER, timestamp, type: TYPE_LIVRAISON };
+  const aSigner = { folder, timestamp, type: TYPE_LIVRAISON };
   return {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
     apiKey: process.env.CLOUDINARY_API_KEY!,
     timestamp,
-    folder: DOSSIER,
+    folder,
     type: TYPE_LIVRAISON,
     signature: cloudinary.utils.api_sign_request(
       aSigner,
@@ -117,5 +128,5 @@ export async function supprimerPhotos(publicIds: string[]): Promise<void> {
 // Un identifiant Cloudinary doit rester dans le dossier de l'application : sans
 // ce contrôle, un formulaire trafiqué pourrait faire pointer une photo de
 // rapport vers n'importe quel fichier du compte.
-export const publicIdValide = (id: string) =>
-  id.startsWith(`${DOSSIER}/`) && id.length < 300 && !id.includes("..");
+export const publicIdValide = (id: string, dossier: Dossier = "rapports") =>
+  id.startsWith(`${DOSSIERS[dossier]}/`) && id.length < 300 && !id.includes("..");

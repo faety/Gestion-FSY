@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Avatar } from "@/components/Avatar";
 
 export default async function OrganigrammePage() {
   const [dirigeants, coordinateurs, compagnies, groupesSansCompagnie] = await Promise.all([
@@ -27,7 +28,12 @@ export default async function OrganigrammePage() {
     couleur,
   }: {
     titre: string;
-    personnes: { nom: string; telephone: string | null }[];
+    personnes: {
+      prenom: string;
+      nom: string;
+      telephone: string | null;
+      photoPublicId: string | null;
+    }[];
     couleur: string;
   }) => (
     <div className={`rounded-xl p-4 ${couleur}`}>
@@ -36,13 +42,30 @@ export default async function OrganigrammePage() {
         <div className="text-sm opacity-60">Non assigné</div>
       ) : (
         personnes.map((p) => (
-          <div key={p.nom} className="mt-1 first:mt-0">
-            <div className="font-medium">{p.nom}</div>
-            {p.telephone && (
-              <a href={`tel:${p.telephone.replace(/\s/g, "")}`} className="text-sm underline opacity-80">
-                {p.telephone}
-              </a>
-            )}
+          <div
+            key={`${p.prenom} ${p.nom}`}
+            className="mt-2 first:mt-0 flex items-center justify-center gap-2.5"
+          >
+            <Avatar
+              prenom={p.prenom}
+              nom={p.nom}
+              photoPublicId={p.photoPublicId}
+              taille={38}
+              className="ring-2 ring-white/40"
+            />
+            <div className="text-left min-w-0">
+              <div className="font-medium leading-tight">
+                {p.prenom} {p.nom}
+              </div>
+              {p.telephone && (
+                <a
+                  href={`tel:${p.telephone.replace(/\s/g, "")}`}
+                  className="text-sm underline opacity-80"
+                >
+                  {p.telephone}
+                </a>
+              )}
+            </div>
           </div>
         ))
       )}
@@ -57,8 +80,10 @@ export default async function OrganigrammePage() {
         <Carte
           titre="Couple dirigeant"
           personnes={dirigeants.map((d) => ({
-            nom: `${d.prenom} ${d.nom}`,
+            prenom: d.prenom,
+            nom: d.nom,
             telephone: d.telephone,
+            photoPublicId: d.photoPublicId,
           }))}
           couleur="bg-fsy-dark text-white text-center"
         />
@@ -66,8 +91,10 @@ export default async function OrganigrammePage() {
         <Carte
           titre="Coordinateurs principaux"
           personnes={coordinateurs.map((c) => ({
-            nom: `${c.prenom} ${c.nom}`,
+            prenom: c.prenom,
+            nom: c.nom,
             telephone: c.telephone,
+            photoPublicId: c.photoPublicId,
           }))}
           couleur="bg-fsy text-white text-center"
         />

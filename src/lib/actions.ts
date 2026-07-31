@@ -346,6 +346,85 @@ export async function envoyerEmailDEssai(destinataire?: string) {
     : { erreur: `Échec : ${envoi.detail ?? envoi.raison}` };
 }
 
+// ---------- Profil ----------
+//
+// Chacun renseigne lui-même son téléphone et sa photo. C'est plus juste que de
+// faire saisir soixante-quatre fiches par le couple dirigeant, et c'est la
+// seule façon d'avoir des numéros à jour le jour du départ.
+
+/** Numéros ivoiriens et internationaux : on accepte large, on refuse l'absurde. */
+const telephonePlausible = (t: string) => {
+  const chiffres = t.replace(/[^\d]/g, "");
+  return chiffres.length >= 8 && chiffres.length <= 15;
+};
+
+export async function changerMonTelephone(
+  _prev: { erreur?: string; ok?: boolean } | undefined,
+  formData: FormData
+): Promise<{ erreur?: string; ok?: boolean }> {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  const telephone = String(formData.get("telephone") ?? "").trim();
+
+  if (telephone && !telephonePlausible(telephone)) {
+    return { erreur: "Ce numéro ne semble pas complet." };
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { telephone: telephone || null },
+  });
+  await journaliser(user.id, "TELEPHONE_MODIFIE", telephone || "retiré");
+  revalidatePath("/profil");
+  revalidatePath("/organigramme");
+  return { ok: true };
+}
+
+/** Signature d'envoi pour la photo de profil, dans son propre dossier. */
+export async function demanderSignaturePhotoProfil() {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  return signerEnvoi("profils");
+}
+
+export async function enregistrerMaPhoto(publicId: string) {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  // Sans ce contrôle, un formulaire trafiqué pourrait faire pointer sa photo
+  // de profil vers n'importe quel fichier du compte Cloudinary — y compris une
+  // photo de rapport, où figurent des mineurs.
+  if (!publicIdValide(publicId, "profils")) throw new Error("Image refusée.");
+
+  const avant = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { photoPublicId: true },
+  });
+  await prisma.user.update({ where: { id: user.id }, data: { photoPublicId: publicId } });
+  // L'ancienne ne sert plus à rien : on ne garde pas les portraits périmés.
+  if (avant.photoPublicId) await supprimerPhotos([avant.photoPublicId]);
+
+  await journaliser(user.id, "PHOTO_PROFIL_MODIFIEE");
+  revalidatePath("/profil");
+  revalidatePath("/organigramme");
+  return { ok: true };
+}
+
+export async function supprimerMaPhoto() {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  const avant = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { photoPublicId: true },
+  });
+  if (!avant.photoPublicId) return { ok: true };
+
+  await prisma.user.update({ where: { id: user.id }, data: { photoPublicId: null } });
+  await supprimerPhotos([avant.photoPublicId]);
+  await journaliser(user.id, "PHOTO_PROFIL_RETIREE");
+  revalidatePath("/profil");
+  revalidatePath("/organigramme");
+  return { ok: true };
+}
+
 // ---------- Inscription ----------
 
 // Toute inscription attend la validation des coordinateurs principaux : c'est

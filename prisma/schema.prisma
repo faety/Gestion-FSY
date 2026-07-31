@@ -38,6 +38,12 @@ model User {
   // modification directe du programme pour un adjoint)
   droitsSupplementaires String @default("[]") // JSON array d'actions
 
+  // Photo de profil, déposée par la personne elle-même. Seul l'identifiant
+  // Cloudinary est conservé ; l'image est servie par URL signée, comme les
+  // photos de rapport. Soixante-quatre encadrants qui ne se connaissent pas
+  // tous se repèrent plus vite avec un visage qu'avec un nom.
+  photoPublicId String?
+
   pieu      Pieu?   @relation(fields: [pieuId], references: [id])
   pieuId    String?
   // Compagnie dirigée (pour les coordinateurs adjoints, par paire H/F)

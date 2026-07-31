@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { Avatar } from "@/components/Avatar";
+import { CLOUDINARY_ACTIF } from "@/lib/cloudinary";
 import { getUtilisateur } from "@/lib/auth";
 import { activitePourMoi, annonceVisible, monRoleActivite, roleAuMoins } from "@/lib/roles";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
@@ -124,12 +126,39 @@ export default async function Accueil() {
     activitePourMoi({ ...a, groupeIds: a.groupes.map((g) => g.groupeId) }, user.role, mesGroupes)
   );
 
+  const aCompleter = [
+    !user.photoPublicId && CLOUDINARY_ACTIF && "votre photo",
+    !user.telephone && "votre numéro",
+  ].filter(Boolean) as string[];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Bonjour {user.prenom} 👋</h1>
         <p className="text-slate-500 capitalize">{fmtDate.format(new Date())}</p>
       </div>
+
+      {/* Profil incomplet : rappel discret mais présent. Un numéro manquant se
+          paie le jour du départ, quand personne n'arrive à joindre la personne. */}
+      {aCompleter.length > 0 && (
+        <Link
+          href="/profil"
+          className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 hover:bg-amber-100 transition"
+        >
+          <Avatar
+            prenom={user.prenom}
+            nom={user.nom}
+            photoPublicId={user.photoPublicId}
+            taille={42}
+          />
+          <div className="text-sm text-amber-900 min-w-0">
+            <div className="font-medium">Complétez votre profil</div>
+            <div className="opacity-90">
+              Il manque {aCompleter.join(" et ")}. C'est l'affaire d'une minute.
+            </div>
+          </div>
+        </Link>
+      )}
 
       {/* Thème de la conférence */}
       <div className="bg-fsy-dark text-white rounded-xl p-4">

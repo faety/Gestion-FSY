@@ -455,6 +455,35 @@ son adresse. Il n'y a donc rien à distribuer individuellement.
 
 La liste complète des adresses est visible sur la page **Administration**.
 
+### Mon profil
+
+`/profil` réunit ce que chacun gère lui-même : **photo, numéro de téléphone, adresse
+e-mail et mot de passe**. On y arrive par son portrait dans l'en-tête — l'endroit où on le
+cherche d'instinct — ou par le menu.
+
+C'est ce qui manquait : `/mot-de-passe` n'était atteignable que par la redirection imposée
+à la première connexion, si bien que **personne ne pouvait changer son mot de passe
+volontairement**. Cette page ne sert plus qu'au mot de passe provisoire, où rien d'autre ne
+doit distraire.
+
+**La photo** est déposée par la personne elle-même, envoyée directement du navigateur vers
+Cloudinary dans `fsy2026/profils` — séparé des photos de rapport, qui montrent des mineurs.
+Elle est recadrée en carré et réduite à 512 px avant l'envoi : une photo de téléphone fait
+plusieurs mégaoctets, ce qui est inutile pour une vignette et lourd sur un réseau mobile.
+L'ancienne est effacée quand on la remplace. Sans photo, les initiales s'affichent sur une
+couleur tirée du nom, stable d'une page à l'autre : une liste ne devient jamais une colonne
+de silhouettes grises.
+
+Soixante-quatre encadrants qui ne se connaissent pas tous se repèrent plus vite avec un
+visage. Les portraits apparaissent dans l'en-tête et dans l'organigramme.
+
+**Le numéro** sert le jour même — un conseiller qu'on cherche au départ d'un car, un adjoint
+à joindre pour une décision. Chacun renseigne le sien : faire saisir soixante-quatre fiches
+par le couple dirigeant garantirait des numéros périmés. Il est visible par l'encadrement
+dans l'organigramme, et sur aucune page publique.
+
+L'accueil rappelle discrètement ce qui manque, tant que le profil est incomplet.
+
 ### Rattacher une inscription à un compte existant
 
 Une inscription crée **un compte neuf**. Or les 66 comptes d'amorçage existent déjà, avec
@@ -688,6 +717,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
 - **Rapport final** *(coordinateurs principaux et couple dirigeant)* — synthèse automatique de tous les rapports quotidiens, exportable.
+- **Mon profil** — photo, téléphone, adresse e-mail et mot de passe. Accessible par son portrait dans l'en-tête.
 - **Mon attestation** — progression vers la mention avant la clôture ; après la délivrance, le document imprimable, le code de vérification et la formulation de CV.
 - **Attestations** *(couple dirigeant seul)* — délivrance en une fois, prévisions de mentions, avertissement sur les encadrants sans affectation, révocation, **spécimen** et **impression en lot** pour la cérémonie.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.
@@ -736,6 +766,7 @@ src/lib/synthese.ts        # agrégation des rapports → rapport final et expor
 src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
 src/lib/email.ts           # envoi par Resend, gabarits des messages, adresses d'attente
 src/lib/rapprochement.ts   # inscriptions ↔ comptes existants : proximité des noms
+src/components/Avatar.tsx  # portrait d'un encadrant, ou ses initiales colorées à défaut
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/
 scripts/importer-contacts-encadrement.ts # charge les numéros des encadrants depuis data/
