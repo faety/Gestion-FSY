@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierJeton } from "@/lib/actions";
 import { Logo } from "@/components/Logo";
+import { RetourAccueil } from "@/components/RetourAccueil";
 import { FormulaireReinitialisation } from "@/components/FormulaireReinitialisation";
 
 export const metadata = { title: "Choisir un nouveau mot de passe" };
@@ -20,7 +21,9 @@ export default async function ReinitialiserPage({
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-fsy-dark to-fsy">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
         <div className="flex justify-center mb-2">
-          <Logo taille={64} />
+          <Link href="/" aria-label="Accueil FSY 2026">
+            <Logo taille={64} />
+          </Link>
         </div>
 
         {valide ? (
@@ -54,6 +57,7 @@ export default async function ReinitialiserPage({
             Retour à la connexion
           </Link>
         </p>
+        <RetourAccueil classe="!mt-1" />
       </div>
     </main>
   );

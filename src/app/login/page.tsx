@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { seConnecter } from "@/lib/actions";
+import { RetourAccueil } from "@/components/RetourAccueil";
 
 // Après une réinitialisation réussie, on revient ici : sans un mot, la personne
 // ne saurait pas si son nouveau mot de passe a bien été pris en compte.
@@ -25,10 +26,14 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-fsy-dark to-fsy">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
-        <div className="flex justify-center mb-2">
-          <Logo taille={72} />
-        </div>
-        <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
+        {/* Le logo ramène à la présentation publique : c'est là qu'on le
+            cherche, et c'est la seule issue quand on est arrivé ici par un lien. */}
+        <Link href="/" className="block" aria-label="Accueil FSY 2026">
+          <div className="flex justify-center mb-2">
+            <Logo taille={72} />
+          </div>
+          <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
+        </Link>
         <p className="text-center text-slate-500 mb-6">Abidjan Ouest — Gestion de l'événement</p>
         <Suspense fallback={null}>
           <MessageRetour />
@@ -73,6 +78,7 @@ export default function LoginPage() {
         <p className="text-center text-xs text-slate-400 mt-2">
           Mot de passe oublié ? Demandez-en un provisoire à un coordinateur principal.
         </p>
+        <RetourAccueil />
       </div>
     </main>
   );

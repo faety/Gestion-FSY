@@ -23,6 +23,7 @@ import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
 import { candidats, rapprochementBloquant } from "./rapprochement";
 import { renseignementUtile } from "./renseignements";
+import { PROGRAMME, type ActiviteSeed } from "../../prisma/programme-fsy2026";
 import {
   apparier,
   extraireFiches,
@@ -466,6 +467,111 @@ export async function supprimerMaPhoto() {
   revalidatePath("/profil");
   revalidatePath("/organigramme");
   return { ok: true };
+}
+
+// ---------- Programme officiel : rôles attendus par niveau ----------
+//
+// Le programme est semé une fois, à la création de la base. Corriger le fichier
+// de référence ne change donc rien à une base déjà remplie — et c'est le cas de
+// la production. Cette action rejoue la référence sur les activités officielles
+// déjà présentes, en ne touchant qu'aux quatre champs de rôle : ni les titres,
+// ni les horaires, ni les lieux, ni les activités ajoutées sur place.
+//
+// L'appariement se fait par titre puis par ordre chronologique, et non par
+// horodatage : quatorze activités s'appellent « Rassemblement en compagnie |
+// Appel », les deux listes sont dans le même ordre, et comparer des dates
+// construites en heure locale à des dates relues ailleurs serait fragile.
+
+export type BilanProgramme = {
+  ok: true;
+  misAJour: number;
+  inchangees: number;
+  details: { titre: string; jour: number; heure: string; avant: string; apres: string }[];
+  ignores: string[];
+};
+
+export async function resynchroniserProgramme(): Promise<BilanProgramme | Refus> {
+  const auteur = await exiger("COORDINATEUR");
+
+  const enBase = await prisma.activite.findMany({
+    where: { officielle: true },
+    orderBy: { debut: "asc" },
+    select: {
+      id: true,
+      titre: true,
+      debut: true,
+      roleConseiller: true,
+      roleAdjoint: true,
+      roleCoordinateur: true,
+      roleDirigeant: true,
+    },
+  });
+  if (enBase.length === 0) {
+    return { ok: false, motif: "Aucune activité officielle en base : le programme n'a pas été semé." };
+  }
+
+  const parTitre = new Map<string, typeof enBase>();
+  for (const a of enBase) {
+    const l = parTitre.get(a.titre) ?? [];
+    l.push(a);
+    parTitre.set(a.titre, l);
+  }
+  const attendues = new Map<string, ActiviteSeed[]>();
+  for (const a of PROGRAMME) {
+    const l = attendues.get(a.titre) ?? [];
+    l.push(a);
+    attendues.set(a.titre, l);
+  }
+
+  const details: BilanProgramme["details"] = [];
+  const ignores: string[] = [];
+  let inchangees = 0;
+
+  for (const [titre, reference] of attendues) {
+    const trouvees = parTitre.get(titre);
+    // Un titre dont le nombre d'occurrences ne correspond plus a été modifié
+    // sur place : on n'y touche pas, et on le dit plutôt que de deviner.
+    if (!trouvees || trouvees.length !== reference.length) {
+      ignores.push(`${titre} (${reference.length} attendues, ${trouvees?.length ?? 0} en base)`);
+      continue;
+    }
+    for (let i = 0; i < reference.length; i++) {
+      const r = reference[i].r ?? ["ASSISTER", "ASSISTER", "ASSISTER", "FACULTATIF"];
+      const a = trouvees[i];
+      const avant = [a.roleConseiller, a.roleAdjoint, a.roleCoordinateur, a.roleDirigeant];
+      if (avant.join("|") === r.join("|")) {
+        inchangees++;
+        continue;
+      }
+      await prisma.activite.update({
+        where: { id: a.id },
+        data: {
+          roleConseiller: r[0],
+          roleAdjoint: r[1],
+          roleCoordinateur: r[2],
+          roleDirigeant: r[3],
+        },
+      });
+      details.push({
+        titre,
+        jour: reference[i].jour,
+        heure: reference[i].debut,
+        avant: avant.join(" / "),
+        apres: r.join(" / "),
+      });
+    }
+  }
+
+  if (details.length > 0) {
+    await journaliser(
+      auteur.id,
+      "PROGRAMME_RESYNCHRONISE",
+      `${details.length} activités remises sur les rôles officiels`
+    );
+    revalidatePath("/programme");
+    revalidatePath("/accueil");
+  }
+  return { ok: true, misAJour: details.length, inchangees, details: details.slice(0, 40), ignores };
 }
 
 // ---------- Renseignements médicaux et alimentaires ----------

@@ -27,6 +27,30 @@
 //  • Jour 4 : le canevas ne mentionne la répétition du medley que pour les
 //    Jeunes Gens ; le manuel de l'encadrant l'indique pour les deux groupes.
 //
+// PORTÉE DU PROGRAMME PAR NIVEAU — vérifié sur le manuel de l'encadrant
+//   Les quatre sections du manuel (conseiller, coordonnateur adjoint,
+//   coordonnateur, couple dirigeant) publient **le même tableau horaire** :
+//   la journée entière, à l'identique. Ce qui diffère, ce sont les instructions
+//   qui suivent le tableau — ce que chaque niveau est attendu d'y faire.
+//
+//   Le rôle "AUCUN" efface l'activité du programme de ce niveau. L'appliquer au
+//   coordinateur principal ou au couple dirigeant contredit donc le manuel :
+//   ils n'ont plus rien avant sept heures, plus rien après vingt-deux heures,
+//   et l'appel — le moment où l'on compte les jeunes — ne figure nulle part
+//   chez eux. Ces deux niveaux n'ont donc plus aucun "AUCUN" : à défaut de
+//   tâche assignée, c'est "FACULTATIF", qui dit la vérité — ils peuvent y être.
+//
+//   Deux conséquences tirées des instructions du manuel :
+//     • Appel : le couple dirigeant "reçoit" comme les coordinateurs. Il répond
+//       de la conférence ; un jeune manquant doit lui parvenir.
+//     • Extinction des feux et veille de nuit : il supervise. « Allez voir dans
+//       la zone des dortoirs si les jeunes vont bien » (section couple
+//       dirigeant, suggestions générales).
+//
+//   Les conseillers et les coordonnateurs adjoints gardent leurs "AUCUN" :
+//   leur programme reste celui de leur périmètre, sans quoi il deviendrait
+//   illisible le jour même.
+//
 // STATUTS
 //   "PLANIFIE"    → horaire officiel des manuels.
 //   "A_CONFIRMER" → à préciser par la direction d'Abidjan Ouest (lieux,
@@ -71,14 +95,23 @@ type Roles = [Role, Role, Role, Role];
 
 // Combinaisons récurrentes du manuel de l'encadrant
 const R = {
-  APPEL: ["DIRIGER", "RECEVOIR", "RECEVOIR", "AUCUN"] as Roles,
+  // L'appel remonte : le conseiller compte, l'adjoint reçoit, le coordinateur
+  // reçoit — et le couple dirigeant reçoit aussi. Le manuel ne lui assigne pas
+  // de tâche, mais il répond de la conférence : un jeune manquant doit lui
+  // parvenir. Le laisser à « AUCUN » effaçait l'appel de son programme, et il
+  // ne voyait même pas à quelle heure on compte les jeunes.
+  APPEL: ["DIRIGER", "RECEVOIR", "RECEVOIR", "RECEVOIR"] as Roles,
   REPAS: ["ASSISTER", "SI_ATTRIBUE", "ASSISTER", "ASSISTER"] as Roles,
   CONSEILLER_DIRIGE: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"] as Roles,
-  CONSEILLER_SEUL: ["DIRIGER", "AUCUN", "AUCUN", "AUCUN"] as Roles,
-  TRANQUILLITE: ["SUPERVISER", "AUCUN", "AUCUN", "AUCUN"] as Roles,
-  EXTINCTION: ["SUPERVISER", "AIDER", "AIDER", "AUCUN"] as Roles,
+  CONSEILLER_SEUL: ["DIRIGER", "AUCUN", "FACULTATIF", "FACULTATIF"] as Roles,
+  TRANQUILLITE: ["SUPERVISER", "AUCUN", "FACULTATIF", "FACULTATIF"] as Roles,
+  // Extinction des feux et veille de nuit : le conseiller surveille, l'adjoint
+  // et le coordinateur aident, le couple dirigeant supervise. C'est le moment
+  // où six cent quarante mineurs sont couchés sur un site qui n'est pas le
+  // leur ; il n'a pas à disparaître du programme de ceux qui en répondent.
+  EXTINCTION: ["SUPERVISER", "AIDER", "AIDER", "SUPERVISER"] as Roles,
   REUNION_COORD_ADJOINTS: ["AUCUN", "ASSISTER", "DIRIGER", "FACULTATIF"] as Roles,
-  REUNION_COORD_CONSEILLERS: ["ASSISTER", "DIRIGER", "AUCUN", "AUCUN"] as Roles,
+  REUNION_COORD_CONSEILLERS: ["ASSISTER", "DIRIGER", "ASSISTER", "FACULTATIF"] as Roles,
   SPIRITUELLE: ["ASSISTER", "ASSISTER", "DIRIGER", "ENSEIGNER"] as Roles,
   SPECTACLE: ["SI_ATTRIBUE", "SI_ATTRIBUE", "ASSISTER", "ASSISTER"] as Roles,
   REPETITION: ["SI_ATTRIBUE", "SI_ATTRIBUE", "FACULTATIF", "FACULTATIF"] as Roles,
@@ -141,7 +174,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     description:
       "Chaque adjoint rencontre les conseillers qu'il supervise : attentes, buts de la semaine, questions.",
     encadrants: true,
-    r: ["ASSISTER", "DIRIGER", "AUCUN", "AUCUN"],
+    r: ["ASSISTER", "DIRIGER", "FACULTATIF", "FACULTATIF"],
   },
   {
     jour: 0,
@@ -209,7 +242,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     titre: "Vérification des chambres",
     description: "Le cas échéant. Signaler immédiatement toute détérioration au coordinateur adjoint.",
     type: "PAR_GROUPE",
-    r: ["DIRIGER", "AIDER", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "AIDER", "FACULTATIF", "FACULTATIF"],
   },
   {
     jour: 1,
@@ -236,7 +269,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     fin: "15:15",
     titre: "Nom et cri de la compagnie",
     type: "PAR_COMPAGNIE",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   {
     jour: 1,
@@ -276,7 +309,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     description:
       "Introduction (10 min), buts de compagnie (15 min), buts personnels (15 min), conclusion (5 min), selon le modèle Découvrir · Planifier · Agir · Réfléchir · Se réjouir. Passés en revue le 5e jour.",
     type: "PAR_COMPAGNIE",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "FACULTATIF"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 1, debut: "21:00", titre: "Appel", type: "PAR_GROUPE", r: R.APPEL },
   {
@@ -319,7 +352,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_GROUPE",
     description:
       "Sujet du jour : Aimer Dieu (guide FSY, p. 150-154). Dirigée par un jeune du groupe, suivie des annonces du conseiller.",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 2, debut: "07:30", fin: "08:30", titre: "Petit-déjeuner", r: R.REPAS },
   {
@@ -338,7 +371,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     fin: "09:15",
     titre: "Réunion couple dirigeant / instructeurs",
     encadrants: true,
-    r: ["AUCUN", "AUCUN", "AUCUN", "DIRIGER"],
+    r: ["AUCUN", "AUCUN", "FACULTATIF", "DIRIGER"],
   },
   {
     jour: 2,
@@ -382,7 +415,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     description:
       "Obligatoire, sauf pour les conseillers affectés au spectacle musical ou de variétés. Formation et distribution du matériel des bannières.",
     encadrants: true,
-    r: ["ASSISTER", "DIRIGER", "ASSISTER", "AUCUN"],
+    r: ["ASSISTER", "DIRIGER", "ASSISTER", "FACULTATIF"],
   },
   { jour: 2, debut: "16:30", fin: "18:00", titre: "Dîner", r: R.REPAS },
   { jour: 2, debut: "18:00", titre: "Rassemblement en compagnie | Appel", type: "PAR_COMPAGNIE", r: R.APPEL },
@@ -420,7 +453,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     titre: "Réunion spirituelle matinale des participants",
     type: "PAR_GROUPE",
     description: "Sujet du jour : Marche dans la lumière de Dieu (guide FSY, p. 156-161).",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 3, debut: "07:30", fin: "08:30", titre: "Petit-déjeuner", r: R.REPAS },
   {
@@ -459,7 +492,7 @@ export const PROGRAMME: ActiviteSeed[] = [
   { jour: 3, debut: "15:30", fin: "17:00", titre: "Auditions du spectacle de variétés", description: "Sélection finale ce soir.", r: R.REPETITION },
   { jour: 3, debut: "15:30", fin: "17:00", titre: "Répétition du spectacle musical", r: R.REPETITION },
   { jour: 3, debut: "15:30", fin: "16:30", titre: "Temps libre des participants", description: "Mettre le tee-shirt FSY pour la soirée jeux.", r: R.TEMPS_LIBRE },
-  { jour: 3, debut: "16:30", fin: "17:00", titre: "Réunion coordinateurs adjoints / conseillers", encadrants: true, r: ["ASSISTER", "DIRIGER", "ASSISTER", "AUCUN"] },
+  { jour: 3, debut: "16:30", fin: "17:00", titre: "Réunion coordinateurs adjoints / conseillers", encadrants: true, r: ["ASSISTER", "DIRIGER", "ASSISTER", "FACULTATIF"] },
   { jour: 3, debut: "16:30", fin: "18:00", titre: "Dîner", description: "Mettre le tee-shirt FSY.", r: R.REPAS },
   { jour: 3, debut: "18:00", titre: "Rassemblement en compagnie | Appel", type: "PAR_COMPAGNIE", r: R.APPEL },
   {
@@ -469,7 +502,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     titre: "Préparation à la soirée jeux",
     type: "PAR_COMPAGNIE",
     description: "Démonstration des règles de chaque jeu, puis dernière répétition du cri de ralliement.",
-    r: ["DIRIGER", "SI_ATTRIBUE", "AIDER", "AUCUN"],
+    r: ["DIRIGER", "SI_ATTRIBUE", "AIDER", "FACULTATIF"],
   },
   {
     jour: 3,
@@ -504,7 +537,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     titre: "Réunion spirituelle matinale des participants",
     type: "PAR_GROUPE",
     description: "Sujet du jour : Ton corps est sacré (guide FSY, p. 162-169).",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 4, debut: "07:30", fin: "08:30", titre: "Petit-déjeuner", r: R.REPAS },
   {
@@ -562,7 +595,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     fin: "13:45",
     titre: "Répétition générale du spectacle de variétés",
     description: "Les artistes viennent en costume, avec accessoires et instruments accordés.",
-    r: ["SI_ATTRIBUE", "SI_ATTRIBUE", "AIDER", "AUCUN"],
+    r: ["SI_ATTRIBUE", "SI_ATTRIBUE", "AIDER", "FACULTATIF"],
   },
   { jour: 4, debut: "12:30", fin: "13:30", titre: "Répétition du spectacle musical", r: R.REPETITION },
   { jour: 4, debut: "13:45", titre: "Rassemblement en compagnie | Appel", type: "PAR_COMPAGNIE", r: R.APPEL },
@@ -625,7 +658,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     titre: "Réunion spirituelle matinale des participants",
     type: "PAR_GROUPE",
     description: "Sujet du jour : La vérité t'affranchira (guide FSY, p. 169-173).",
-    r: ["DIRIGER", "FACULTATIF", "AUCUN", "AUCUN"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 5, debut: "07:30", fin: "08:30", titre: "Petit-déjeuner", r: R.REPAS },
   {
@@ -721,7 +754,9 @@ export const PROGRAMME: ActiviteSeed[] = [
     fin: "07:00",
     titre: "Préparation au départ",
     type: "PAR_GROUPE",
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
+    // Le départ de six cent quarante mineurs est ce dont le couple dirigeant
+    // répond le plus directement : il supervise, il n'est pas absent.
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
   },
   {
     jour: 6,
@@ -731,7 +766,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_GROUPE",
     description:
       "Inspection de chaque chambre avec les jeunes, récupération des clés, vérification des placards et tiroirs. Les conseillers valident les départs dans l'application (module Cars) et restent avec les jeunes jusqu'à leur prise en charge.",
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
   },
   {
     jour: 6,

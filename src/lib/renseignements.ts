@@ -18,13 +18,21 @@ const RIEN = [
   /^(r\.?a\.?s\.?\s*)?(aucun|auncun|aucun[a-z]?|nean|néan|neant)[a-z\s.]{0,3}$/i,
   /^(je|il|elle)\s+mange\s+(de\s+)?tout/i,
   /^[\s.,;:\-–—_/*+()0]*$/, // ponctuation seule ou champ quasi vide
+  // Réponses tapées à la va-vite dans un champ obligatoire : deux lettres qui
+  // ne veulent rien dire. « ne » n'est pas une allergie, et l'afficher comme
+  // alerte affaiblirait toutes les autres.
+  /^(ne|no|nn|ni|pa|ok|rr|xx|zz|nu)$/i,
 ];
 
 /** La déclaration porte-t-elle une information ? Sinon, on n'en garde rien. */
 export const renseignementUtile = (v: string | null | undefined): string | null => {
   const s = v?.trim();
   if (!s) return null;
-  return RIEN.some((r) => r.test(s)) ? null : s;
+  // « "aucune" », « «néant» », « (RAS) » : les guillemets et parenthèses que
+  // certains ajoutent ne changent rien au fait qu'il n'y a rien à signaler.
+  const nu = s.replace(/^[\s"'«»“”()\[\]]+|[\s"'«»“”()\[\]]+$/g, "").trim();
+  if (!nu) return null;
+  return RIEN.some((r) => r.test(nu)) ? null : s;
 };
 
 export type LigneSaisie = {

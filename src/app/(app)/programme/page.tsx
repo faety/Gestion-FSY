@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { peutModifierDirectement, roleAuMoins } from "@/lib/roles";
 import { Programme } from "@/components/Programme";
+import { ResynchroniserProgramme } from "@/components/ResynchroniserProgramme";
 
 export default async function ProgrammePage() {
   const user = await exigerUtilisateur();
@@ -24,6 +25,7 @@ export default async function ProgrammePage() {
   ]);
 
   return (
+    <div className="space-y-3">
     <Programme
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}
       peutModifierDirect={peutModifierDirectement(user)}
@@ -77,5 +79,11 @@ export default async function ProgrammePage() {
       compagnies={compagnies.map((c) => ({ id: c.id, nom: c.nom }))}
       groupes={groupes.map((g) => ({ id: g.id, nom: g.nom }))}
     />
+      {roleAuMoins(user.role, "COORDINATEUR") && (
+        <div className="pt-1">
+          <ResynchroniserProgramme />
+        </div>
+      )}
+    </div>
   );
 }

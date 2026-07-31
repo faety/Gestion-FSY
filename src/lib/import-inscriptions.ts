@@ -20,7 +20,7 @@ const sansAccents = (t: string) =>
 export type Tableau = { feuille: string; entetes: string[]; lignes: string[][] };
 
 /** Nom de la feuille à préférer : les exports de la conférence l'appellent « Tous ». */
-const FEUILLE_PREFEREE = /^(tous|toutes|all|participants|inscriptions)$/i;
+const FEUILLE_PREFEREE = /^(tous|toutes|all|participants?|inscriptions?)$/i;
 
 export async function lireClasseur(donnees: Buffer, nomFichier: string): Promise<Tableau> {
   if (/\.csv$/i.test(nomFichier)) return lireCsv(donnees.toString("utf-8"));
@@ -121,16 +121,34 @@ export type Champ =
 // Chaque champ est reconnu par des mots-clés, du plus caractéristique au moins.
 // L'ordre compte : « nom » apparaît aussi dans « prénom », donc les libellés les
 // plus spécifiques doivent être essayés d'abord.
+const LIEN = "[^a-z]{0,3}(?:de |du |des |d )?[^a-z]{0,3}";
+
 const INDICES: { champ: Champ; motifs: RegExp[] }[] = [
-  { champ: "contactTelephone", motifs: [/(contact|urgence|parent|tuteur|responsable|emergency|guardian)[^a-z]*(tel|num|phone|mobile|portable)/, /(tel|num|phone)[^a-z]*(contact|urgence|parent|tuteur|emergency)/] },
-  { champ: "contactNom", motifs: [/(contact|urgence|parent|tuteur|responsable|emergency|guardian)[^a-z]*(nom|name)/, /^(contact|personne a prevenir|emergency contact)/] },
-  { champ: "medical", motifs: [/sante|health|medical|medicale|maladie|traitement|handicap|condition physique|physical/] },
-  { champ: "alimentaire", motifs: [/alimentaire|aliment|regime|diet|food|repas|nourriture|allergie alimentaire/] },
-  { champ: "naissance", motifs: [/naissance|birth|^dob$|date de naiss/] },
+  {
+    champ: "contactTelephone",
+    motifs: [
+      new RegExp(`(contact|urgence|parent|tuteur|responsable|emergency|guardian)${LIEN}(tel|num|phone|mobile|portable)`),
+      new RegExp(`(telephone|tel|numero|num|phone|mobile)${LIEN}(contact|urgence|parent|tuteur|responsable|emergency)`),
+    ],
+  },
+  {
+    champ: "contactNom",
+    motifs: [
+      new RegExp(`(contact|urgence|parent|tuteur|responsable|emergency|guardian)${LIEN}(nom|name)`),
+      new RegExp(`(nom|name)${LIEN}(contact|urgence|parent|tuteur|responsable|emergency|guardian)`),
+      /^(contact|personne a prevenir|emergency contact)/,
+    ],
+  },
+  // « Renseignements médicaux » : le radical suffit, la terminaison varie.
+  { champ: "medical", motifs: [/sante|health|medic|maladie|traitement|handicap|condition physique|physical|allergie(?! alimentaire)/] },
+  { champ: "alimentaire", motifs: [/alimentaire|aliment|regime|diet|food|repas|nourriture/] },
+  // « Anniversaire » est le libellé du système d'inscription ; « date de
+  // naissance » celui des listes internes. Les deux doivent être reconnus.
+  { champ: "naissance", motifs: [/naissance|anniversaire|birth|^dob$|birthday/] },
   { champ: "prenom", motifs: [/prenom|first ?name|given ?name/] },
   { champ: "nom", motifs: [/^nom$|nom de famille|last ?name|sur ?name|family ?name|^nom /] },
-  { champ: "email", motifs: [/e[- ]?mail|courriel|adresse electronique/] },
-  { champ: "telephone", motifs: [/telephone|^tel|numero|phone|mobile|portable|whatsapp/] },
+  { champ: "email", motifs: [/adresse electronique|e[- ]?mail|courriel/] },
+  { champ: "telephone", motifs: [/^telephone|^tel$|^numero|^phone|^mobile|^portable|whatsapp/] },
 ];
 
 export type Correspondance = Partial<Record<Champ, number>>;

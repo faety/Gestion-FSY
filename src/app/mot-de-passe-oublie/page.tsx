@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { RetourAccueil } from "@/components/RetourAccueil";
 import { demanderReinitialisation } from "@/lib/actions";
 
 export default function MotDePasseOubliePage() {
@@ -12,7 +13,9 @@ export default function MotDePasseOubliePage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-fsy-dark to-fsy">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
         <div className="flex justify-center mb-2">
-          <Logo taille={64} />
+          <Link href="/" aria-label="Accueil FSY 2026">
+            <Logo taille={64} />
+          </Link>
         </div>
         <h1 className="text-xl font-bold text-center text-fsy-dark">Mot de passe oublié</h1>
         <p className="text-center text-slate-500 text-sm mb-6">
@@ -65,6 +68,7 @@ export default function MotDePasseOubliePage() {
             Retour à la connexion
           </Link>
         </p>
+        <RetourAccueil classe="!mt-1" />
       </div>
     </main>
   );

@@ -389,6 +389,46 @@ spirituelle des participants par groupe (7h15), petit-déjeuner, étude de l'Év
 compagnie, réunion spirituelle du couple dirigeant, activités, appels, « Réfléchir et
 revoir » par groupe (21h45), extinction des feux (22h30) et réunion coordinateurs/adjoints.
 
+### Le programme est le même pour tous, les attentes diffèrent
+
+Les quatre sections du manuel de l'encadrant — conseiller, coordonnateur adjoint,
+coordonnateur, couple dirigeant — publient **le même tableau horaire** : la journée
+entière, à l'identique. Ce qui change d'une section à l'autre, ce sont les instructions
+qui suivent le tableau : ce que chaque niveau est attendu d'y faire.
+
+Le rôle `AUCUN` efface l'activité du programme de ce niveau. L'appliquer au coordinateur
+principal ou au couple dirigeant contredisait donc le manuel : ils n'avaient plus rien
+avant sept heures, plus rien après vingt-deux heures, et **l'appel — le moment où l'on
+compte les jeunes — ne figurait nulle part chez eux**. Ces deux niveaux n'ont plus aucun
+`AUCUN` : à défaut de tâche assignée, c'est `FACULTATIF`, qui dit la vérité — ils peuvent
+y être.
+
+Deux conséquences tirées des instructions du manuel :
+
+- **L'appel** : le couple dirigeant *reçoit*, comme les coordinateurs. Il répond de la
+  conférence ; un jeune manquant doit lui parvenir.
+- **L'extinction des feux et la veille de nuit** : il *supervise*. « Allez voir dans la
+  zone des dortoirs si les jeunes vont bien » (section couple dirigeant, suggestions
+  générales).
+
+Les conseillers et les coordonnateurs adjoints gardent leurs `AUCUN` : leur programme
+reste celui de leur périmètre, sans quoi il deviendrait illisible le jour même.
+
+#### Appliquer une correction à une base déjà semée
+
+Le programme n'est semé qu'à la création de la base : corriger le fichier de référence ne
+touche pas une base déjà remplie, et c'est le cas de la production. Sans quoi une
+correction du manuel resterait dans le code sans jamais atteindre ceux qu'elle concerne.
+
+La page Programme propose donc aux coordinateurs **« Rôles du programme officiel »**, qui
+rejoue la référence sur les activités officielles déjà présentes. Elle ne touche qu'aux
+quatre champs de rôle : ni les titres, ni les horaires, ni les lieux, ni les activités
+ajoutées sur place. L'appariement se fait par titre puis par ordre chronologique — et non
+par horodatage, car quatorze activités s'appellent « Rassemblement en compagnie | Appel »
+et comparer des dates construites en heure locale serait fragile. Un titre dont le nombre
+d'occurrences ne correspond plus a été modifié sur place : il est laissé tel quel, et
+signalé. L'opération est journalisée et rejouable sans effet.
+
 ### Divergences entre les deux manuels
 
 Les manuels se contredisent sur trois points ; voici les arbitrages retenus, tous
@@ -957,6 +997,14 @@ faire ; et les tentatives de connexion sont limitées à **huit échecs par quar
 par adresse**. On ne verrouille pas le compte — verrouiller serait un moyen commode
 d'empêcher quelqu'un de travailler le jour du départ.
 
+### Sortir des pages d'avant-connexion
+
+La connexion, la demande d'accès et le mot de passe oublié s'ouvrent souvent depuis un
+lien reçu par message : on y arrive sans être passé par la présentation, et le navigateur
+n'a même pas de page précédente où revenir. Chacune de ces quatre pages porte donc un
+**retour à l'accueil**, et leur logo y mène aussi — c'est là qu'on le cherche. Sans cela,
+la seule issue était de retaper l'adresse à la main.
+
 ## Page publique
 
 `/` est une page de présentation accessible sans compte : thème de l'année, dates,
@@ -1002,6 +1050,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Délivrer / révoquer les attestations | — | — | — | ✅ |
 | Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
 | Verser le fichier d'inscription, corriger un renseignement | — | Droit « Bien-être » | ✅ | ✅ |
+| Remettre le programme sur les rôles officiels | — | — | ✅ | ✅ |
 | Changer l'appel d'un conseiller ou d'un adjoint | — | — | ✅ | ✅ |
 | Rattacher une inscription à un compte existant | — | — | ✅ | ✅ |
 | Fusionner deux comptes (conseiller, adjoint) | — | — | ✅ | ✅ |

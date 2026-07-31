@@ -5,6 +5,7 @@ import { Logo } from "@/components/Logo";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { useActionState } from "react";
 import { sInscrire } from "@/lib/actions";
+import { RetourAccueil } from "@/components/RetourAccueil";
 
 export default function InscriptionPage() {
   const [state, action, pending] = useActionState(sInscrire, undefined);
@@ -25,6 +26,7 @@ export default function InscriptionPage() {
           >
             Retour à la connexion
           </Link>
+          <RetourAccueil />
         </div>
       </main>
     );
@@ -36,10 +38,12 @@ export default function InscriptionPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-fsy-dark to-fsy">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6 my-8">
-        <div className="flex justify-center mb-2">
-          <Logo taille={72} />
-        </div>
-        <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
+        <Link href="/" className="block" aria-label="Accueil FSY 2026">
+          <div className="flex justify-center mb-2">
+            <Logo taille={72} />
+          </div>
+          <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
+        </Link>
         <p className="text-center text-slate-500 text-sm">Demande de compte encadrant</p>
         <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 mt-4">
           Réservé aux personnes appelées à encadrer la conférence. Votre demande est vérifiée
@@ -120,6 +124,7 @@ export default function InscriptionPage() {
             Se connecter
           </Link>
         </p>
+        <RetourAccueil />
       </div>
     </main>
   );
