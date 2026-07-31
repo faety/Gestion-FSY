@@ -4,11 +4,12 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import {
   creerUtilisateur,
-  basculerDroitModification,
+  basculerDroit,
   basculerActif,
   affecterCompagnie,
   deciderInscription,
 } from "@/lib/actions";
+import { DROITS, lireDroits } from "@/lib/roles";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
 import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
@@ -267,13 +268,13 @@ export default async function AdminPage() {
               <th className="p-3">Rôle</th>
               <th className="p-3">Affectation</th>
               <th className="p-3">Accès</th>
-              {estDirigeant && <th className="p-3">Droit de modif. directe</th>}
+              {estDirigeant && <th className="p-3">Droits accordés</th>}
               {estDirigeant && <th className="p-3">Présence</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {equipe.map((u) => {
-              const aDroit = u.droitsSupplementaires.includes("MODIFICATION_DIRECTE");
+              const droits = lireDroits(u.droitsSupplementaires);
               return (
                 <tr key={u.id} className={!u.actif ? "opacity-50" : ""}>
                   <td className="p-3">
@@ -339,25 +340,34 @@ export default async function AdminPage() {
                   {estDirigeant && (
                     <td className="p-3">
                       {u.role === "ADJOINT" ? (
-                        <form
-                          action={async () => {
-                            "use server";
-                            await basculerDroitModification(u.id);
-                          }}
-                        >
-                          <button
-                            className={`text-xs rounded-full px-3 py-1 ${
-                              aDroit
-                                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                            }`}
-                          >
-                            {aDroit ? "Accordé ✓" : "Non accordé"}
-                          </button>
-                        </form>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          {Object.values(DROITS).map((d) => {
+                            const accorde = droits.includes(d.cle);
+                            return (
+                              <form
+                                key={d.cle}
+                                action={async () => {
+                                  "use server";
+                                  await basculerDroit(u.id, d.cle);
+                                }}
+                              >
+                                <button
+                                  title={d.aide}
+                                  className={`text-xs rounded-full px-3 py-1 whitespace-nowrap ${
+                                    accorde
+                                      ? "bg-green-100 text-green-700 hover:bg-green-200"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  {accorde ? `${d.label} ✓` : d.label}
+                                </button>
+                              </form>
+                            );
+                          })}
+                        </div>
                       ) : (
                         <span className="text-xs text-slate-400">
-                          {roleAuMoins(u.role, "COORDINATEUR") ? "Toujours" : "—"}
+                          {roleAuMoins(u.role, "COORDINATEUR") ? "Tous" : "—"}
                         </span>
                       )}
                     </td>

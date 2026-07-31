@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getUtilisateur } from "@/lib/auth";
-import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
+import { ROLE_LABELS, roleAuMoins, voitToutesLesAlertes, type Role } from "@/lib/roles";
 import { NavLinks } from "@/components/NavLinks";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
@@ -40,6 +40,9 @@ export default async function AppLayout({
     { href: "/groupes", label: "Groupes", icone: "🧑‍🤝‍🧑" },
     ...(roleAuMoins(user.role, "ADJOINT")
       ? [{ href: "/pieux", label: "Pieux et districts", icone: "🏛️" }]
+      : []),
+    ...(voitToutesLesAlertes(user)
+      ? [{ href: "/sante", label: "Santé et alimentation", icone: "⚕️" }]
       : []),
     { href: "/organigramme", label: "Organigramme", icone: "🗂️" },
     { href: "/annonces", label: "Annonces", icone: "📢" },

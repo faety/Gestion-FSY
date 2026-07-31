@@ -20,6 +20,41 @@ export function roleAuMoins(role: string, minimum: Role): boolean {
   return (ROLE_LEVEL[role as Role] ?? 0) >= ROLE_LEVEL[minimum];
 }
 
+// ---------- Droits supplémentaires ----------
+//
+// Attribués nominativement par le couple dirigeant, en plus du rôle. Ils
+// servent aux responsabilités qui ne suivent pas la hiérarchie : un adjoint
+// n'a pas à voir toute la conférence du seul fait qu'il est adjoint, mais
+// celui qui porte le bien-être des jeunes, si.
+
+export const DROITS = {
+  MODIFICATION_DIRECTE: {
+    cle: "MODIFICATION_DIRECTE",
+    label: "Modification directe",
+    aide: "Modifie le programme et les affectations sans validation.",
+  },
+  BIEN_ETRE: {
+    cle: "BIEN_ETRE",
+    label: "Bien-être",
+    aide:
+      "Voit les alertes médicales et alimentaires de tous les jeunes, quelle que soit sa compagnie.",
+  },
+} as const;
+
+export type Droit = keyof typeof DROITS;
+
+export const lireDroits = (json: string): string[] => {
+  try {
+    const d = JSON.parse(json);
+    return Array.isArray(d) ? d : [];
+  } catch {
+    return [];
+  }
+};
+
+export const aLeDroit = (user: { droitsSupplementaires: string }, droit: Droit) =>
+  lireDroits(user.droitsSupplementaires).includes(droit);
+
 // Un utilisateur peut-il modifier directement le programme / les assignations ?
 // DIRIGEANT et COORDINATEUR toujours ; un ADJOINT seulement si le couple
 // dirigeant lui a accordé le droit "MODIFICATION_DIRECTE".
@@ -28,12 +63,24 @@ export function peutModifierDirectement(user: {
   droitsSupplementaires: string;
 }): boolean {
   if (roleAuMoins(user.role, "COORDINATEUR")) return true;
-  try {
-    const droits: string[] = JSON.parse(user.droitsSupplementaires);
-    return droits.includes("MODIFICATION_DIRECTE");
-  } catch {
-    return false;
-  }
+  return aLeDroit(user, "MODIFICATION_DIRECTE");
+}
+
+/**
+ * Qui voit les alertes médicales et alimentaires de **tous** les jeunes ?
+ *
+ * Le couple dirigeant et les coordinateurs principaux, qui répondent de la
+ * conférence entière ; et les adjoints désignés au bien-être, dont c'est
+ * précisément la charge. Les autres restent à leur périmètre — un conseiller
+ * son groupe, un adjoint sa compagnie — parce que ces informations touchent à
+ * la santé de mineurs et ne se consultent pas par curiosité.
+ */
+export function voitToutesLesAlertes(user: {
+  role: string;
+  droitsSupplementaires: string;
+}): boolean {
+  if (roleAuMoins(user.role, "COORDINATEUR")) return true;
+  return aLeDroit(user, "BIEN_ETRE");
 }
 
 export const CIBLES_ANNONCE = ["TOUS", "COORDINATEURS", "ADJOINTS", "CONSEILLERS"] as const;

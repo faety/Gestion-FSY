@@ -455,6 +455,35 @@ son adresse. Il n'y a donc rien à distribuer individuellement.
 
 La liste complète des adresses est visible sur la page **Administration**.
 
+### Santé et alimentation
+
+`/sante` réunit **tous les jeunes attendus** qui signalent un problème de santé ou une
+contrainte alimentaire, quel que soit leur groupe : nom, groupe, compagnie, pieu,
+conseiller responsable avec son numéro, et le contact d'urgence — replié par défaut,
+soixante numéros de parents affichés en permanence étant une exposition sans usage.
+
+La recherche porte aussi sur le **contenu** de l'alerte, pas seulement sur le nom : à
+l'infirmerie ou au réfectoire, on cherche « qui est allergique à l'arachide » avant de
+chercher quelqu'un. Les inscriptions annulées sont écartées — faire figurer sur une liste
+de vigilance quelqu'un qui n'est pas là ferait perdre du temps.
+
+**Qui y accède** : le couple dirigeant et les coordinateurs principaux, qui répondent de la
+conférence entière, et les adjoints à qui le couple a accordé le droit **Bien-être**.
+Partout ailleurs chacun reste à son périmètre — un conseiller son groupe, un adjoint sa
+compagnie — parce que ces renseignements touchent à la santé de mineurs.
+
+#### Droits nominatifs
+
+Deux droits s'accordent personne par personne depuis l'administration, réservés au couple
+dirigeant. Ils servent aux responsabilités qui ne suivent pas la hiérarchie : un adjoint
+n'a pas à voir toute la conférence du seul fait qu'il est adjoint, mais celui qui porte le
+bien-être des jeunes, si.
+
+| Droit | Effet |
+|---|---|
+| **Modification directe** | Modifie le programme et les affectations sans validation. |
+| **Bien-être** | Voit les alertes médicales et alimentaires de tous les jeunes. |
+
 ### Mon profil
 
 `/profil` réunit ce que chacun gère lui-même : **photo, numéro de téléphone, adresse
@@ -717,6 +746,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
 - **Rapport final** *(coordinateurs principaux et couple dirigeant)* — synthèse automatique de tous les rapports quotidiens, exportable.
+- **Santé et alimentation** *(couple dirigeant, coordinateurs principaux, adjoints au bien-être)* — tous les jeunes signalant un problème de santé ou une contrainte alimentaire.
 - **Mon profil** — photo, téléphone, adresse e-mail et mot de passe. Accessible par son portrait dans l'en-tête.
 - **Mon attestation** — progression vers la mention avant la clôture ; après la délivrance, le document imprimable, le code de vérification et la formulation de CV.
 - **Attestations** *(couple dirigeant seul)* — délivrance en une fois, prévisions de mentions, avertissement sur les encadrants sans affectation, révocation, **spécimen** et **impression en lot** pour la cérémonie.
@@ -738,6 +768,8 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Créer des comptes | — | — | ✅ | ✅ |
 | Recevoir une attestation | ✅ | ✅ | ✅ | — |
 | Délivrer / révoquer les attestations | — | — | — | ✅ |
+| Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
+| Accorder les droits nominatifs | — | — | — | ✅ |
 | Gérer permissions et présences, audit | — | — | — | ✅ |
 
 Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`

@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "./db";
 import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
-import { peutModifierDirectement, roleAuMoins } from "./roles";
+import { DROITS, lireDroits, peutModifierDirectement, roleAuMoins, type Droit } from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
@@ -1335,28 +1335,29 @@ export async function creerUtilisateur(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function basculerDroitModification(userId: string) {
+/** Accorde ou retire un droit nominatif. Réservé au couple dirigeant. */
+export async function basculerDroit(userId: string, droit: Droit) {
   const user = await exiger("DIRIGEANT");
+  if (!(droit in DROITS)) throw new Error("Droit inconnu.");
+
   const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  let droits: string[] = [];
-  try {
-    droits = JSON.parse(cible.droitsSupplementaires);
-  } catch {}
-  const aLeDroit = droits.includes("MODIFICATION_DIRECTE");
-  droits = aLeDroit
-    ? droits.filter((d) => d !== "MODIFICATION_DIRECTE")
-    : [...droits, "MODIFICATION_DIRECTE"];
+  const droits = lireDroits(cible.droitsSupplementaires);
+  const avait = droits.includes(droit);
+  const apres = avait ? droits.filter((d) => d !== droit) : [...droits, droit];
+
   await prisma.user.update({
     where: { id: userId },
-    data: { droitsSupplementaires: JSON.stringify(droits) },
+    data: { droitsSupplementaires: JSON.stringify(apres) },
   });
   await journaliser(
     user.id,
-    aLeDroit ? "DROIT_RETIRE" : "DROIT_ACCORDE",
-    `MODIFICATION_DIRECTE pour ${cible.prenom} ${cible.nom}`
+    avait ? "DROIT_RETIRE" : "DROIT_ACCORDE",
+    `${droit} pour ${cible.prenom} ${cible.nom}`
   );
   revalidatePath("/admin");
+  revalidatePath("/sante");
 }
+
 
 export async function basculerActif(userId: string) {
   const user = await exiger("DIRIGEANT");
