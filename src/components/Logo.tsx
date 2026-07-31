@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 // Le logo officiel est utilisé tel qu'il a été fourni, jamais redessiné : il
 // suffit de déposer le fichier dans public/logo-fsy-2026.png.
@@ -22,6 +22,14 @@ export function Logo({
 }) {
   const [absent, setAbsent] = useState(false);
 
+  // L'image est demandée dès le rendu du serveur, souvent avant que React
+  // n'ait attaché ses gestionnaires : l'échec du chargement passe alors
+  // inaperçu et le texte de remplacement s'affiche à la place du sigle. On
+  // vérifie donc aussi l'état de l'image au moment où on la reçoit.
+  const verifier = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0) setAbsent(true);
+  }, []);
+
   if (absent) {
     return (
       <span
@@ -41,12 +49,15 @@ export function Logo({
     // imposerait de connaître ses dimensions à l'avance.
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={verifier}
       src={CHEMIN}
       alt="FSY 2026 — Abidjan Ouest"
       width={taille}
       height={taille}
       onError={() => setAbsent(true)}
-      className={`object-contain shrink-0 ${className}`}
+      // overflow-hidden : si le fichier venait à manquer, le texte de
+      // remplacement ne déborde pas de l'emplacement prévu.
+      className={`object-contain shrink-0 overflow-hidden ${className}`}
       style={{ width: taille, height: taille }}
     />
   );

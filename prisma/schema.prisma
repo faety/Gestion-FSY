@@ -52,6 +52,8 @@ model User {
   modifsProposees    ModificationProgramme[] @relation("Proposeur")
   modifsValidees     ModificationProgramme[] @relation("Valideur")
   rapports           RapportQuotidien[]
+  attestation        Attestation?
+  attestationsDelivrees Attestation[] @relation("Delivreur")
   auditLogs          AuditLog[]
 
   createdAt DateTime @default(now())
@@ -329,6 +331,32 @@ model PhotoRapport {
   hauteur   Int?
   image     String?
   legende   String?
+}
+
+// Attestation d'encadrement remise à la fin de la conférence.
+//
+// Les faits sont figés au moment de la délivrance : une attestation ne doit pas
+// changer si les données évoluent ensuite. C'est ce qui permet à un employeur de
+// s'y fier, et à la page de vérification de dire la même chose des mois après.
+model Attestation {
+  id     String @id @default(cuid())
+  // Code de vérification imprimé sur le document, du type A7K2-9M4X
+  code   String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  role    String // rôle exercé, tel qu'il était à la délivrance
+  mention String? // RIGUEUR | EXCELLENCE — absente si le seuil n'est pas atteint
+  faits   String // JSON figé : groupes encadrés, effectifs, rapports remis…
+
+  delivreePar   User   @relation("Delivreur", fields: [delivreeParId], references: [id])
+  delivreeParId String
+  delivreeLe    DateTime @default(now())
+
+  // Une attestation délivrée par erreur est révoquée, jamais effacée : la page
+  // de vérification doit pouvoir répondre « ce document n'est plus valable ».
+  revoqueeLe      DateTime?
+  motifRevocation String?
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure

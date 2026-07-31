@@ -45,7 +45,11 @@ export function verifierAge(naissance: Date | null): VerdictAge {
 // Deux inscriptions approuvées pour le même prénom, le même nom et le même sexe :
 // soit un doublon de saisie, soit deux homonymes. On ne tranche pas — on remonte
 // les éléments (date de naissance, paroisse, groupe) pour que le pieu vérifie.
-export type Doublon<T> = { cle: string; fiches: T[] };
+export type Doublon<T> = { cle: string; libelle: string; fiches: T[] };
+
+/** Nombre de mots commençant par une majuscule : sert à choisir la saisie la mieux orthographiée. */
+const motsCapitalises = (s: string) =>
+  s.trim().split(/\s+/).filter((mot) => mot[0] && mot[0] === mot[0].toLocaleUpperCase("fr")).length;
 
 export function doublonsProbables<
   T extends { prenom: string; nom: string; sexe: string; statutInscription: string },
@@ -58,8 +62,16 @@ export function doublonsProbables<
   }
   return [...parNom.entries()]
     .filter(([, fiches]) => fiches.length > 1)
-    .map(([cle, fiches]) => ({ cle, fiches }))
-    .sort((a, b) => b.fiches.length - a.fiches.length);
+    .map(([cle, fiches]) => {
+      // Les doublons diffèrent souvent par la casse (« Chris » / « chris »).
+      // On affiche la saisie la mieux orthographiée, sinon le libellé dépendrait
+      // de l'ordre de lecture en base et la page paraîtrait négligée.
+      const mieux = fiches.reduce((a, b) =>
+        motsCapitalises(`${b.prenom} ${b.nom}`) > motsCapitalises(`${a.prenom} ${a.nom}`) ? b : a
+      );
+      return { cle, libelle: `${mieux.prenom} ${mieux.nom}`, fiches };
+    })
+    .sort((a, b) => b.fiches.length - a.fiches.length || a.libelle.localeCompare(b.libelle, "fr"));
 }
 
 // Statuts d'inscription : seul « Approuvée » est accepté à la conférence

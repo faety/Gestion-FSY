@@ -476,17 +476,80 @@ le compte, la personne peut refaire une demande si c'était une erreur.
 
 ### Remise à zéro après une répétition
 
-Réservée au couple dirigeant, sur la page **Administration**. Huit éléments se cochent
+Réservée au couple dirigeant, sur la page **Administration**. Neuf éléments se cochent
 séparément — rapports quotidiens, pointages aux cars, qui coche à quel car, conseillers
 affectés aux groupes, adjoints affectés aux compagnies, modifications du programme,
-annonces écrites à la main, journal d'audit — avec deux raccourcis : *Données d'essai
-seulement* (les trois premiers) et *Tout remettre à zéro*.
+annonces écrites à la main, attestations délivrées, journal d'audit — avec deux
+raccourcis : *Données d'essai seulement* (les trois premiers) et *Tout remettre à zéro*.
 
 Il faut taper **EFFACER** pour que le bouton s'active, parce que rien ne se récupère. Les
 photos de rapport parties chez Cloudinary sont supprimées avec elles. **Ne sont jamais
 touchés** : les comptes, les 650 jeunes, les 36 compagnies, les 72 groupes et le programme
 officiel — les activités du programme sont marquées à l'amorçage, et celles qui auraient
 été annulées ou modifiées pendant l'essai retrouvent leur statut d'origine.
+
+## Attestations d'encadrement
+
+À la clôture, chaque coordinateur principal, coordinateur adjoint et conseiller reçoit une
+**attestation d'encadrement**. Le couple dirigeant délivre, il ne s'atteste pas lui-même.
+
+Le mot « attestation » est choisi à dessein : la conférence n'a aucune accréditation d'État
+à revendiquer, et un document honnête et vérifiable pèse plus lourd auprès d'un employeur
+qu'un « diplôme » qui laisserait entendre ce qui n'est pas.
+
+### Ce que porte le document
+
+Deux feuilles **A4 portrait** — recto en français, verso en anglais pour les candidatures à
+l'étranger et les ONG. Le format portrait est délibéré : c'est celui que sort n'importe
+quelle imprimante sans qu'on touche aux réglages, y compris depuis un téléphone.
+
+Sur chaque feuille : le logo officiel, un cadre à double filet, la fonction exercée en
+titre, le nom, ce qui a été fait en toutes lettres, un **bandeau de trois chiffres**
+(jeunes encadrés, jours de responsabilité, comptes rendus remis), les **compétences mises
+en œuvre** nommées dans les termes qu'emploie un recruteur, les deux signatures du couple
+dirigeant, le sceau de mention s'il y a lieu, et le QR de vérification avec son code.
+
+### Mentions
+
+L'attestation est remise à **tout le monde** — c'est la semaine donnée qu'elle reconnaît.
+La mention distingue en plus la régularité du suivi quotidien :
+
+| Mention | Condition |
+|---|---|
+| **Excellence** | 7 rapports sur 7 **et** niveau d'assiduité « Pilier » (105 points) |
+| **Rigueur et suivi** | au moins 5 rapports sur 7 |
+| *(sans mention)* | le document est délivré quand même |
+
+Refuser tout document à quelqu'un qui a veillé une nuit sur un jeune malade mais dont le
+téléphone est tombé en panne aurait été injuste. Chacun voit sa progression sur
+`/attestation` **avant** la clôture : la mention n'est une surprise pour personne.
+
+### Vérification par un employeur
+
+Chaque attestation porte un code à huit caractères (`A7K2-9M4X`), sans les caractères que
+l'on confond (`0`/`O`, `1`/`I`/`L`), et un QR qui mène à `2026.fsy.ci/verification/<code>`.
+La page est **publique** : elle répond *authentique*, *révoquée* ou *code inconnu*, et
+détaille les chiffres. Elle ne publie **aucune coordonnée**.
+
+### Les faits sont figés
+
+Tout est enregistré au moment de la délivrance — effectifs encadrés, rapports remis,
+pointages, et jusqu'aux chiffres de la conférence elle-même. Une attestation ne change plus
+ensuite, même si les données évoluent : c'est ce qui permet à un employeur de s'y fier des
+mois après. La page de délivrance **prévient si des encadrants n'ont pas encore de groupe
+ou de compagnie** : leur attestation dirait « un groupe d'adolescents » au lieu de « un
+groupe de 9 adolescents », et le chiffre ne pourrait plus être ajouté.
+
+Une attestation délivrée par erreur se **révoque** avec un motif ; elle n'est jamais
+effacée, pour que la vérification réponde « plus valable » plutôt que « code inconnu », qui
+laisserait croire à une faute de frappe.
+
+### Pour le CV
+
+L'espace de chacun propose une **formulation prête à copier**, accordée au masculin ou au
+féminin, avec les effectifs réels. Beaucoup de jeunes adultes ne savent pas valoriser ce
+type d'expérience ; leur donner la phrase est sans doute le service le plus concret rendu
+ici.
 
 ## Page publique
 
@@ -509,6 +572,8 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
 - **Rapport final** *(coordinateurs principaux et couple dirigeant)* — synthèse automatique de tous les rapports quotidiens, exportable.
+- **Mon attestation** — progression vers la mention avant la clôture ; après la délivrance, le document imprimable, le code de vérification et la formulation de CV.
+- **Attestations** *(couple dirigeant seul)* — délivrance en une fois, prévisions de mentions, avertissement sur les encadrants sans affectation, révocation.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.
 - **Admin** — création de comptes, marquage présent/absent, octroi du droit de modification directe aux adjoints (couple dirigeant), **journal d'audit** (qui a fait quoi, quand).
 
@@ -525,6 +590,8 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Réassigner jeunes/conseillers, fusionner | — | — | ✅ | ✅ |
 | Créer annonces et activités | — | — | ✅ | ✅ |
 | Créer des comptes | — | — | ✅ | ✅ |
+| Recevoir une attestation | ✅ | ✅ | ✅ | — |
+| Délivrer / révoquer les attestations | — | — | — | ✅ |
 | Gérer permissions et présences, audit | — | — | — | ✅ |
 
 Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`
@@ -544,7 +611,9 @@ src/lib/theme.ts           # thème de l'année, partagé par l'application et l
 src/lib/remise-a-zero.ts   # ce que la remise à zéro d'après-essais peut effacer
 src/middleware.ts          # recopie le chemin demandé, pour imposer le changement de mot de passe
 vercel.json                # région fra1 : les fonctions au plus près de la base
-public/logo-fsy-2026.png   # logo officiel (à déposer tel quel, jamais redessiné)
+public/logo-fsy-2026.png   # logo officiel, tel qu'il a été fourni, jamais redessiné (600×600, fond transparent)
+src/lib/attestations.ts    # textes, mentions, compétences, code de vérification
+src/components/Attestation.tsx # le document imprimable : A4 portrait, recto français / verso anglais
 src/lib/etapes-car.ts      # les trois étapes de pointage aux cars
 src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de points, niveaux
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown

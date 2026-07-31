@@ -1,0 +1,205 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { getUtilisateur } from "@/lib/auth";
+import { ROLE_LABELS, type Role } from "@/lib/roles";
+import {
+  MENTIONS,
+  RAPPORTS_POSSIBLES,
+  ROLES_ATTESTABLES,
+  SEUIL_RIGUEUR,
+  calculerMention,
+  lireFaits,
+  mention,
+} from "@/lib/attestations";
+import { DelivrerAttestations, RevoquerAttestation } from "@/components/OutilsAttestation";
+
+export const metadata = { title: "Attestations" };
+
+export default async function AttestationsPage() {
+  const user = (await getUtilisateur())!;
+  if (user.role !== "DIRIGEANT") redirect("/accueil");
+
+  const [encadrants, attestations] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
+      orderBy: [{ role: "asc" }, { nom: "asc" }],
+      include: {
+        attestation: true,
+        rapports: { select: { points: true } },
+        groupesDiriges: { select: { _count: { select: { jeunes: true } } } },
+      },
+    }),
+    prisma.attestation.count(),
+  ]);
+
+  const sansAttestation = encadrants.filter((e) => !e.attestation);
+
+  // Un conseiller sans groupe, un adjoint sans compagnie : son attestation dira
+  // « un groupe d'adolescents » au lieu de « un groupe de 9 adolescents ». C'est
+  // le chiffre qui fait la valeur du document auprès d'un employeur, et les
+  // faits sont figés à la délivrance — donc on prévient avant, pas après.
+  const sansAffectation = sansAttestation.filter(
+    (e) =>
+      (e.role === "CONSEILLER" && e.groupesDiriges.length === 0) ||
+      (e.role === "ADJOINT" && !e.compagnieId)
+  );
+
+  // Répartition prévue si l'on délivrait maintenant : le couple voit d'avance
+  // combien de mentions seront décernées.
+  const previsions = { EXCELLENCE: 0, RIGUEUR: 0, SANS: 0 };
+  for (const e of sansAttestation) {
+    const points = e.rapports.reduce((n, r) => n + r.points, 0);
+    previsions[calculerMention(e.rapports.length, points) ?? "SANS"]++;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">🎓 Attestations d'encadrement</h1>
+        <p className="text-slate-500 text-sm">
+          Remises à la clôture aux coordinateurs principaux, aux adjoints et aux conseillers.
+          Le couple dirigeant délivre, il ne s'atteste pas lui-même.
+        </p>
+      </div>
+
+      <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Chiffre valeur={encadrants.length} label="Encadrants concernés" />
+          <Chiffre valeur={attestations} label="Déjà délivrées" />
+          <Chiffre valeur={previsions.EXCELLENCE} label="Mentions Excellence à venir" />
+          <Chiffre valeur={previsions.RIGUEUR} label="Mentions Rigueur à venir" />
+        </div>
+
+        <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <strong>{MENTIONS.RIGUEUR.label}</strong> : {MENTIONS.RIGUEUR.critere}.{" "}
+          <strong>{MENTIONS.EXCELLENCE.label}</strong> : {MENTIONS.EXCELLENCE.critere} et niveau
+          d'assiduité « Pilier ». Sans mention, l'attestation est délivrée quand même — c'est la
+          semaine donnée qu'elle reconnaît.
+        </p>
+
+        {sansAffectation.length > 0 && (
+          <p className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900">
+            ⚠️ <strong>{sansAffectation.length} encadrants</strong> n'ont pas encore de groupe ou de
+            compagnie attribués. Leur attestation dira « un groupe d'adolescents » au lieu de
+            « un groupe de 9 adolescents » — et ce chiffre ne pourra plus être ajouté après la
+            délivrance. Complétez les affectations depuis{" "}
+            <Link href="/groupes" className="underline font-medium">
+              Groupes
+            </Link>{" "}
+            avant de délivrer.
+          </p>
+        )}
+
+        <DelivrerAttestations candidats={sansAttestation.length} />
+        <p className="text-xs text-slate-500">
+          Les faits sont figés à la délivrance : une attestation ne change plus, même si les
+          données évoluent ensuite. Attendez donc la fin de la conférence.
+        </p>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm overflow-x-auto">
+        <div className="p-4 pb-0 flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="font-bold">Détail par personne</h2>
+          <span className="text-sm text-slate-500 print:hidden">
+            Imprimez chaque attestation depuis l'espace de son titulaire, ou remettez-lui le lien.
+          </span>
+        </div>
+        <table className="w-full text-sm mt-2">
+          <thead className="text-left text-slate-500 border-b border-slate-200">
+            <tr>
+              <th className="p-3">Nom</th>
+              <th className="p-3">Rôle</th>
+              <th className="p-3">Rapports</th>
+              <th className="p-3">Mention</th>
+              <th className="p-3">Attestation</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {encadrants.map((e) => {
+              const points = e.rapports.reduce((n, r) => n + r.points, 0);
+              const prevue = calculerMention(e.rapports.length, points);
+              const m = e.attestation ? mention(e.attestation.mention) : mention(prevue);
+              const faits = e.attestation ? lireFaits(e.attestation.faits) : null;
+              return (
+                <tr key={e.id}>
+                  <td className="p-3">
+                    <div className="font-medium">
+                      {e.prenom} {e.nom}
+                    </div>
+                    {faits && faits.jeunesEncadres > 0 && (
+                      <div className="text-xs text-slate-400">
+                        {faits.jeunesEncadres} jeunes encadrés
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-3 text-slate-600">{ROLE_LABELS[e.role as Role] ?? e.role}</td>
+                  <td className="p-3">
+                    <span
+                      className={
+                        e.rapports.length >= SEUIL_RIGUEUR ? "text-green-700" : "text-slate-500"
+                      }
+                    >
+                      {e.rapports.length} / {RAPPORTS_POSSIBLES}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    {m ? (
+                      <span
+                        className={`text-xs rounded-full px-2 py-0.5 ${
+                          m.couleur === "amber"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-fsy-light text-fsy-dark"
+                        }`}
+                      >
+                        {m.label}
+                        {!e.attestation && " (prévue)"}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    {e.attestation ? (
+                      e.attestation.revoqueeLe ? (
+                        <span className="text-xs text-red-700">
+                          Révoquée — {e.attestation.motifRevocation}
+                        </span>
+                      ) : (
+                        <>
+                          <Link
+                            href={`/verification/${e.attestation.code}`}
+                            className="font-mono text-xs text-fsy hover:underline"
+                          >
+                            {e.attestation.code}
+                          </Link>
+                          <div className="print:hidden">
+                            <RevoquerAttestation
+                              id={e.attestation.id}
+                              nom={`${e.prenom} ${e.nom}`}
+                            />
+                          </div>
+                        </>
+                      )
+                    ) : (
+                      <span className="text-xs text-slate-400">à délivrer</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+function Chiffre({ valeur, label }: { valeur: number; label: string }) {
+  return (
+    <div className="bg-slate-50 rounded-xl p-3">
+      <div className="text-2xl font-bold text-fsy">{valeur}</div>
+      <div className="text-xs text-slate-500">{label}</div>
+    </div>
+  );
+}

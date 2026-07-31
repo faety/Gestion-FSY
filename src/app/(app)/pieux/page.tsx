@@ -198,7 +198,7 @@ export default async function PieuxPage() {
             {doublons.map((d) => (
               <li key={d.cle} className="border-l-4 border-amber-300 pl-3">
                 <div className="font-medium">
-                  {d.fiches[0].prenom} {d.fiches[0].nom}
+                  {d.libelle}
                   <span className="text-slate-400 font-normal">
                     {" "}
                     — {d.fiches.length} inscriptions approuvées

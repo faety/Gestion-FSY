@@ -12,6 +12,13 @@ import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
+import { STATUT_ANNULE } from "./criteres";
+import {
+  ROLES_ATTESTABLES,
+  RAPPORTS_POSSIBLES,
+  calculerMention,
+  codeDepuisOctets,
+} from "./attestations";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -718,6 +725,117 @@ export async function demanderSignaturePhoto() {
   return signerEnvoi();
 }
 
+// ---------- Attestations d'encadrement ----------
+
+// Délivre les attestations à tous ceux que le couple dirigeant encadre :
+// coordinateurs principaux, adjoints et conseillers. Le couple lui-même en est
+// exclu — il délivre, il ne s'auto-atteste pas.
+//
+// Les faits sont figés au moment de la délivrance : l'attestation ne doit pas
+// changer si les données évoluent ensuite. Quelqu'un qui en a déjà une la garde.
+export async function delivrerAttestations() {
+  const user = await exiger("DIRIGEANT");
+
+  const candidats = await prisma.user.findMany({
+    where: {
+      role: { in: [...ROLES_ATTESTABLES] },
+      actif: true,
+      valide: true,
+      attestation: null,
+    },
+    include: {
+      compagnie: { select: { nom: true } },
+      groupesDiriges: { select: { nom: true, _count: { select: { jeunes: true } } } },
+      rapports: { select: { points: true } },
+      affectationsCars: { include: { car: { select: { nom: true } } } },
+      _count: { select: { mouvementsValides: true } },
+    },
+  });
+
+  // Ampleur réelle de la conférence, relevée une fois pour toute la remise.
+  const [participants, encadrants, unites] = await Promise.all([
+    prisma.jeune.count({ where: { statutInscription: { not: STATUT_ANNULE } } }),
+    prisma.user.count({
+      where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
+    }),
+    prisma.pieu.count(),
+  ]);
+
+  let delivrees = 0;
+  const parMention: Record<string, number> = { EXCELLENCE: 0, RIGUEUR: 0, SANS: 0 };
+
+  for (const c of candidats) {
+    const faits = {
+      nomComplet: `${c.prenom} ${c.nom}`,
+      groupes: c.groupesDiriges.map((g) => g.nom),
+      compagnie: c.compagnie?.nom ?? null,
+      jeunesEncadres: c.groupesDiriges.reduce((n, g) => n + g._count.jeunes, 0),
+      rapportsRemis: c.rapports.length,
+      rapportsPossibles: RAPPORTS_POSSIBLES,
+      points: c.rapports.reduce((n, r) => n + r.points, 0),
+      pointagesValides: c._count.mouvementsValides,
+      responsabilitesCars: c.affectationsCars.map(
+        (a) => `${a.car.nom} — ${etapeCar(a.etape)?.label ?? a.etape}`
+      ),
+      participants,
+      encadrants,
+      unites,
+    };
+    const m = calculerMention(faits.rapportsRemis, faits.points);
+
+    // Le code est unique en base. Une collision est très improbable (31^8), mais
+    // si elle survenait elle ferait échouer toute la remise : on retire plutôt.
+    let code = codeDepuisOctets(randomBytes(8));
+    for (let essai = 0; essai < 5; essai++) {
+      if (!(await prisma.attestation.findUnique({ where: { code } }))) break;
+      code = codeDepuisOctets(randomBytes(8));
+    }
+
+    await prisma.attestation.create({
+      data: {
+        code,
+        userId: c.id,
+        role: c.role,
+        mention: m,
+        faits: JSON.stringify(faits),
+        delivreeParId: user.id,
+      },
+    });
+    delivrees++;
+    parMention[m ?? "SANS"]++;
+  }
+
+  await journaliser(
+    user.id,
+    "ATTESTATIONS_DELIVREES",
+    `${delivrees} attestations — ${parMention.EXCELLENCE} excellence, ${parMention.RIGUEUR} rigueur, ${parMention.SANS} sans mention`
+  );
+  revalidatePath("/attestations");
+  revalidatePath("/attestation");
+  return { delivrees, parMention };
+}
+
+// Une attestation délivrée par erreur est révoquée, jamais effacée : la page de
+// vérification doit pouvoir répondre « ce document n'est plus valable » plutôt
+// que « code inconnu », qui laisserait croire à une faute de frappe.
+export async function revoquerAttestation(id: string, motif: string) {
+  const user = await exiger("DIRIGEANT");
+  const a = await prisma.attestation.findUniqueOrThrow({
+    where: { id },
+    include: { user: { select: { prenom: true, nom: true } } },
+  });
+  await prisma.attestation.update({
+    where: { id },
+    data: { revoqueeLe: new Date(), motifRevocation: motif.trim() || "Non précisé" },
+  });
+  await journaliser(
+    user.id,
+    "ATTESTATION_REVOQUEE",
+    `${a.user.prenom} ${a.user.nom} (${a.code}) — ${motif}`
+  );
+  revalidatePath("/attestations");
+}
+
 // ---------- Remise à zéro après les essais ----------
 
 
@@ -790,6 +908,9 @@ export async function remiseAZero(choix: string[], confirmation: string) {
   }
   if (a("annonces")) {
     compte.annonces = (await prisma.annonce.deleteMany({ where: { automatique: false } })).count;
+  }
+  if (a("attestations")) {
+    compte.attestations = (await prisma.attestation.deleteMany()).count;
   }
   if (a("audit")) {
     compte.audit = (await prisma.auditLog.deleteMany()).count;

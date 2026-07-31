@@ -44,6 +44,10 @@ export default async function AppLayout({
     ...(estCoordinateur
       ? [{ href: "/rapports/final", label: "Rapport final", icone: "📊" }]
       : []),
+    { href: "/attestation", label: "Mon attestation", icone: "🎓" },
+    ...(user.role === "DIRIGEANT"
+      ? [{ href: "/attestations", label: "Attestations", icone: "🏅" }]
+      : []),
     ...(estCoordinateur ? [{ href: "/admin", label: "Administration", icone: "⚙️" }] : []),
   ];
   const tous = [...principaux, ...secondaires];

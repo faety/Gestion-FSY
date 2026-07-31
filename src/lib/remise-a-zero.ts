@@ -40,6 +40,11 @@ export const CHOSES_A_EFFACER = [
     label: "Annonces écrites à la main",
     detail: "Les annonces d'anniversaire automatiques sont conservées",
   },
+  {
+    cle: "attestations",
+    label: "Attestations délivrées",
+    detail: "Les codes de vérification deviennent invalides",
+  },
   { cle: "audit", label: "Journal d'audit", detail: "L'historique des actions" },
 ] as const;
 
