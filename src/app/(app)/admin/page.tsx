@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import {
   creerUtilisateur,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
 import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { EMAIL_ACTIF, diagnosticEnvoi, estAdresseDAttente } from "@/lib/email";
 import { candidats, rapprochementSur } from "@/lib/rapprochement";
 import {
@@ -22,7 +23,7 @@ import { RemiseAZero } from "@/components/RemiseAZero";
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
 
 export default async function AdminPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/accueil");
   const estDirigeant = user.role === "DIRIGEANT";
 
@@ -142,7 +143,13 @@ export default async function AdminPage() {
           <input name="prenom" required placeholder="Prénom" className="rounded-lg border border-slate-300 px-3 py-2" />
           <input name="nom" required placeholder="Nom" className="rounded-lg border border-slate-300 px-3 py-2" />
           <input name="email" type="email" required placeholder="Email" className="rounded-lg border border-slate-300 px-3 py-2" />
-          <input name="motDePasse" type="password" required minLength={6} placeholder="Mot de passe (min. 6)" className="rounded-lg border border-slate-300 px-3 py-2" />
+          <ChampMotDePasse
+            name="motDePasse"
+            label="Mot de passe (min. 6)"
+            minLength={6}
+            autoComplete="new-password"
+            etiquetteMasquee
+          />
           <select name="sexe" className="rounded-lg border border-slate-300 px-3 py-2 bg-white">
             <option value="M">Homme</option>
             <option value="F">Femme</option>

@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { annonceVisible, CIBLE_LABELS, roleAuMoins } from "@/lib/roles";
 import { creerAnnonce, supprimerAnnonce } from "@/lib/actions";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
 export default async function AnnoncesPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   const peutCreer = roleAuMoins(user.role, "COORDINATEUR");
 
   const maintenant = new Date();

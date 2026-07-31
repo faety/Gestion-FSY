@@ -1,4 +1,4 @@
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { CLOUDINARY_ACTIF, urlPhoto } from "@/lib/cloudinary";
 import { estAdresseDAttente } from "@/lib/email";
@@ -11,7 +11,7 @@ import { MonAdresseEmail } from "@/components/MonAdresseEmail";
 export const metadata = { title: "Mon profil" };
 
 export default async function ProfilPage() {
-  const session = (await getUtilisateur())!;
+  const session = await exigerUtilisateur();
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.id },
     include: {

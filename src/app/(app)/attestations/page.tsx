@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import {
   MENTIONS,
@@ -17,7 +17,7 @@ import { DelivrerAttestations, RevoquerAttestation } from "@/components/OutilsAt
 export const metadata = { title: "Attestations" };
 
 export default async function AttestationsPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
   const [encadrants, attestations] = await Promise.all([

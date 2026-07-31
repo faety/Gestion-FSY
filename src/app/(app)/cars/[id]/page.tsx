@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { ETAPES_CAR } from "@/lib/etapes-car";
 import { ValidationCar } from "@/components/ValidationCar";
 
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const car = await prisma.car.findUnique({
     where: { id },

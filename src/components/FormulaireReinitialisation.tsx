@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { reinitialiserParJeton } from "@/lib/actions";
+import { ChampMotDePasse } from "./ChampMotDePasse";
 
 export function FormulaireReinitialisation({ jeton }: { jeton: string }) {
   const [state, action, pending] = useActionState(reinitialiserParJeton, undefined);
@@ -9,36 +10,20 @@ export function FormulaireReinitialisation({ jeton }: { jeton: string }) {
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="jeton" value={jeton} />
-      <div>
-        <label htmlFor="nouveau" className="block text-sm font-medium mb-1">
-          Nouveau mot de passe
-        </label>
-        <input
-          id="nouveau"
-          name="nouveau"
-          type="password"
-          required
-          minLength={8}
-          autoFocus
-          autoComplete="new-password"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fsy"
-        />
-        <p className="text-xs text-slate-500 mt-1">Au moins 8 caractères.</p>
-      </div>
-      <div>
-        <label htmlFor="confirmation" className="block text-sm font-medium mb-1">
-          Répétez-le
-        </label>
-        <input
-          id="confirmation"
-          name="confirmation"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fsy"
-        />
-      </div>
+      <ChampMotDePasse
+        name="nouveau"
+        label="Nouveau mot de passe"
+        aide="Au moins 8 caractères."
+        minLength={8}
+        autoComplete="new-password"
+        autoFocus
+      />
+      <ChampMotDePasse
+        name="confirmation"
+        label="Répétez-le"
+        minLength={8}
+        autoComplete="new-password"
+      />
       {state?.erreur && (
         <p className="text-sm text-red-600 bg-red-50 rounded-lg p-2">{state.erreur}</p>
       )}

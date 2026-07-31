@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { verifierAge } from "@/lib/criteres";
 import { RechercheJeunes } from "@/components/RechercheJeunes";
 
 export default async function JeunesPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   // Portée selon le rôle : conseiller → son groupe ; adjoint → sa compagnie ;
   // coordinateur/dirigeant → tout le monde

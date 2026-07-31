@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { lireFaits, mention, phraseCV, RAPPORTS_POSSIBLES, SEUIL_RIGUEUR } from "@/lib/attestations";
 import { Attestation, DetailAttestation } from "@/components/Attestation";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
@@ -8,7 +8,7 @@ import { CopierTexte, ImprimerAttestation } from "@/components/OutilsAttestation
 export const metadata = { title: "Mon attestation" };
 
 export default async function MonAttestationPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const [attestation, mesRapports] = await Promise.all([
     prisma.attestation.findUnique({ where: { userId: user.id } }),

@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { GestionGroupes } from "@/components/GestionGroupes";
 
 export default async function GroupesPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const [groupes, conseillers] = await Promise.all([
     prisma.groupe.findMany({

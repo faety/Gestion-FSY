@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { useActionState } from "react";
 import { sInscrire } from "@/lib/actions";
 
@@ -99,21 +100,13 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="motDePasse" className="block text-sm font-medium mb-1">
-              Mot de passe
-            </label>
-            <input
-              id="motDePasse"
-              name="motDePasse"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className={champ}
-            />
-            <p className="text-xs text-slate-500 mt-1">Au moins 8 caractères.</p>
-          </div>
+          <ChampMotDePasse
+            name="motDePasse"
+            label="Mot de passe"
+            aide="Au moins 8 caractères."
+            minLength={8}
+            autoComplete="new-password"
+          />
 
           {state?.erreur && (
             <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">

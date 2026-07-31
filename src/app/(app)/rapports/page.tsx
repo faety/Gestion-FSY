@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import {
   ambiance,
@@ -28,7 +28,7 @@ export default async function RapportsPage({
   searchParams: Promise<{ jour?: string }>;
 }) {
   const { jour: jourDemande } = await searchParams;
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const journees = await prisma.journeeConference.findMany({ orderBy: { numero: "asc" } });
   if (journees.length === 0) {

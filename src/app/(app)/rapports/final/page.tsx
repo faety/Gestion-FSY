@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import { libelleJour } from "@/lib/rapports";
 import { construireSynthese, syntheseEnTexte, type Comptage } from "@/lib/synthese";
@@ -12,7 +12,7 @@ const TITRE = "Rapport final — FSY 2026 Abidjan Ouest";
 const fmtDate = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long" });
 
 export default async function RapportFinalPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/rapports");
 
   const [rapports, journees, nbEncadrants] = await Promise.all([

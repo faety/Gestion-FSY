@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { peutModifierDirectement, roleAuMoins } from "@/lib/roles";
 import { Programme } from "@/components/Programme";
 
 export default async function ProgrammePage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const [activites, propositions, compagnies, groupes, journees] = await Promise.all([
     prisma.activite.findMany({

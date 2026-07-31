@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { FormulaireMotDePasse } from "@/components/FormulaireMotDePasse";
 
 // Cette page ne sert plus qu'au mot de passe provisoire, imposé à la première
 // connexion : rien d'autre ne doit alors distraire. Le reste — photo, numéro,
 // adresse, changement volontaire du mot de passe — vit dans « Mon profil ».
 export default async function MotDePassePage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   return (
     <div className="max-w-md mx-auto space-y-4">

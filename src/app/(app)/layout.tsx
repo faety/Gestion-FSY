@@ -2,12 +2,12 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { getUtilisateur } from "@/lib/auth";
-import { seDeconnecter } from "@/lib/actions";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import { NavLinks } from "@/components/NavLinks";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/Avatar";
+import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { SITE_AFFICHE } from "@/lib/site";
 
 export default async function AppLayout({
@@ -85,11 +85,7 @@ export default async function AppLayout({
               </span>
             </span>
           </Link>
-          <form action={seDeconnecter}>
-            <button className="text-sm bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5 transition">
-              Déconnexion
-            </button>
-          </form>
+          <BoutonDeconnexion prenom={user.prenom} />
         </div>
         {/* Navigation horizontale : tablette / ordinateur uniquement */}
         <nav className="max-w-6xl mx-auto px-2 overflow-x-auto hidden sm:block">

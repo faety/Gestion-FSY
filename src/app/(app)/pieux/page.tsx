@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import {
   conseillersAProposer,
@@ -15,7 +15,7 @@ import {
 const fmtDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short" });
 
 export default async function PieuxPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (!roleAuMoins(user.role, "ADJOINT")) redirect("/accueil");
 
   const pieux = await prisma.pieu.findMany({

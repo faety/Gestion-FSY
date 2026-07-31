@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { lireFaits } from "@/lib/attestations";
 import { Attestation } from "@/components/Attestation";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
@@ -13,7 +13,7 @@ export const metadata = { title: "Impression des attestations" };
 // impraticable le samedi de la clôture : elles sortent ici d'un seul travail
 // d'impression, dans l'ordre où elles seront remises.
 export default async function ImpressionPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
   const attestations = await prisma.attestation.findMany({

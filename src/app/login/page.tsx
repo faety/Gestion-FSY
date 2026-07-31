@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { seConnecter } from "@/lib/actions";
 
 // Après une réinitialisation réussie, on revient ici : sans un mot, la personne
@@ -42,20 +43,10 @@ export default function LoginPage() {
               required
               autoComplete="email"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fsy"
-              placeholder="vous@fsy2026.ci"
+              placeholder="votre adresse e-mail"
             />
           </div>
-          <div>
-            <label htmlFor="motDePasse" className="block text-sm font-medium mb-1">Mot de passe</label>
-            <input
-              id="motDePasse"
-              name="motDePasse"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fsy"
-            />
-          </div>
+          <ChampMotDePasse name="motDePasse" label="Mot de passe" />
           {state?.erreur && (
             <p className="text-sm text-red-600 bg-red-50 rounded-lg p-2">{state.erreur}</p>
           )}

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { cache } from "react";
 import { prisma } from "./db";
@@ -48,3 +49,14 @@ export const getUtilisateur = cache(async () => {
 });
 
 export type UtilisateurConnecte = NonNullable<Awaited<ReturnType<typeof getUtilisateur>>>;
+
+/**
+ * L'utilisateur connecté, ou une redirection vers la connexion.
+ *
+ * Le gabarit de `(app)` redirige déjà les visiteurs sans session, mais React
+ * rend les pages en même temps que leur gabarit : une page qui suppose la
+ * session présente lève avant que la redirection n'aboutisse, et le visiteur
+ * voit une erreur serveur au lieu du formulaire de connexion. Passer par ici
+ * rend l'affirmation vraie plutôt que de l'espérer.
+ */
+export const exigerUtilisateur = async () => (await getUtilisateur()) ?? redirect("/login");

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { CODE_SPECIMEN, MENTIONS, ROLES_ATTESTABLES, faitsSpecimen } from "@/lib/attestations";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { Attestation } from "@/components/Attestation";
@@ -17,7 +17,7 @@ export default async function SpecimenPage({
 }: {
   searchParams: Promise<{ role?: string }>;
 }) {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
   const { role: demande } = await searchParams;

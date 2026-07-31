@@ -2,14 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/Avatar";
 import { CLOUDINARY_ACTIF } from "@/lib/cloudinary";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { activitePourMoi, annonceVisible, monRoleActivite, roleAuMoins } from "@/lib/roles";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 
 const fmtDate = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
 export default async function Accueil() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const debutJour = new Date();
   debutJour.setHours(0, 0, 0, 0);

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getUtilisateur } from "@/lib/auth";
+import { exigerUtilisateur } from "@/lib/auth";
 import { ETAPES_CAR } from "@/lib/etapes-car";
 
 export default async function CarsPage() {
-  const user = (await getUtilisateur())!;
+  const user = await exigerUtilisateur();
 
   const cars = await prisma.car.findMany({
     include: {
