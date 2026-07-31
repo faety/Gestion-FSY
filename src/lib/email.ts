@@ -32,6 +32,45 @@ const EXPEDITEUR = process.env.EMAIL_EXPEDITEUR;
 
 export const EMAIL_ACTIF = Boolean(CLEF && EXPEDITEUR);
 
+/**
+ * Ce que l'application a réellement lu comme expéditeur, et ce qui cloche.
+ *
+ * Sert au diagnostic : quand un envoi échoue, la première question est de
+ * savoir si la variable est arrivée jusqu'ici et sous quelle forme. Une valeur
+ * recopiée avec ses guillemets, ou un déploiement fait avant l'ajout de la
+ * variable, se voient alors d'un coup d'œil au lieu de se deviner.
+ */
+export function diagnosticEnvoi() {
+  const brut = EXPEDITEUR ?? null;
+  const soucis: string[] = [];
+
+  if (!CLEF) soucis.push("RESEND_API_KEY absente.");
+  if (!brut) {
+    soucis.push("EMAIL_EXPEDITEUR absente.");
+  } else {
+    if (/["']/.test(brut)) {
+      soucis.push(
+        "L'expéditeur contient des guillemets : ils font partie de la valeur et Resend la refusera. Saisissez-la sans guillemets.",
+      );
+    }
+    if (!brut.includes("@")) soucis.push("L'expéditeur ne contient pas d'adresse.");
+    // Contrôle volontairement strict, y compris sur les sous-domaines : le
+    // forfait gratuit de Resend ne vérifie qu'un seul domaine, et écrire depuis
+    // un sous-domaine qui n'est plus celui-là est l'erreur qui coûte le plus de
+    // temps — l'envoi échoue sans que rien ne l'explique à l'écran.
+    const domaine = brut.match(/@([^\s>]+)/)?.[1]?.toLowerCase();
+    if (domaine && domaine !== SITE_AFFICHE) {
+      soucis.push(
+        `L'expéditeur écrit depuis ${domaine}, alors que le site est ${SITE_AFFICHE}. ` +
+          `C'est permis, mais c'est ${domaine} qui doit être vérifié chez Resend — ` +
+          `et le forfait gratuit n'en accepte qu'un.`,
+      );
+    }
+  }
+
+  return { expediteur: brut, clefPresente: Boolean(CLEF), soucis };
+}
+
 // Une seule source pour l'adresse publique : voir src/lib/site.ts.
 export const SITE = SITE_URL;
 

@@ -11,7 +11,7 @@ import {
 } from "@/lib/actions";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
 import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/OutilsCompte";
-import { EMAIL_ACTIF, estAdresseDAttente } from "@/lib/email";
+import { EMAIL_ACTIF, diagnosticEnvoi, estAdresseDAttente } from "@/lib/email";
 import { candidats, rapprochementSur } from "@/lib/rapprochement";
 import {
   RapprochementInscription,
@@ -42,6 +42,7 @@ export default async function AdminPage() {
   const enAttente = utilisateurs.filter((u) => !u.valide);
   const equipe = utilisateurs.filter((u) => u.valide);
   const sansAdresse = equipe.filter((u) => estAdresseDAttente(u.email)).length;
+  const diagnostic = diagnosticEnvoi();
 
   // Pour chaque inscription, les comptes déjà en base qui pourraient être la
   // même personne. Le rapprochement se fait sur les mots du nom : les listes
@@ -176,17 +177,65 @@ export default async function AdminPage() {
           </p>
         </div>
 
-        <p
+        <div
           className={`text-sm rounded-lg p-3 border ${
             EMAIL_ACTIF
               ? "bg-green-50 border-green-200 text-green-900"
               : "bg-slate-50 border-slate-200 text-slate-700"
           }`}
         >
-          {EMAIL_ACTIF
-            ? "✅ Configuré. Les messages partent par Resend."
-            : "Non configuré : il manque RESEND_API_KEY et EMAIL_EXPEDITEUR dans les variables d'environnement. Sans cela, le mot de passe oublié reste manuel — le bouton ci-dessous, dans le tableau."}
-        </p>
+          {EMAIL_ACTIF ? (
+            <>
+              ✅ Configuré. Expéditeur lu :{" "}
+              <span className="font-mono bg-white/70 rounded px-1.5 py-0.5">
+                {diagnostic.expediteur}
+              </span>
+            </>
+          ) : (
+            <>
+              <strong>Non configuré.</strong> Manquant :{" "}
+              {[
+                !diagnostic.clefPresente && "RESEND_API_KEY",
+                !diagnostic.expediteur && "EMAIL_EXPEDITEUR",
+              ]
+                .filter(Boolean)
+                .join(" et ")}
+              . Après les avoir ajoutées dans Vercel, <strong>redéployez</strong> : une
+              variable d'environnement ne s'applique qu'aux déploiements suivants. En
+              attendant, le mot de passe oublié reste manuel — le bouton dans le tableau.
+            </>
+          )}
+        </div>
+
+        {diagnostic.soucis.length > 0 && (
+          <ul className="text-sm bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 space-y-1">
+            {diagnostic.soucis.map((s) => (
+              <li key={s}>⚠️ {s}</li>
+            ))}
+          </ul>
+        )}
+
+        <details className="text-sm text-slate-600">
+          <summary className="cursor-pointer font-medium">Un envoi échoue ?</summary>
+          <ol className="list-decimal ml-5 mt-2 space-y-1">
+            <li>
+              <strong>Avez-vous redéployé</strong> depuis l'ajout des variables ? Vercel ne
+              les applique qu'aux déploiements suivants — c'est la cause la plus fréquente.
+            </li>
+            <li>
+              Le domaine est-il marqué <strong>« Verified »</strong> chez Resend ? Les
+              enregistrements DNS posés ne suffisent pas : il faut cliquer sur Verify.
+            </li>
+            <li>
+              La valeur d'<code>EMAIL_EXPEDITEUR</code> a-t-elle été saisie{" "}
+              <strong>sans guillemets</strong> ? Comparez-la avec ce qui est affiché ci-dessus.
+            </li>
+            <li>
+              Le destinataire n'a <strong>rien à déclarer chez Resend</strong> : seul le
+              domaine d'expédition s'y vérifie, jamais les adresses à qui l'on écrit.
+            </li>
+          </ol>
+        </details>
 
         {sansAdresse > 0 && (
           <p className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900">
