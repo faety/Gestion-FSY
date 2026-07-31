@@ -7,7 +7,6 @@ import {
   basculerDroit,
   basculerActif,
   affecterCompagnie,
-  deciderInscription,
 } from "@/lib/actions";
 import { DROITS, lireDroits } from "@/lib/roles";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
@@ -15,11 +14,13 @@ import { BoutonAdresse, BoutonMotDePasse, EssaiEmail } from "@/components/Outils
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { ChangerAppel } from "@/components/ChangerAppel";
 import { EMAIL_ACTIF, diagnosticEnvoi, estAdresseDAttente } from "@/lib/email";
-import { candidats, rapprochementSur } from "@/lib/rapprochement";
+import { candidats, doublons, rapprochementBloquant, rapprochementSur } from "@/lib/rapprochement";
 import {
   RapprochementInscription,
   type Suggestion,
 } from "@/components/RapprochementInscription";
+import { DecisionInscription } from "@/components/DecisionInscription";
+import { Doublons, type CompteDouble, type PaireDouble } from "@/components/Doublons";
 import { RemiseAZero } from "@/components/RemiseAZero";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
@@ -32,7 +33,12 @@ export default async function AdminPage() {
   const [utilisateurs, compagnies, audit] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ role: "asc" }, { nom: "asc" }],
-      include: { compagnie: true, groupesDiriges: { select: { nom: true } } },
+      include: {
+        compagnie: true,
+        groupesDiriges: { select: { nom: true } },
+        attestation: { select: { code: true } },
+        _count: { select: { rapports: true, mouvementsValides: true, affectationsCars: true } },
+      },
     }),
     prisma.compagnie.findMany({ orderBy: { nom: "asc" } }),
     prisma.auditLog.findMany({
@@ -68,6 +74,42 @@ export default async function AdminPage() {
       fiabilite: rapprochementSur(c),
     }));
   }
+  // Un rapprochement net rend « Valider » suspect : c'est presque toujours la
+  // même personne, et le serveur refusera de créer un compte de plus.
+  const bloquants = new Set(
+    enAttente.filter((u) => candidats(u, equipe).some(rapprochementBloquant)).map((u) => u.id)
+  );
+
+  // Doublons déjà installés — deux comptes validés pour une même personne.
+  // Le rapprochement des inscriptions ne les voit pas : il ne regarde que ce
+  // qui entre, or ceux-là sont entrés avant qu'il existe.
+  type Compte = (typeof equipe)[number];
+  const fiche = (c: Compte): CompteDouble => ({
+    id: c.id,
+    nom: `${c.prenom} ${c.nom}`,
+    email: c.email,
+    adresseDAttente: estAdresseDAttente(c.email),
+    role: ROLE_LABELS[c.role as Role] ?? c.role,
+    detail:
+      c.groupesDiriges.map((g) => g.nom).join(", ") || c.compagnie?.nom || "sans affectation",
+    porte: [
+      c._count.rapports > 0 && `${c._count.rapports} rapport${c._count.rapports > 1 ? "s" : ""}`,
+      c._count.mouvementsValides > 0 && `${c._count.mouvementsValides} pointages`,
+      c._count.affectationsCars > 0 && `${c._count.affectationsCars} affectations de car`,
+      c.attestation && `attestation ${c.attestation.code}`,
+      c.photoPublicId && "photo de profil",
+      c.telephone && `☎ ${c.telephone}`,
+      lireDroits(c.droitsSupplementaires).length > 0 &&
+        `droits : ${lireDroits(c.droitsSupplementaires).join(", ")}`,
+    ].filter((x): x is string => Boolean(x)),
+    moi: c.id === user.id,
+  });
+  const paires: PaireDouble[] = doublons(equipe).map((p) => ({
+    cle: `${p.a.id}|${p.b.id}`,
+    fiabilite: p.fiabilite,
+    a: fiche(p.a),
+    b: fiche(p.b),
+  }));
 
   return (
     <div className="space-y-6">
@@ -84,9 +126,12 @@ export default async function AdminPage() {
             Vérifiez qu'elles font bien partie de l'encadrement.
           </p>
           <p className="text-sm text-amber-900 bg-amber-100 rounded-lg p-2.5 mt-2">
-            <strong>Regardez d'abord les rapprochements proposés.</strong> Quelqu'un qui figure
-            déjà dans les listes officielles doit être <em>rattaché</em> à son compte, pas
-            validé comme nouveau : sinon il en aura deux, et son groupe restera sur l'ancien.
+            <strong>Rattachez plutôt que de valider.</strong> Quelqu'un qui figure déjà dans les
+            listes officielles doit être <em>rattaché</em> à son compte : il garde son appel, sa
+            compagnie, son groupe, et se connecte désormais avec sa vraie adresse. Le valider
+            comme nouveau lui en donnerait deux, dont un vide. Quand un compte proche existe, la
+            validation est refusée d'elle-même — il faut alors dire explicitement qu'il s'agit de
+            quelqu'un d'autre.
           </p>
           <ul className="mt-3 space-y-2">
             {enAttente.map((u) => (
@@ -107,28 +152,11 @@ export default async function AdminPage() {
                     {u.telephone && ` · ${u.telephone}`}
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deciderInscription(u.id, true);
-                    }}
-                  >
-                    <button className="text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg px-3 py-1.5">
-                      Valider
-                    </button>
-                  </form>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await deciderInscription(u.id, false);
-                    }}
-                  >
-                    <button className="text-sm bg-white hover:bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-1.5">
-                      Refuser
-                    </button>
-                  </form>
-                </div>
+                <DecisionInscription
+                  inscriptionId={u.id}
+                  nom={`${u.prenom} ${u.nom}`}
+                  aUnRapprochement={bloquants.has(u.id)}
+                />
 
                 <div className="w-full">
                   <RapprochementInscription
@@ -142,6 +170,8 @@ export default async function AdminPage() {
           </ul>
         </section>
       )}
+
+      <Doublons paires={paires} />
 
       <section className="bg-white rounded-xl shadow-sm p-4">
         <h2 className="font-bold mb-3">Créer un compte</h2>

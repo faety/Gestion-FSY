@@ -73,9 +73,10 @@ export function RapprochementInscription({
                   setErreur(null);
                   try {
                     const r = await rattacherInscription(inscriptionId, s.id);
-                    setFait(r.nom);
-                  } catch (e) {
-                    setErreur(e instanceof Error ? e.message : "Erreur");
+                    if (r.ok) setFait(r.nom);
+                    else setErreur(r.motif);
+                  } catch {
+                    setErreur("Le rattachement n'a pas abouti. Rechargez la page et réessayez.");
                   }
                 })
               }

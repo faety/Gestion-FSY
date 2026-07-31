@@ -95,3 +95,55 @@ export function candidats<T extends Personne>(
  */
 export const rapprochementSur = (c: { score: number; communs: number }): Fiabilite =>
   c.score >= 0.99 && c.communs >= 2 ? "certain" : c.communs >= 2 ? "probable" : "à vérifier";
+
+/**
+ * Un rapprochement assez net pour qu'on refuse de créer un compte de plus sans
+ * que quelqu'un l'ait dit explicitement.
+ *
+ * C'est le garde-fou du formulaire de validation : tant qu'on se contentait de
+ * *proposer* le rattachement, il suffisait d'un clic distrait sur « Valider »
+ * pour fabriquer un doublon — et le doublon ne se voyait qu'après, dans
+ * l'organigramme, une fois le groupe resté sur l'ancien compte.
+ */
+export const rapprochementBloquant = (c: { score: number; communs: number }): boolean =>
+  rapprochementSur(c) !== "à vérifier";
+
+export type Doublon<T> = { a: T; b: T; score: number; communs: number; fiabilite: Fiabilite };
+
+/**
+ * Comptes déjà validés qui désignent vraisemblablement la même personne.
+ *
+ * Le rapprochement des inscriptions ne regarde que ce qui entre ; il ne dit
+ * rien des doublons déjà installés — ceux créés avant qu'il existe, ou nés
+ * d'une validation faite trop vite. Cette passe-là relit l'équipe entière et
+ * compare chacun à chacun.
+ *
+ * Deux mots communs sont exigés, jamais un seul : l'encadrement compte
+ * plusieurs Kouassi et plusieurs Grace qui sont bien des personnes
+ * différentes, et proposer de les fondre serait un mauvais conseil.
+ */
+export function doublons<T extends Personne>(
+  comptes: T[],
+  { seuil = 0.75 }: { seuil?: number } = {}
+): Doublon<T>[] {
+  const mots = new Map(comptes.map((c) => [c.id, jetons(c.prenom, c.nom)]));
+  const paires: Doublon<T>[] = [];
+  for (let i = 0; i < comptes.length; i++) {
+    for (let j = i + 1; j < comptes.length; j++) {
+      const a = mots.get(comptes[i].id)!;
+      const b = mots.get(comptes[j].id)!;
+      const communs = a.filter((m) => b.includes(m)).length;
+      if (communs < 2) continue;
+      const score = proximite(a, b);
+      if (score < seuil) continue;
+      paires.push({
+        a: comptes[i],
+        b: comptes[j],
+        score,
+        communs,
+        fiabilite: rapprochementSur({ score, communs }),
+      });
+    }
+  }
+  return paires.sort((x, y) => y.score - x.score || y.communs - x.communs);
+}

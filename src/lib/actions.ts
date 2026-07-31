@@ -7,12 +7,20 @@ import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "./db";
 import { creerSession, detruireSession, getUtilisateur } from "./auth";
 import { journaliser } from "./audit";
-import { DROITS, lireDroits, peutModifierDirectement, roleAuMoins, type Droit } from "./roles";
+import {
+  DROITS,
+  lireDroits,
+  peutModifierDirectement,
+  roleAuMoins,
+  type Droit,
+  type Role,
+} from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
 import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
+import { candidats, rapprochementBloquant } from "./rapprochement";
 import {
   EMAIL_ACTIF,
   SITE,
@@ -515,7 +523,10 @@ export async function sInscrire(
  */
 export async function rattacherInscription(inscriptionId: string, compteId: string) {
   const auteur = await exiger("COORDINATEUR");
-  if (inscriptionId === compteId) throw new Error("Un compte ne se rattache pas à lui-même.");
+  // Comme pour la fusion : un refus se renvoie, pour que son motif parvienne
+  // jusqu'à l'écran au lieu d'être effacé par le mode production.
+  const refus = (motif: string) => ({ ok: false as const, motif });
+  if (inscriptionId === compteId) return refus("Un compte ne se rattache pas à lui-même.");
 
   const [inscription, compte] = await Promise.all([
     prisma.user.findUniqueOrThrow({
@@ -542,12 +553,13 @@ export async function rattacherInscription(inscriptionId: string, compteId: stri
   const n = inscription._count;
   const porte = n.rapports + n.groupesDiriges + n.mouvementsValides + n.affectationsCars;
   if (porte > 0 || inscription.attestation) {
-    throw new Error(
+    return refus(
       "Ce compte a déjà servi (rapports, groupe, pointages ou attestation). " +
-        "Rattacher l'effacerait : réglez le doublon à la main."
+        "Rattacher l'effacerait : utilisez plutôt « doublons possibles » plus bas, " +
+        "qui réunit deux comptes sans rien perdre."
     );
   }
-  if (!compte.valide) throw new Error("Le compte de destination n'est pas validé.");
+  if (!compte.valide) return refus("Le compte de destination n'est pas validé.");
 
   await prisma.$transaction(async (tx) => {
     // L'adresse est unique en base : il faut libérer celle de l'inscription
@@ -574,13 +586,216 @@ export async function rattacherInscription(inscriptionId: string, compteId: stri
   );
   await envoyer({ a: inscription.email, ...courrielCompteValide(compte.prenom) });
   revalidatePath("/admin");
-  return { nom: `${compte.prenom} ${compte.nom}`, email: inscription.email };
+  return { ok: true as const, nom: `${compte.prenom} ${compte.nom}`, email: inscription.email };
 }
 
-export async function deciderInscription(userId: string, accepter: boolean) {
+/**
+ * Fondre deux comptes qui désignent la même personne.
+ *
+ * Le rattachement ne vaut que pour une inscription encore en attente, vide de
+ * tout. Une fois la validation faite, le second compte vit sa vie : il reçoit
+ * une photo, un téléphone, parfois un rapport — et il apparaît une deuxième
+ * fois dans l'organigramme. Il faut alors non plus supprimer, mais réunir.
+ *
+ * Tout ce que porte le compte absorbé rejoint celui qu'on garde — groupes,
+ * rapports, pointages, journal — et l'identifiant de connexion conservé est la
+ * vraie adresse, d'où qu'elle vienne. Rien n'est effacé en silence : quand la
+ * réunion ferait perdre quelque chose (deux rapports pour le même jour, deux
+ * attestations délivrées), on refuse et on le dit.
+ */
+export async function fusionnerComptes(garderId: string, absorberId: string) {
+  const auteur = await exiger("COORDINATEUR");
+  // Les refus se renvoient, ils ne se lancent pas : en production, Next efface
+  // le message d'une exception venue d'une action serveur, et l'écran
+  // n'afficherait qu'« une erreur est survenue ». Or ici le message *est* la
+  // réponse — il dit quoi faire avant de recommencer.
+  const refus = (motif: string) => ({ ok: false as const, motif });
+  if (garderId === absorberId) return refus("Un compte ne se fusionne pas avec lui-même.");
+
+  const avec = {
+    include: {
+      groupesDiriges: { select: { nom: true } },
+      rapports: { select: { jour: true } },
+      attestation: { select: { id: true, code: true } },
+      _count: { select: { mouvementsValides: true, affectationsCars: true } },
+    },
+  } as const;
+  const [garde, absorbe] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: garderId }, ...avec }),
+    prisma.user.findUniqueOrThrow({ where: { id: absorberId }, ...avec }),
+  ]);
+
+  // On ne scie pas la branche sur laquelle on est assis : absorber le compte
+  // avec lequel on est connecté couperait la session en cours au milieu de
+  // l'opération. Le sens inverse fait exactement la même chose, sans le risque.
+  if (absorberId === auteur.id) {
+    return refus("Vous êtes connecté avec ce compte : gardez celui-ci et absorbez l'autre.");
+  }
+  // Réunir deux comptes d'encadrement supérieur revient à décider qui dirige :
+  // cela appartient au couple dirigeant.
+  if (
+    (roleAuMoins(garde.role, "COORDINATEUR") || roleAuMoins(absorbe.role, "COORDINATEUR")) &&
+    auteur.role !== "DIRIGEANT"
+  ) {
+    return refus("Seul le couple dirigeant peut fusionner les comptes des coordinateurs principaux.");
+  }
+
+  const joursEnDouble = absorbe.rapports
+    .map((r) => r.jour)
+    .filter((j) => garde.rapports.some((r) => r.jour === j));
+  if (joursEnDouble.length > 0) {
+    return refus(
+      `Les deux comptes ont un rapport pour ${
+        joursEnDouble.length > 1 ? "les jours" : "le jour"
+      } ${joursEnDouble.sort().join(", ")}. Fusionner en effacerait un : ` +
+        "supprimez d'abord celui qui fait doublon, puis recommencez."
+    );
+  }
+  if (garde.attestation && absorbe.attestation) {
+    return refus(
+      `Deux attestations ont été délivrées (${garde.attestation.code} et ` +
+        `${absorbe.attestation.code}). Révoquez celle qui est en trop avant de fusionner.`
+    );
+  }
+
+  // Quelle adresse permettra de se connecter ensuite ? La vraie, toujours : un
+  // identifiant d'attente ne reçoit aucun message, donc pas même un lien de
+  // mot de passe oublié. Avec elle vient son mot de passe — celui que la
+  // personne a effectivement choisi.
+  const reprendreIdentifiants =
+    estAdresseDAttente(garde.email) && !estAdresseDAttente(absorbe.email);
+
+  const droits = [
+    ...new Set([...lireDroits(garde.droitsSupplementaires), ...lireDroits(absorbe.droitsSupplementaires)]),
+  ];
+  // On garde l'appel le plus élevé des deux : la fusion ne doit jamais faire
+  // perdre un accès que la personne exerçait déjà sur l'un de ses comptes.
+  const plusHaut = roleAuMoins(absorbe.role, garde.role as Role) ? absorbe.role : garde.role;
+
+  await prisma.$transaction(async (tx) => {
+    // Un même encadrant affecté deux fois au même pointage romprait l'unicité
+    // (car, étape, personne) : on retire d'abord les affectations que le
+    // compte gardé possède déjà.
+    const deja = await tx.affectationCar.findMany({
+      where: { userId: garderId },
+      select: { carId: true, etape: true },
+    });
+    if (deja.length > 0) {
+      await tx.affectationCar.deleteMany({
+        where: { userId: absorberId, OR: deja.map((d) => ({ carId: d.carId, etape: d.etape })) },
+      });
+    }
+
+    await Promise.all([
+      tx.groupe.updateMany({ where: { conseillerId: absorberId }, data: { conseillerId: garderId } }),
+      tx.affectationCar.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
+      tx.mouvement.updateMany({ where: { valideParId: absorberId }, data: { valideParId: garderId } }),
+      tx.annonce.updateMany({ where: { creeParId: absorberId }, data: { creeParId: garderId } }),
+      tx.activite.updateMany({ where: { creeParId: absorberId }, data: { creeParId: garderId } }),
+      tx.modificationProgramme.updateMany({ where: { proposeParId: absorberId }, data: { proposeParId: garderId } }),
+      tx.modificationProgramme.updateMany({ where: { valideParId: absorberId }, data: { valideParId: garderId } }),
+      tx.rapportQuotidien.updateMany({ where: { auteurId: absorberId }, data: { auteurId: garderId } }),
+      tx.attestation.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
+      tx.attestation.updateMany({ where: { delivreeParId: absorberId }, data: { delivreeParId: garderId } }),
+      tx.auditLog.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
+      tx.reinitialisationMotDePasse.deleteMany({ where: { userId: absorberId } }),
+    ]);
+
+    // Le compte absorbé disparaît avant la mise à jour : son adresse est unique
+    // en base, et c'est peut-être elle qu'on va poser sur le compte gardé.
+    await tx.user.delete({ where: { id: absorberId } });
+    await tx.user.update({
+      where: { id: garderId },
+      data: {
+        ...(reprendreIdentifiants
+          ? {
+              email: absorbe.email,
+              passwordHash: absorbe.passwordHash,
+              doitChangerMotDePasse: absorbe.doitChangerMotDePasse,
+            }
+          : {}),
+        role: plusHaut,
+        droitsSupplementaires: JSON.stringify(droits),
+        // Ce que l'un a renseigné et l'autre pas se récupère : c'est du travail
+        // déjà fait par la personne, il n'y a pas de raison de le perdre.
+        telephone: garde.telephone ?? absorbe.telephone,
+        photoPublicId: garde.photoPublicId ?? absorbe.photoPublicId,
+        dateNaissance: garde.dateNaissance ?? absorbe.dateNaissance,
+        pieuId: garde.pieuId ?? absorbe.pieuId,
+        compagnieId: garde.compagnieId ?? absorbe.compagnieId,
+        valide: true,
+        actif: garde.actif || absorbe.actif,
+      },
+    });
+  });
+
+  const emailFinal = reprendreIdentifiants ? absorbe.email : garde.email;
+  const consequences = [
+    `connexion conservée : ${emailFinal}`,
+    ...(reprendreIdentifiants ? ["avec le mot de passe choisi par la personne"] : []),
+    ...(absorbe.groupesDiriges.length > 0
+      ? [`groupe${absorbe.groupesDiriges.length > 1 ? "s" : ""} repris : ${absorbe.groupesDiriges.map((g) => g.nom).join(", ")}`]
+      : []),
+    ...(absorbe.rapports.length > 0 ? [`${absorbe.rapports.length} rapport(s) repris`] : []),
+    ...(plusHaut !== garde.role ? [`appel relevé : ${plusHaut}`] : []),
+    ...(!garde.photoPublicId && absorbe.photoPublicId ? ["photo reprise"] : []),
+    ...(!garde.telephone && absorbe.telephone ? ["téléphone repris"] : []),
+  ];
+
+  await journaliser(
+    auteur.id,
+    "COMPTES_FUSIONNES",
+    `${absorbe.prenom} ${absorbe.nom} (${absorbe.email}) fondu dans ${garde.prenom} ${garde.nom} — ${consequences.join(" ; ")}`
+  );
+  revalidatePath("/admin");
+  revalidatePath("/organigramme");
+  revalidatePath("/encadrement");
+  return { ok: true as const, nom: `${garde.prenom} ${garde.nom}`, email: emailFinal, consequences };
+}
+
+/**
+ * Valider ou refuser une inscription.
+ *
+ * Valider crée un accès de plus. Quand la personne figure déjà dans
+ * l'encadrement — et c'est le cas le plus fréquent, puisque les listes
+ * officielles ont été chargées avant que quiconque s'inscrive — ce n'est pas
+ * ce qu'il faut faire : il faut rattacher, sinon elle se retrouve avec deux
+ * comptes et son groupe reste sur l'ancien.
+ *
+ * Le conseil ne suffisait pas : il était écrit à l'écran, et les doublons sont
+ * arrivés quand même. La validation refuse donc désormais d'elle-même tant
+ * qu'un rapprochement net n'a pas été écarté explicitement. On ne bloque
+ * personne — on demande de dire « ce n'est pas la même personne » plutôt que
+ * de le supposer.
+ */
+export async function deciderInscription(
+  userId: string,
+  accepter: boolean,
+  { malgreLeDoublon = false }: { malgreLeDoublon?: boolean } = {}
+) {
   const auteur = await exiger("COORDINATEUR");
   const cible = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   if (accepter) {
+    if (!malgreLeDoublon) {
+      const equipe = await prisma.user.findMany({
+        where: { valide: true },
+        select: { id: true, prenom: true, nom: true, email: true, sexe: true, role: true },
+      });
+      const proches = candidats(cible, equipe).filter(rapprochementBloquant);
+      if (proches.length > 0) {
+        const noms = proches
+          .slice(0, 3)
+          .map((c) => `${c.compte.prenom} ${c.compte.nom} (${c.compte.email})`)
+          .join(", ");
+        return {
+          ok: false as const,
+          motif:
+            `Un compte existe déjà pour ce nom : ${noms}. Rattachez l'inscription à ce compte ` +
+            "— la personne garde son rôle et son groupe. S'il s'agit vraiment de quelqu'un " +
+            "d'autre, dites-le explicitement ci-dessous.",
+        };
+      }
+    }
     await prisma.user.update({ where: { id: userId }, data: { valide: true } });
     // La personne attend ce signal : sans lui, elle réessaierait de se
     // connecter au hasard. L'échec de l'envoi ne remet pas la validation en
@@ -595,9 +810,11 @@ export async function deciderInscription(userId: string, accepter: boolean) {
   await journaliser(
     auteur.id,
     accepter ? "INSCRIPTION_VALIDEE" : "INSCRIPTION_REFUSEE",
-    `${cible.prenom} ${cible.nom} (${cible.email})`
+    `${cible.prenom} ${cible.nom} (${cible.email})` +
+      (accepter && malgreLeDoublon ? " — homonyme écarté, compte distinct assumé" : "")
   );
   revalidatePath("/admin");
+  return { ok: true as const };
 }
 
 export async function seDeconnecter() {

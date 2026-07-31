@@ -467,6 +467,62 @@ l'infirmerie ou au réfectoire, on cherche « qui est allergique à l'arachide �
 chercher quelqu'un. Les inscriptions annulées sont écartées — faire figurer sur une liste
 de vigilance quelqu'un qui n'est pas là ferait perdre du temps.
 
+#### Points de vigilance
+
+La liste seule ne dit pas quoi faire : on n'agit pas de la même façon face à un asthme et
+face à une intolérance au lactose. La page range donc les mêmes personnes **par nature de
+ce qu'elles ont déclaré**, dans l'ordre du rapport de l'administrateur du bien-être, avec
+la conduite à tenir en tête de chaque groupe.
+
+| Nature | Ce qu'elle appelle |
+|---|---|
+| **Asthme et troubles respiratoires** | Inhalateur sur soi, conseiller prévenu, surveillance pendant le sport. |
+| **Allergies médicamenteuses** | À signaler à toute équipe de soins avant la moindre administration. |
+| **Allergies et intolérances alimentaires** | À croiser avec le service des repas avant le premier service. |
+| **Traitements en cours** | Ordonnance, posologie, conservation, quantité suffisante pour la semaine. |
+| **Handicap et accompagnement** | Accompagnement adapté, conseiller informé en amont. |
+| **Maladies chroniques et suivis** | Vigilance de fond : hydratation, repos, régularité des prises. |
+| **Épisodes et douleurs signalés** | À connaître sans nécessairement mobiliser. |
+
+Le classement est refait **à chaque affichage, depuis la base** — et non recopié d'un
+export figé — pour qu'il reste juste quand une inscription change. Les mots recherchés
+reproduisent ce que les familles ont réellement écrit, fautes comprises : « astme »,
+« asme », « sunisite », « eternuyer ». Une alerte manquée parce qu'un mot était mal
+orthographié serait le pire des résultats ; mieux vaut une catégorie de trop qu'un
+asthmatique oublié. Ce qu'aucune nature ne reconnaît est rassemblé sous « Autres
+déclarations » plutôt que perdu.
+
+**À clarifier.** Certaines déclarations nomment un produit sans dire ce qu'il faut en
+faire — « Paracétamol », seul. Allergie ou traitement habituel ? Les deux conduites sont
+opposées, et la question doit être posée avant la conférence, pas devant le jeune qui a mal
+à la tête. Ces cas sont isolés en tête de page. Ce n'est pas la brièveté qui les distingue :
+« Asthmatique », « Toux », « Anémie » tiennent en un mot et se comprennent sans rien
+demander — c'est de nommer un produit là où on attendait une condition.
+
+La page reprend aussi la **répartition par pieu et district**, les **recommandations**
+permanentes de l'administrateur du bien-être, et les **cas écartés** : les jeunes qui ont
+déclaré un renseignement médical mais dont l'inscription n'est pas approuvée. Ils ne sont
+pas attendus en l'état, et leur cas devra être réintégré si la situation se régularise —
+l'oublier serait une mauvaise surprise le jour même.
+
+#### Ce qui protège ces informations
+
+Ce sont des dossiers médicaux de mineurs, et ils sont traités comme tels.
+
+- **Accès restreint** au couple dirigeant, aux coordinateurs principaux et aux adjoints
+  désignés au bien-être — vérifié côté serveur à chaque affichage, pas seulement dans le
+  menu.
+- **Chaque consultation est journalisée** (`CONSULTATION_SANTE`), une fois par personne et
+  par demi-journée : sans trace, personne ne saurait jamais qui a ouvert ces dossiers ;
+  en noter chaque rafraîchissement rendrait le journal illisible, ce qui reviendrait au
+  même. La page le dit à qui la consulte.
+- **Aucune indexation** : `robots: noindex, nofollow, nocache`, et la page est rendue à la
+  demande, jamais mise en cache.
+- **Le contact d'urgence reste replié** : il ne sert qu'en cas de besoin.
+- **Rien de tout cela n'est versionné.** Les renseignements médicaux n'existent que dans la
+  base ; `prisma/participants.json`, qui est commité, ne contient ni téléphone, ni e-mail,
+  ni médical, ni alimentaire, ni contact d'urgence.
+
 **Qui y accède** : le couple dirigeant et les coordinateurs principaux, qui répondent de la
 conférence entière, et les adjoints à qui le couple a accordé le droit **Bien-être**.
 Partout ailleurs chacun reste à son périmètre — un conseiller son groupe, un adjoint sa
@@ -537,7 +593,65 @@ et Tea Grace), et confondre deux personnes serait pire que le doublon. Un rappro
 fondé sur un seul mot commun n'est jamais annoncé comme certain.
 
 Un compte qui a déjà servi — rapport écrit, groupe confié, pointages, attestation — ne peut
-pas être rattaché : l'opération l'effacerait. L'application refuse et le dit.
+pas être rattaché : l'opération l'effacerait. L'application refuse et le dit, et renvoie
+vers la fusion, qui réunit deux comptes sans rien perdre.
+
+#### La validation refuse de fabriquer un doublon
+
+Le conseil ne suffisait pas. Il était écrit à l'écran, en toutes lettres, et les doublons
+sont arrivés quand même : « Valider » est vert, il est à droite, et il paraît être le geste
+normal. **La validation refuse donc d'elle-même** tant qu'un rapprochement net — *certain*
+ou *probable* — n'a pas été écarté explicitement. Le refus nomme le compte existant et
+propose le rattachement.
+
+Personne n'est bloqué pour autant : l'encadrement compte de vrais homonymes, et un bouton
+« Ce n'est pas la même personne — créer un compte distinct » passe outre. La différence est
+qu'il faut le dire, et que le journal en garde la trace. Quand un rapprochement existe, le
+bouton s'intitule d'ailleurs « Valider comme nouveau » et perd sa couleur : ce n'est plus
+le geste par défaut.
+
+Le contrôle est **côté serveur**, pas seulement dans l'interface : appeler l'action
+directement ne contourne rien.
+
+### Fusionner deux comptes déjà validés
+
+Le rattachement ne vaut que pour une inscription encore en attente, vide de tout. Une fois
+la validation faite, le second compte vit sa vie — il reçoit une photo, un téléphone,
+parfois un rapport — et la personne **apparaît deux fois dans l'organigramme**. Il faut
+alors non plus supprimer, mais réunir.
+
+L'administration signale en tête les **doublons possibles** parmi les comptes validés :
+même méthode de rapprochement, mais appliquée à l'équipe entière et non aux seules
+inscriptions qui entrent. Deux mots communs sont exigés, jamais un seul — l'encadrement
+compte plusieurs Kouassi et plusieurs Grace qui sont bien des personnes différentes.
+
+Chaque doublon s'affiche en deux fiches côte à côte, avec ce que chacune porte : groupe,
+rapports, pointages, attestation, photo, téléphone, droits accordés. On choisit **le compte
+à garder** ; l'autre vient s'y fondre.
+
+**Fusionner ne supprime rien.** Le compte gardé récupère tout :
+
+| Ce qui suit | Détail |
+|---|---|
+| Le travail | Groupes dirigés, rapports, pointages, affectations de car, annonces, activités, propositions de modification, journal d'audit. |
+| L'identité | Photo, téléphone, date de naissance, pieu, compagnie — chaque champ vide reprend la valeur de l'autre compte. |
+| **Les accès** | **L'appel le plus élevé des deux**, et l'**union** des droits nominatifs. Une fusion ne fait jamais perdre un accès que la personne exerçait déjà. |
+| La connexion | La **vraie** adresse — jamais un identifiant `@fsy2026.ci`, qui ne reçoit rien — avec le mot de passe que la personne a choisi. |
+
+Trois refus, annoncés plutôt que subis :
+
+- **Le compte avec lequel on est connecté ne peut pas être absorbé** : cela couperait la
+  session en cours au milieu de l'opération. Le sens inverse fait la même chose sans le
+  risque, et le bouton correspondant est désactivé.
+- **Deux rapports pour le même jour** : fusionner en effacerait un. L'application dit
+  lesquels et laisse trancher.
+- **Deux attestations délivrées** : ce sont des documents imprimés, avec un code de
+  vérification. Il faut en révoquer une d'abord.
+
+Seul le **couple dirigeant** peut fusionner des comptes de coordinateur principal ou de
+couple dirigeant : réunir deux comptes d'encadrement supérieur revient à décider qui
+dirige. L'opération se fait en une transaction et laisse une trace au journal
+(`COMPTES_FUSIONNES`) qui détaille ce qui a été repris.
 
 ### Envoi d'e-mails (Resend)
 
@@ -758,7 +872,13 @@ ici.
 - **Le mot de passe oublié ne révèle pas qui a un compte** : réponse identique dans tous
   les cas, jeton haché en base, valable trois heures, à usage unique.
 - **Les photos de mineurs** sont servies par URL signée, jamais par lien libre.
-- **Aucun secret n'est versionné** : `data/` et `.env` sont exclus du dépôt.
+- **Les dossiers médicaux sont tracés à la lecture** : `/sante` journalise chaque
+  consultation et n'est jamais indexée ni mise en cache.
+- **On ne peut pas fabriquer un doublon par inadvertance** : la validation d'une
+  inscription refuse tant qu'un compte au même nom n'a pas été écarté explicitement.
+- **Aucun secret n'est versionné** : `data/` et `.env` sont exclus du dépôt. Les
+  renseignements médicaux et les coordonnées n'existent que dans la base — jamais dans
+  `prisma/participants.json`, qui est commité.
 
 ### AUTH_SECRET est obligatoire en production
 
@@ -810,7 +930,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 - **Cars** — pointage des jeunes aux **trois étapes** : *départ du pieu* (montée dans le car au pieu ou district), *arrivée au site*, *retour le dernier jour* (montée dans le car le samedi 8 août). Recherche rapide par nom, horodatage de chaque validation, historique complet, alertes médicales et alimentaires affichées à côté du nom. **Le couple dirigeant et les coordinateurs principaux désignent, car par car et étape par étape, qui coche les noms** — un ou plusieurs conseillers, conseillères, coordinateurs ou coordinatrices. Les autres encadrants voient la liste en lecture seule. Tant que personne n'est désigné pour une étape, tout encadrant peut cocher : le jour même, personne ne doit être bloqué. La page Cars signale combien de pointages restent sans personne affectée.
 - **Groupes** — réassignation dynamique : changer le conseiller d'un groupe, fusionner deux groupes, alerte de sur-capacité. Contrainte : groupe et conseiller du même sexe.
 - **Jeunes** — 650 inscrits réels : recherche par nom/pieu/paroisse/groupe, âge, taille de t-shirt, statut d'inscription, badges 🎂 anniversaire, ⚕️ médical et 🍽 alimentaire, contact d'urgence ; filtres par onglet (anniversaires, à suivre, sans groupe) ; portée selon le rôle (conseiller → son groupe, adjoint → sa compagnie, coordinateur → tout) ; déplacement d'un jeune vers un autre groupe (coordinateurs).
-- **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs. Les numéros de téléphone du couple et des coordinateurs principaux sont cliquables pour appeler directement depuis le téléphone.
+- **Organigramme** — hiérarchie complète : couple dirigeant → coordinateurs principaux → compagnies (paires d'adjoints) → groupes (conseillers) → effectifs. Les numéros de téléphone du couple et des coordinateurs principaux sont cliquables pour appeler directement depuis le téléphone. Quelqu'un qui y figure deux fois a deux comptes : l'administration propose de les fusionner.
 - **Pieux et districts** *(coordinateurs et adjoints)* — effectifs par unité, statuts d'inscription, **contrôle des critères d'âge officiels**, **conseillers à proposer** selon la formule officielle, **inscriptions approuvées en double** à faire vérifier, et profil attendu des conseillers.
 - **Programme** — vue par jour (veille à J6) avec **tenues vestimentaires** et **rôle attendu de votre niveau** pour chaque activité, plages horaires (début → fin), création d'activités, public ciblé, confirmation des horaires provisoires, modification directe pour les coordinateurs, **propositions soumises à validation** pour les adjoints, annulation d'activités. Par défaut, chacun ne voit que ce qui le concerne.
 - **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
@@ -839,6 +959,9 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Délivrer / révoquer les attestations | — | — | — | ✅ |
 | Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
 | Changer l'appel d'un conseiller ou d'un adjoint | — | — | ✅ | ✅ |
+| Rattacher une inscription à un compte existant | — | — | ✅ | ✅ |
+| Fusionner deux comptes (conseiller, adjoint) | — | — | ✅ | ✅ |
+| Fusionner deux comptes de coordinateur ou du couple | — | — | — | ✅ |
 | Accorder les droits nominatifs | — | — | — | ✅ |
 | Gérer permissions et présences, audit | — | — | — | ✅ |
 
@@ -867,7 +990,10 @@ src/lib/rapports.ts        # questionnaire du rapport quotidien, barème de poin
 src/lib/synthese.ts        # agrégation des rapports → rapport final et export Markdown
 src/lib/cloudinary.ts      # photos de rapport : envoi signé, URL signées, suppression
 src/lib/email.ts           # envoi par Resend, gabarits des messages, adresses d'attente
-src/lib/rapprochement.ts   # inscriptions ↔ comptes existants : proximité des noms
+src/lib/rapprochement.ts   # proximité des noms : inscriptions ↔ comptes, et doublons entre comptes validés
+src/components/Doublons.tsx # deux comptes pour une personne : choix du compte gardé, fusion
+src/components/DecisionInscription.tsx # valider / refuser une inscription, refus des doublons
+src/lib/vigilance.ts       # renseignements médicaux rangés par nature, et déclarations à clarifier
 src/components/Avatar.tsx  # portrait d'un encadrant, ou ses initiales colorées à défaut
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/

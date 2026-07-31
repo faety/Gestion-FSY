@@ -29,6 +29,7 @@ export default async function OrganigrammePage() {
   }: {
     titre: string;
     personnes: {
+      id: string;
       prenom: string;
       nom: string;
       telephone: string | null;
@@ -42,10 +43,9 @@ export default async function OrganigrammePage() {
         <div className="text-sm opacity-60">Non assigné</div>
       ) : (
         personnes.map((p) => (
-          <div
-            key={`${p.prenom} ${p.nom}`}
-            className="mt-2 first:mt-0 flex items-center justify-center gap-2.5"
-          >
+          // Deux comptes homonymes existaient : la clé doit rester distincte,
+          // sinon React n'en affiche qu'un et le doublon devient invisible.
+          <div key={p.id} className="mt-2 first:mt-0 flex items-center justify-center gap-2.5">
             <Avatar
               prenom={p.prenom}
               nom={p.nom}
@@ -80,6 +80,7 @@ export default async function OrganigrammePage() {
         <Carte
           titre="Couple dirigeant"
           personnes={dirigeants.map((d) => ({
+            id: d.id,
             prenom: d.prenom,
             nom: d.nom,
             telephone: d.telephone,
@@ -91,6 +92,7 @@ export default async function OrganigrammePage() {
         <Carte
           titre="Coordinateurs principaux"
           personnes={coordinateurs.map((c) => ({
+            id: c.id,
             prenom: c.prenom,
             nom: c.nom,
             telephone: c.telephone,
