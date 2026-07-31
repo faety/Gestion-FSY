@@ -315,22 +315,34 @@ export async function definirEmail(userId: string, email: string) {
   return r;
 }
 
-/** Vérifie la configuration Resend en s'écrivant à soi-même. */
-export async function envoyerEmailDEssai() {
+/**
+ * Vérifie la configuration Resend.
+ *
+ * Par défaut le message part vers l'adresse du compte, mais on peut en indiquer
+ * une autre : au moment où l'on branche la messagerie, tous les comptes portent
+ * encore un identifiant d'attente, et il faut bien pouvoir contrôler que
+ * l'envoi fonctionne avant de commencer à corriger les adresses.
+ */
+export async function envoyerEmailDEssai(destinataire?: string) {
   const user = await exiger("COORDINATEUR");
   if (!EMAIL_ACTIF) {
     return { erreur: "L'envoi d'e-mails n'est pas configuré (RESEND_API_KEY, EMAIL_EXPEDITEUR)." };
   }
-  if (estAdresseDAttente(user.email)) {
+
+  const a = (destinataire?.trim() || user.email).toLowerCase();
+  if (!emailPlausible(a)) return { erreur: "Cette adresse ne semble pas valide." };
+  if (estAdresseDAttente(a)) {
     return {
       erreur:
-        "Votre compte porte encore une adresse d'attente. Enregistrez votre vraie adresse avant d'essayer.",
+        "Le domaine fsy2026.ci n'existe pas : aucun message ne peut y arriver. " +
+        "Indiquez une vraie adresse pour l'essai.",
     };
   }
-  const envoi = await envoyer({ a: user.email, ...courrielEssai(user.prenom) });
-  await journaliser(user.id, "EMAIL_ESSAI", envoi.envoye ? user.email : String(envoi.raison));
+
+  const envoi = await envoyer({ a, ...courrielEssai(user.prenom) });
+  await journaliser(user.id, "EMAIL_ESSAI", envoi.envoye ? a : `${a} — ${envoi.raison}`);
   return envoi.envoye
-    ? { ok: `Message envoyé à ${user.email}.` }
+    ? { ok: `Message envoyé à ${a}. Regardez aussi dans les indésirables.` }
     : { erreur: `Échec : ${envoi.detail ?? envoi.raison}` };
 }
 

@@ -197,7 +197,7 @@ export default async function AdminPage() {
           </p>
         )}
 
-        <EssaiEmail actif={EMAIL_ACTIF} />
+        <EssaiEmail actif={EMAIL_ACTIF} monEmail={user.email} />
       </section>
 
       {estDirigeant && <RemiseAZero choses={CHOSES_A_EFFACER} />}

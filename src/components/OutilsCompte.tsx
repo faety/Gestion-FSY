@@ -163,24 +163,39 @@ export function BoutonAdresse({
 
 // Vérifie que Resend est bien configuré, en s'écrivant à soi-même. Plus court
 // que d'attendre qu'un encadrant signale ne rien avoir reçu.
-export function EssaiEmail({ actif }: { actif: boolean }) {
+export function EssaiEmail({ actif, monEmail }: { actif: boolean; monEmail: string }) {
   const [message, setMessage] = useState<{ ok?: string; erreur?: string } | null>(null);
+  const [destinataire, setDestinataire] = useState("");
   const [pending, demarrer] = useTransition();
 
   return (
     <div className="space-y-2">
-      <button
-        disabled={pending || !actif}
-        onClick={() =>
-          demarrer(async () => {
-            setMessage(null);
-            setMessage(await envoyerEmailDEssai());
-          })
-        }
-        className="bg-slate-100 hover:bg-slate-200 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
-      >
-        {pending ? "Envoi…" : "M'envoyer un message d'essai"}
-      </button>
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          type="email"
+          value={destinataire}
+          onChange={(e) => setDestinataire(e.target.value)}
+          placeholder={monEmail}
+          disabled={!actif}
+          className="flex-1 min-w-[220px] rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50"
+        />
+        <button
+          disabled={pending || !actif}
+          onClick={() =>
+            demarrer(async () => {
+              setMessage(null);
+              setMessage(await envoyerEmailDEssai(destinataire));
+            })
+          }
+          className="bg-slate-100 hover:bg-slate-200 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
+        >
+          {pending ? "Envoi…" : "Envoyer un message d'essai"}
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Laissez vide pour vous l'envoyer à vous-même. Indiquez une autre adresse si votre
+        compte porte encore un identifiant d'attente.
+      </p>
       {message?.ok && (
         <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg p-2">
           ✅ {message.ok}
