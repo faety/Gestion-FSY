@@ -7,6 +7,7 @@ import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import { NavLinks } from "@/components/NavLinks";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
+import { SITE_AFFICHE } from "@/lib/site";
 
 export default async function AppLayout({
   children,
@@ -85,7 +86,7 @@ export default async function AppLayout({
 
       <footer className="hidden sm:block text-center text-xs text-slate-400 py-4">
         <Link href="/" className="hover:text-fsy">
-          FSY 2026 — Abidjan Ouest · 2026.fsy.ci
+          FSY 2026 — Abidjan Ouest · {SITE_AFFICHE}
         </Link>
       </footer>
 

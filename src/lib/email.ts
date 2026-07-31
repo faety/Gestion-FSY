@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { SITE_AFFICHE, SITE_URL } from "./site";
 
 // Envoi d'e-mails par Resend.
 //
@@ -26,13 +27,13 @@ export const emailPlausible = (email: string) =>
   /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email.trim());
 
 const CLEF = process.env.RESEND_API_KEY;
-/** Ex. : « FSY 2026 <bonjour@2026.fsy.ci> ». Le domaine doit être vérifié chez Resend. */
+/** Ex. : « FSY 2026 <bonjour@fsy.ci> ». Le domaine doit être vérifié chez Resend. */
 const EXPEDITEUR = process.env.EMAIL_EXPEDITEUR;
 
 export const EMAIL_ACTIF = Boolean(CLEF && EXPEDITEUR);
 
-export const SITE =
-  process.env.SITE_URL?.replace(/\/+$/, "") ?? "https://2026.fsy.ci";
+// Une seule source pour l'adresse publique : voir src/lib/site.ts.
+export const SITE = SITE_URL;
 
 let client: Resend | null = null;
 const resend = () => (client ??= new Resend(CLEF));
@@ -100,7 +101,7 @@ FSY 2026 — Abidjan Ouest
 ${corps}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f8fafc;color:#64748b;font-size:12px;line-height:1.5">
-Conférence pour la jeunesse FSY 2026, du 3 au 8 août 2026 · <a href="${SITE}" style="color:${BLEU}">2026.fsy.ci</a><br>
+Conférence pour la jeunesse FSY 2026, du 3 au 8 août 2026 · <a href="${SITE}" style="color:${BLEU}">${SITE_AFFICHE}</a><br>
 Ce message est destiné à l'encadrement de la conférence. Si vous n'êtes pas concerné, ignorez-le.
 </td></tr>
 </table></body></html>`;

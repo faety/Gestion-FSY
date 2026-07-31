@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CODE_SPECIMEN, CONFERENCE, lireFaits, mention } from "@/lib/attestations";
 import { Logo } from "@/components/Logo";
+import { SITE_AFFICHE } from "@/lib/site";
 
 export const metadata = {
   title: "Vérification d'une attestation",
@@ -41,7 +42,7 @@ export default async function VerificationPage({
         {children}
         <p className="text-xs text-slate-400 mt-6 text-center">
           <Link href="/" className="hover:text-fsy">
-            2026.fsy.ci
+            {SITE_AFFICHE}
           </Link>{" "}
           · Conférence pour la jeunesse, {CONFERENCE.du} au {CONFERENCE.au}
         </p>

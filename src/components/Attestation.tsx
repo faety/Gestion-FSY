@@ -11,6 +11,7 @@ import {
   type FaitsAttestation,
 } from "@/lib/attestations";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { SITE_AFFICHE, lienVerification } from "@/lib/site";
 
 const fmtLong = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -220,7 +221,7 @@ export async function Attestation({
 }) {
   const { code, role, sexe, faits } = donnees;
   const m = mention(donnees.mention);
-  const url = `https://2026.fsy.ci/verification/${code}`;
+  const url = lienVerification(code);
   // Le QR est rendu côté serveur, en SVG : net à l'impression quelle que soit la
   // taille, et sans script à charger.
   const qr = await QRCode.toString(url, {
@@ -353,7 +354,7 @@ export async function Attestation({
             {en ? "Verify at" : "Vérifier sur"}
           </div>
           <div className="text-[8pt]" style={{ color: BLEU }}>
-            2026.fsy.ci/verification
+            {SITE_AFFICHE}/verification
           </div>
           <div
             className="text-[11pt] font-mono font-bold tracking-[0.12em] mt-[0.5mm]"

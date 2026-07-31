@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://2026.fsy.ci"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "FSY 2026 — Abidjan Ouest · Marche avec moi",
     template: "%s · FSY 2026 Abidjan Ouest",
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FSY 2026 — Abidjan Ouest",
     description: "« Marche avec moi » — Moïse 6:34. Du 3 au 8 août 2026.",
-    url: "https://2026.fsy.ci",
+    url: SITE_URL,
     siteName: "FSY 2026 Abidjan Ouest",
     locale: "fr_CI",
     type: "website",

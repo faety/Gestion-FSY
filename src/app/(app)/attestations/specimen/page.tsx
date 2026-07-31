@@ -4,6 +4,7 @@ import { getUtilisateur } from "@/lib/auth";
 import { CODE_SPECIMEN, MENTIONS, ROLES_ATTESTABLES, faitsSpecimen } from "@/lib/attestations";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { Attestation } from "@/components/Attestation";
+import { SITE_AFFICHE } from "@/lib/site";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
 import { ImprimerAttestation } from "@/components/OutilsAttestation";
 
@@ -58,7 +59,7 @@ export default async function SpecimenPage({
         </div>
 
         <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
-          Le QR mène à <span className="font-mono">2026.fsy.ci/verification/{CODE_SPECIMEN}</span>,
+          Le QR mène à <span className="font-mono">{SITE_AFFICHE}/verification/{CODE_SPECIMEN}</span>,
           qui répond « spécimen » — jamais « authentique ». Scannez-le pour voir ce qu'un
           employeur obtiendra.
         </p>

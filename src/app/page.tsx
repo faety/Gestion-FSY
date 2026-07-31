@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
 import { THEME_FSY } from "@/lib/theme";
 import { Logo } from "@/components/Logo";
+import { SITE_AFFICHE } from "@/lib/site";
 
 export const metadata = {
   title: "FSY 2026 — Abidjan Ouest · Marche avec moi",
@@ -345,7 +346,7 @@ export default async function LandingPage() {
 
       <footer className="bg-fsy-dark text-blue-100 text-sm">
         <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row gap-2 justify-between">
-          <span>FSY 2026 — Abidjan Ouest · 3 au 8 août 2026 · 2026.fsy.ci</span>
+          <span>FSY 2026 — Abidjan Ouest · 3 au 8 août 2026 · {SITE_AFFICHE}</span>
           <span className="text-blue-300">« {THEME_FSY.titre} » — {THEME_FSY.reference}</span>
         </div>
       </footer>

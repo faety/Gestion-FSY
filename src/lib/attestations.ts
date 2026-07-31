@@ -7,7 +7,7 @@
 //
 // Ce qui donne sa valeur au document : des faits vérifiables plutôt que des
 // adjectifs, des signataires nommés, et un code permettant à un employeur de
-// contrôler l'authenticité sur 2026.fsy.ci.
+// contrôler l'authenticité sur fsy.ci.
 
 import type { Role } from "./roles";
 

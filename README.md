@@ -1,6 +1,6 @@
 # Gestion FSY 2026 — Abidjan Ouest
 
-**[2026.fsy.ci](https://2026.fsy.ci)**
+**[fsy.ci](https://fsy.ci)**
 
 Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidjan Ouest) :
 650 participants, hiérarchie de rôles, arrivées/départs par cars, programme, annonces et
@@ -487,13 +487,23 @@ Deux variables d'environnement suffisent :
 
 ```
 RESEND_API_KEY=re_…
-EMAIL_EXPEDITEUR=FSY 2026 <bonjour@2026.fsy.ci>
-SITE_URL=https://2026.fsy.ci      # facultatif, sert à composer les liens
+EMAIL_EXPEDITEUR=FSY 2026 <bonjour@fsy.ci>
+SITE_URL=https://fsy.ci           # facultatif : adresse publique, par défaut https://fsy.ci
 ```
 
 Le domaine de l'expéditeur doit être **vérifié chez Resend** (enregistrements DNS SPF et
 DKIM à ajouter là où est hébergé `fsy.ci`). Sans cette vérification, Resend n'accepte
 d'écrire qu'à l'adresse du titulaire du compte.
+
+> **Attention en ajoutant des enregistrements DNS sous un sous-domaine.** La zone `fsy.ci`
+> possède un caractère générique `*.fsy.ci` qui pointe vers Vercel : n'importe quel
+> sous-domaine résout tout seul. Mais dès qu'on crée un enregistrement **sous** un
+> sous-domaine — par exemple `send.2026.fsy.ci` pour Resend — le nom `2026.fsy.ci` devient
+> un nœud existant mais vide de la zone, et le générique cesse de s'y appliquer (RFC 4592).
+> Le sous-domaine disparaît alors du DNS. C'est ce qui est arrivé à `2026.fsy.ci`, envisagé
+> un temps comme adresse officielle, et pourquoi l'application répond désormais sur
+> `fsy.ci`, qui a son propre enregistrement. Si un sous-domaine doit servir, lui donner un
+> enregistrement A ou CNAME explicite, sans compter sur le générique.
 
 **Sans ces variables, l'application fonctionne exactement comme avant.** Rien ne lève :
 le « mot de passe oublié » répond la même chose, et le repli manuel (mot de passe
@@ -621,7 +631,7 @@ exactement — à imprimer en recto-verso.
 ### Vérification par un employeur
 
 Chaque attestation porte un code à huit caractères (`A7K2-9M4X`), sans les caractères que
-l'on confond (`0`/`O`, `1`/`I`/`L`), et un QR qui mène à `2026.fsy.ci/verification/<code>`.
+l'on confond (`0`/`O`, `1`/`I`/`L`), et un QR qui mène à `fsy.ci/verification/<code>`.
 La page est **publique** : elle répond *authentique*, *révoquée* ou *code inconnu*, et
 détaille les chiffres. Elle ne publie **aucune coordonnée**.
 
