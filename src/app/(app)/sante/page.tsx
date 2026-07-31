@@ -6,6 +6,7 @@ import { estAccepte, estAnnule } from "@/lib/criteres";
 import { CATEGORIES, RECOMMANDATIONS, classer } from "@/lib/vigilance";
 import { journaliserConsultation } from "@/lib/audit";
 import { RechercheAlertes } from "@/components/RechercheAlertes";
+import { ImportInscriptions } from "@/components/ImportInscriptions";
 
 export const metadata = {
   title: "Santé et alimentation",
@@ -154,6 +155,25 @@ export default async function SantePage() {
         page est enregistrée au journal.
       </p>
 
+      {/* Base vide : rien à afficher tant que le fichier d'inscription n'a pas
+          été versé. Le dire, plutôt que de laisser croire que personne n'a rien
+          déclaré — ce serait la conclusion la plus dangereuse. */}
+      {fiches.length === 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-amber-900">
+          <h2 className="font-bold">Aucun renseignement n&apos;a encore été versé</h2>
+          <p className="text-sm mt-1">
+            Cela ne veut pas dire que personne n&apos;a rien déclaré : les renseignements
+            médicaux ne sont pas livrés avec l&apos;application. Ils concernent des mineurs,
+            ne sont donc pas versionnés, et n&apos;arrivent pas avec le déploiement. Versez le
+            fichier d&apos;inscription ci-dessous — une fois suffit.
+          </p>
+        </div>
+      )}
+
+      {/* Position stable dans l'arbre : le composant garde son état — donc son
+          compte rendu — quand le serveur re-rend la page après le versement. */}
+      <ImportInscriptions ouvertAuDepart={fiches.length === 0} />
+
       {/* ---------- Points de vigilance ---------- */}
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <div>
@@ -289,7 +309,7 @@ export default async function SantePage() {
         </ul>
       </section>
 
-      <RechercheAlertes fiches={fiches} />
+      <RechercheAlertes fiches={fiches} peutCorriger />
     </div>
   );
 }

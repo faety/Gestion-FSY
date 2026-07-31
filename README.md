@@ -505,6 +505,46 @@ déclaré un renseignement médical mais dont l'inscription n'est pas approuvée
 pas attendus en l'état, et leur cas devra être réintégré si la situation se régularise —
 l'oublier serait une mauvaise surprise le jour même.
 
+#### Verser le fichier d'inscription
+
+Ces renseignements **n'arrivent pas avec le déploiement**. Ils concernent des mineurs, ne
+sont donc pas versionnés, et `scripts/importer-sensibles.ts` les charge depuis `data/` — un
+dossier absent du dépôt comme de Vercel. Conséquence à ne pas se laisser surprendre : sur
+une base de production neuve, la page Santé est **vide**, et un écran vide se lit
+« personne n'a rien déclaré », ce qui est la conclusion la plus dangereuse possible. La
+page le dit donc explicitement, et propose de verser le fichier.
+
+Le versement se fait **depuis l'application** : on choisit le fichier d'inscription
+(`.xlsx`, `.xlsm` ou `.csv`), tel qu'il sort du système d'inscription. Ni machine, ni accès
+à la base, ni ligne de commande — ce qui est exactement la situation la veille d'une
+conférence.
+
+- **La feuille est choisie seule** (« Tous » de préférence, sinon la plus remplie), les
+  lignes de titre au-dessus du tableau sont ignorées, et **les colonnes sont reconnues à
+  leur intitulé** : prénom, nom, date de naissance, santé, régime, contact d'urgence,
+  téléphone, e-mail. Le résultat de cette reconnaissance est affiché et **se corrige** :
+  un intitulé inattendu ne bloque personne.
+- **Deux temps, toujours.** Un premier passage montre ce qui serait écrit — lignes lues,
+  rattachements, échantillon — sans rien écrire. Six cent cinquante fiches médicales de
+  mineurs ne s'écrasent pas à l'aveugle.
+- **Le rattachement se fait sur le nom, la date de naissance servant de juge de paix.**
+  Quand deux jeunes revendiquent la même ligne avec la même force — deux sœurs, deux
+  cousins du même nom — **la ligne n'est pas reprise** et l'écran le dit : attribuer une
+  allergie médicamenteuse à la mauvaise personne est précisément ce qu'il ne faut pas
+  risquer.
+- **Rien n'est jamais effacé.** Une cellule vide laisse en place ce que la base contenait ;
+  un export partiel ne peut pas faire disparaître une allergie connue. Verser deux fois le
+  même fichier ne crée aucun doublon.
+- **« RAS », « Néant », « rien à signaler »** et leurs vingt variantes sont écartés : une
+  liste de vigilance où tout le monde figure ne sert plus à personne.
+- **Le fichier n'est conservé nulle part** : lu en mémoire, écrit dans la base, et rien
+  n'en subsiste — ni sur le disque du serveur, ni dans le dépôt.
+
+Une déclaration se **corrige à l'unité** depuis la fiche du jeune (« Corriger ce
+renseignement »). Les familles écrivent vite, dans un champ libre : le rapport du 29
+juillet signalait « Asiatique » là où il fallait lire « Asthmatique ». Une faute de ce
+genre ne se répare pas dans le fichier d'origine, qui a déjà servi.
+
 #### Ce qui protège ces informations
 
 Ce sont des dossiers médicaux de mineurs, et ils sont traités comme tels.
@@ -516,6 +556,9 @@ Ce sont des dossiers médicaux de mineurs, et ils sont traités comme tels.
   par demi-journée : sans trace, personne ne saurait jamais qui a ouvert ces dossiers ;
   en noter chaque rafraîchissement rendrait le journal illisible, ce qui reviendrait au
   même. La page le dit à qui la consulte.
+- **Le journal compte, il ne détaille pas.** Un versement s'y inscrit comme « 31 fiches
+  complétées », une correction comme le seul nom du jeune : ni pathologie ni allergie n'a
+  sa place dans une liste que tous les coordinateurs peuvent lire.
 - **Aucune indexation** : `robots: noindex, nofollow, nocache`, et la page est rendue à la
   demande, jamais mise en cache.
 - **Le contact d'urgence reste replié** : il ne sert qu'en cas de besoin.
@@ -958,6 +1001,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Recevoir une attestation | ✅ | ✅ | ✅ | — |
 | Délivrer / révoquer les attestations | — | — | — | ✅ |
 | Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
+| Verser le fichier d'inscription, corriger un renseignement | — | Droit « Bien-être » | ✅ | ✅ |
 | Changer l'appel d'un conseiller ou d'un adjoint | — | — | ✅ | ✅ |
 | Rattacher une inscription à un compte existant | — | — | ✅ | ✅ |
 | Fusionner deux comptes (conseiller, adjoint) | — | — | ✅ | ✅ |
@@ -996,7 +1040,10 @@ src/components/DecisionInscription.tsx # valider / refuser une inscription, refu
 src/lib/vigilance.ts       # renseignements médicaux rangés par nature, et déclarations à clarifier
 src/components/Avatar.tsx  # portrait d'un encadrant, ou ses initiales colorées à défaut
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
-scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/
+src/lib/import-inscriptions.ts # lecture du fichier d'inscription, colonnes reconnues, rattachement aux jeunes
+src/components/ImportInscriptions.tsx # versement depuis l'application : examen puis écriture
+src/lib/renseignements.ts  # « RAS », « Néant » et les vingt façons de ne rien déclarer
+scripts/importer-sensibles.ts # charge les données médicales et contacts des jeunes depuis data/ (voie hors ligne)
 scripts/importer-contacts-encadrement.ts # charge les numéros des encadrants depuis data/
 src/lib/roles.ts           # hiérarchie des rôles et règles de permission
 src/lib/auth.ts            # sessions JWT (cookie httpOnly)

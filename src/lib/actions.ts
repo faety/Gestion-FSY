@@ -12,6 +12,7 @@ import {
   lireDroits,
   peutModifierDirectement,
   roleAuMoins,
+  voitToutesLesAlertes,
   type Droit,
   type Role,
 } from "./roles";
@@ -21,6 +22,15 @@ import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
 import { candidats, rapprochementBloquant } from "./rapprochement";
+import { renseignementUtile } from "./renseignements";
+import {
+  apparier,
+  extraireFiches,
+  lireClasseur,
+  reconnaitreColonnes,
+  type Champ,
+  type Correspondance,
+} from "./import-inscriptions";
 import {
   EMAIL_ACTIF,
   SITE,
@@ -456,6 +466,254 @@ export async function supprimerMaPhoto() {
   revalidatePath("/profil");
   revalidatePath("/organigramme");
   return { ok: true };
+}
+
+// ---------- Renseignements médicaux et alimentaires ----------
+//
+// Ces renseignements viennent normalement du fichier d'inscription, chargé par
+// scripts/importer-sensibles.ts depuis data/ — un dossier qui n'est ni versionné
+// ni déployé, parce qu'il concerne la santé de mineurs. Conséquence : sur une
+// base de production toute neuve, ils n'y sont pas, et la page Santé reste vide
+// alors que l'encadrement les attend.
+//
+// D'où cette saisie depuis l'application. Elle ne remplace pas l'import — qui
+// reste la voie normale pour six cents fiches — mais elle permet d'entrer les
+// quelques dizaines de cas connus sans machine, sans fichier et sans accès à la
+// base, ce qui est exactement la situation la veille d'une conférence.
+
+async function exigerBienEtre() {
+  const user = await getUtilisateur();
+  if (!user) redirect("/login");
+  if (!voitToutesLesAlertes(user)) {
+    throw new Error("Réservé au bien-être, aux coordinateurs principaux et au couple dirigeant.");
+  }
+  return user;
+}
+
+/** Un refus dit pourquoi. En production, une exception ne le dirait pas. */
+export type Refus = { ok: false; motif: string };
+
+export type ApercuImport = {
+  ok: true;
+  applique: boolean;
+  feuille: string;
+  entetes: string[];
+  colonnes: { champ: Champ; libelle: string | null }[];
+  lues: number;
+  apparies: number;
+  parLaDate: number;
+  ambigus: { nom: string; concurrents: string[] }[];
+  introuvables: string[];
+  aEcrire: { medical: number; alimentaire: number; contacts: number; telephone: number };
+  ecrits: number;
+  echantillon: { nom: string; medical: string | null; alimentaire: string | null }[];
+};
+
+const LIBELLES_CHAMPS: Record<Champ, string> = {
+  prenom: "Prénom",
+  nom: "Nom",
+  naissance: "Date de naissance",
+  telephone: "Téléphone du jeune",
+  email: "Adresse e-mail",
+  medical: "Renseignement médical",
+  alimentaire: "Contrainte alimentaire",
+  contactNom: "Contact d'urgence — nom",
+  contactTelephone: "Contact d'urgence — téléphone",
+};
+
+// Un fichier "use server" ne peut exporter que des fonctions asynchrones :
+// cette liste reste interne, et le formulaire porte la sienne.
+const CHAMPS_IMPORT = (Object.keys(LIBELLES_CHAMPS) as Champ[]).map((c) => ({
+  champ: c,
+  libelle: LIBELLES_CHAMPS[c],
+}));
+
+/**
+ * Verser le fichier d'inscription dans la base.
+ *
+ * Le fichier est lu en mémoire et n'est écrit nulle part : ni sur le disque du
+ * serveur, ni dans le dépôt. Seules les colonnes reconnues sont reprises, et un
+ * premier passage montre ce qui serait fait avant que quoi que ce soit le soit —
+ * six cent cinquante fiches médicales de mineurs ne s'écrasent pas à l'aveugle.
+ *
+ * Rien n'est jamais effacé : une cellule vide laisse en place ce que la base
+ * contenait déjà. Un export partiel ne peut donc pas faire disparaître une
+ * allergie connue.
+ */
+export async function importerInscriptions(donnees: FormData): Promise<ApercuImport | Refus> {
+  const auteur = await exigerBienEtre();
+  const fichier = donnees.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { ok: false, motif: "Choisissez le fichier d'inscription (.xlsx ou .csv)." };
+  }
+  if (fichier.size > 11 * 1024 * 1024) {
+    return { ok: false, motif: "Fichier trop lourd (11 Mo au maximum)." };
+  }
+
+  let tableau;
+  try {
+    tableau = await lireClasseur(Buffer.from(await fichier.arrayBuffer()), fichier.name);
+  } catch (e) {
+    return {
+      ok: false,
+      motif:
+        "Fichier illisible : " +
+        (e instanceof Error ? e.message : "format inattendu") +
+        ". Enregistrez-le au format .xlsx ou .csv et réessayez.",
+    };
+  }
+
+  // La reconnaissance automatique se laisse corriger : un en-tête inattendu ne
+  // doit pas bloquer la veille du départ.
+  const colonnes: Correspondance = reconnaitreColonnes(tableau.entetes);
+  for (const { champ } of CHAMPS_IMPORT) {
+    const choisi = donnees.get(`col_${champ}`);
+    if (typeof choisi === "string" && choisi !== "") {
+      const i = Number(choisi);
+      if (i === -1) delete colonnes[champ];
+      else if (Number.isInteger(i) && i >= 0 && i < tableau.entetes.length) colonnes[champ] = i;
+    }
+  }
+  if (colonnes.prenom === undefined && colonnes.nom === undefined) {
+    return {
+      ok: false,
+      motif:
+        "Aucune colonne de nom reconnue dans ce fichier. Désignez-la ci-dessous, " +
+        "ou vérifiez que la première ligne du tableau porte bien les intitulés.",
+    };
+  }
+  if (colonnes.medical === undefined && colonnes.alimentaire === undefined) {
+    return {
+      ok: false,
+      motif:
+        "Aucune colonne de santé ni d'alimentation reconnue : verser ce fichier " +
+        "n'apporterait rien. Désignez-la ci-dessous si elle porte un intitulé inattendu.",
+    };
+  }
+
+  const fiches = extraireFiches(tableau, colonnes);
+  const jeunes = await prisma.jeune.findMany({
+    where: { statutInscription: { not: STATUT_ANNULE } },
+    select: { id: true, prenom: true, nom: true, dateNaissance: true, dateNaissanceBrute: true },
+  });
+  const appariements = apparier(
+    fiches,
+    jeunes.map((j) => ({
+      id: j.id,
+      prenom: j.prenom,
+      nom: j.nom,
+      naissance: j.dateNaissance?.toISOString().slice(0, 10) ?? j.dateNaissanceBrute,
+    }))
+  );
+
+  const retenus = appariements.filter((a) => a.jeuneId);
+  const porteurs = retenus.filter(
+    (a) =>
+      a.fiche.medical ||
+      a.fiche.alimentaire ||
+      a.fiche.contactNom ||
+      a.fiche.contactTelephone ||
+      a.fiche.telephone
+  );
+
+  const applique = donnees.get("appliquer") === "1";
+  let ecrits = 0;
+  if (applique) {
+    for (const a of porteurs) {
+      const f = a.fiche;
+      // Une cellule vide n'efface rien : on ne retire jamais un renseignement
+      // parce qu'il manquait dans un export.
+      const data = {
+        ...(f.medical ? { medical: f.medical } : {}),
+        ...(f.alimentaire ? { alimentaire: f.alimentaire } : {}),
+        ...(f.telephone ? { telephone: f.telephone } : {}),
+        ...(f.email ? { email: f.email } : {}),
+        ...(f.contactNom ? { contactNom: f.contactNom } : {}),
+        ...(f.contactTelephone ? { contactTelephone: f.contactTelephone } : {}),
+      };
+      if (Object.keys(data).length === 0) continue;
+      await prisma.jeune.update({ where: { id: a.jeuneId! }, data });
+      ecrits++;
+    }
+    // Le journal compte, il ne détaille pas : ni les noms, ni les pathologies
+    // n'ont leur place dans une liste que tous les coordinateurs peuvent lire.
+    await journaliser(
+      auteur.id,
+      "IMPORT_RENSEIGNEMENTS",
+      `${ecrits} fiches complétées sur ${fiches.length} lignes lues`
+    );
+    revalidatePath("/sante");
+    revalidatePath("/jeunes");
+    revalidatePath("/cars");
+  }
+
+  return {
+    ok: true,
+    applique,
+    feuille: tableau.feuille,
+    entetes: tableau.entetes,
+    colonnes: CHAMPS_IMPORT.map(({ champ }) => ({
+      champ,
+      libelle: colonnes[champ] === undefined ? null : (tableau.entetes[colonnes[champ]!] ?? `colonne ${colonnes[champ]! + 1}`),
+    })),
+    lues: fiches.length,
+    apparies: retenus.length,
+    parLaDate: retenus.filter((a) => a.sur === "date").length,
+    ambigus: appariements
+      .filter((a) => a.sur === "ambigu")
+      .slice(0, 10)
+      .map((a) => ({
+        nom: `${a.fiche.prenom} ${a.fiche.nom}`.trim(),
+        concurrents: a.concurrents ?? [],
+      })),
+    introuvables: appariements
+      .filter((a) => a.sur === "introuvable")
+      .slice(0, 15)
+      .map((a) => `${a.fiche.prenom} ${a.fiche.nom}`.trim()),
+    aEcrire: {
+      medical: retenus.filter((a) => a.fiche.medical).length,
+      alimentaire: retenus.filter((a) => a.fiche.alimentaire).length,
+      contacts: retenus.filter((a) => a.fiche.contactNom || a.fiche.contactTelephone).length,
+      telephone: retenus.filter((a) => a.fiche.telephone).length,
+    },
+    ecrits,
+    echantillon: retenus
+      .filter((a) => a.fiche.medical || a.fiche.alimentaire)
+      .slice(0, 12)
+      .map((a) => ({
+        nom: a.jeuneNom ?? "",
+        medical: a.fiche.medical,
+        alimentaire: a.fiche.alimentaire,
+      })),
+  };
+}
+
+/** Corriger — ou effacer — le renseignement d'un seul jeune. */
+export async function modifierRenseignementJeune(
+  jeuneId: string,
+  medical: string | null,
+  alimentaire: string | null
+) {
+  const auteur = await exigerBienEtre();
+  const avant = await prisma.jeune.findUniqueOrThrow({
+    where: { id: jeuneId },
+    select: { prenom: true, nom: true },
+  });
+  await prisma.jeune.update({
+    where: { id: jeuneId },
+    data: {
+      medical: renseignementUtile(medical),
+      alimentaire: renseignementUtile(alimentaire),
+    },
+  });
+  await journaliser(
+    auteur.id,
+    "RENSEIGNEMENT_CORRIGE",
+    `${avant.prenom} ${avant.nom}`
+  );
+  revalidatePath("/sante");
+  revalidatePath("/jeunes");
+  return { ok: true as const };
 }
 
 // ---------- Inscription ----------

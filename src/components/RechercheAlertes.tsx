@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { modifierRenseignementJeune } from "@/lib/actions";
 
 export type FicheAlerte = {
   id: string;
@@ -25,10 +26,17 @@ const FILTRES = [
 // au bord d'un car. La recherche porte donc aussi sur le contenu de l'alerte
 // (« asthme », « arachide »), et pas seulement sur le nom : on cherche parfois
 // « qui est allergique à quoi » avant de chercher quelqu'un.
-export function RechercheAlertes({ fiches }: { fiches: FicheAlerte[] }) {
+export function RechercheAlertes({
+  fiches,
+  peutCorriger = false,
+}: {
+  fiches: FicheAlerte[];
+  peutCorriger?: boolean;
+}) {
   const [recherche, setRecherche] = useState("");
   const [filtre, setFiltre] = useState<(typeof FILTRES)[number]["cle"]>("tous");
   const [ouvert, setOuvert] = useState<string | null>(null);
+  const [corrige, setCorrige] = useState<string | null>(null);
 
   const visibles = useMemo(() => {
     const q = recherche
@@ -165,10 +173,87 @@ export function RechercheAlertes({ fiches }: { fiches: FicheAlerte[] }) {
                   )}
                 </div>
               )}
+
+              {peutCorriger &&
+                (corrige === f.id ? (
+                  <Correction fiche={f} fermer={() => setCorrige(null)} />
+                ) : (
+                  <button
+                    onClick={() => setCorrige(f.id)}
+                    className="mt-2 text-xs text-slate-400 hover:text-fsy underline"
+                  >
+                    Corriger ce renseignement
+                  </button>
+                ))}
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// Corriger une déclaration.
+//
+// Les familles écrivent vite, dans un champ libre : le rapport du bien-être
+// signalait « Asiatique » là où il fallait lire « Asthmatique ». Une faute de ce
+// genre ne se corrige pas dans le fichier d'origine, qui a déjà servi — elle se
+// corrige ici, et la correction est journalisée.
+function Correction({ fiche, fermer }: { fiche: FicheAlerte; fermer: () => void }) {
+  const [medical, setMedical] = useState(fiche.medical ?? "");
+  const [alimentaire, setAlimentaire] = useState(fiche.alimentaire ?? "");
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [pending, demarrer] = useTransition();
+
+  return (
+    <div className="mt-2 space-y-2 border-t border-slate-100 pt-2">
+      <label className="block text-xs">
+        <span className="text-slate-500">Renseignement médical</span>
+        <textarea
+          value={medical}
+          onChange={(e) => setMedical(e.target.value)}
+          rows={2}
+          className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </label>
+      <label className="block text-xs">
+        <span className="text-slate-500">Contrainte alimentaire</span>
+        <textarea
+          value={alimentaire}
+          onChange={(e) => setAlimentaire(e.target.value)}
+          rows={2}
+          className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+        />
+      </label>
+      <p className="text-xs text-slate-400">
+        Vider un champ retire l'alerte. La correction est enregistrée au journal.
+      </p>
+      {erreur && <p className="text-xs text-red-700">{erreur}</p>}
+      <div className="flex gap-2">
+        <button
+          disabled={pending}
+          onClick={() =>
+            demarrer(async () => {
+              setErreur(null);
+              try {
+                await modifierRenseignementJeune(fiche.id, medical, alimentaire);
+                fermer();
+              } catch {
+                setErreur("La correction n'a pas abouti. Rechargez la page et réessayez.");
+              }
+            })
+          }
+          className="text-xs bg-fsy hover:bg-fsy-dark text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-40"
+        >
+          {pending ? "…" : "Enregistrer"}
+        </button>
+        <button
+          onClick={fermer}
+          className="text-xs bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   );
 }
