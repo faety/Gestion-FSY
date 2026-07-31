@@ -63,6 +63,21 @@ export default async function AttestationsPage() {
         </p>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/attestations/specimen"
+          className="bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium shadow-sm"
+        >
+          📄 Voir un spécimen
+        </Link>
+        <Link
+          href="/attestations/impression"
+          className="bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium shadow-sm"
+        >
+          🖨️ Imprimer en lot {attestations > 0 && `(${attestations})`}
+        </Link>
+      </div>
+
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Chiffre valeur={encadrants.length} label="Encadrants concernés" />
@@ -102,7 +117,8 @@ export default async function AttestationsPage() {
         <div className="p-4 pb-0 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="font-bold">Détail par personne</h2>
           <span className="text-sm text-slate-500 print:hidden">
-            Imprimez chaque attestation depuis l'espace de son titulaire, ou remettez-lui le lien.
+            Chacun retrouve la sienne dans son espace ; pour la cérémonie, imprimez-les toutes
+            en une fois.
           </span>
         </div>
         <table className="w-full text-sm mt-2">

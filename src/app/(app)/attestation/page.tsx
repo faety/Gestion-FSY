@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
 import { lireFaits, mention, phraseCV, RAPPORTS_POSSIBLES, SEUIL_RIGUEUR } from "@/lib/attestations";
 import { Attestation, DetailAttestation } from "@/components/Attestation";
+import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
 import { CopierTexte, ImprimerAttestation } from "@/components/OutilsAttestation";
 
 export const metadata = { title: "Mon attestation" };
@@ -89,20 +90,7 @@ export default async function MonAttestationPage() {
           ne pas imposer ce format au rapport final. A4 portrait sans marge :
           c'est le réglage par défaut de toutes les imprimantes, le document
           sort entier sans que personne ait à toucher aux options. */}
-      <style>
-        {`@media print { @page { size: A4 portrait; margin: 0 } }
-          /* Aperçu à l'écran : le document est réduit pour tenir sur un
-             téléphone. La hauteur du bloc suit la réduction, sinon un grand
-             vide resterait sous l'aperçu. Deux feuilles A4 = 594 mm. */
-          .apercu { --e: 0.44; height: calc(594mm * var(--e)); overflow: hidden }
-          .apercu > div { width: 210mm; transform: scale(var(--e)); transform-origin: top left }
-          @media (min-width: 640px) { .apercu { --e: 0.66 } }
-          @media (min-width: 1024px) { .apercu { --e: 1 } }
-          @media print {
-            .apercu { height: auto; overflow: visible }
-            .apercu > div { transform: none }
-          }`}
-      </style>
+      <StyleImpression />
 
       <div className="print:hidden">
         <h1 className="text-2xl font-bold">🎓 Mon attestation</h1>
@@ -135,21 +123,19 @@ export default async function MonAttestationPage() {
 
       {/* Le document lui-même : deux feuilles A4 paysage, recto français et
           verso anglais. À l'écran il est réduit ; à l'impression il est à taille. */}
-      <div className="apercu overflow-x-auto -mx-4 px-4 print:overflow-visible print:mx-0 print:px-0">
-        <div>
-          <Attestation
-            donnees={{
-              code: attestation.code,
-              role: attestation.role,
-              sexe: user.sexe,
-              mention: attestation.mention,
-              faits,
-              delivreeLe: attestation.delivreeLe,
-              revoqueeLe: attestation.revoqueeLe,
-            }}
-          />
-        </div>
-      </div>
+      <Apercu>
+        <Attestation
+          donnees={{
+            code: attestation.code,
+            role: attestation.role,
+            sexe: user.sexe,
+            mention: attestation.mention,
+            faits,
+            delivreeLe: attestation.delivreeLe,
+            revoqueeLe: attestation.revoqueeLe,
+          }}
+        />
+      </Apercu>
     </div>
   );
 }

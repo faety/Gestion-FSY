@@ -343,6 +343,27 @@ export function codeDepuisOctets(octets: Uint8Array): string {
 
 export const ROLES_ATTESTABLES: Role[] = ["COORDINATEUR", "ADJOINT", "CONSEILLER"];
 
+// ---------- Spécimen ----------
+//
+// Le couple dirigeant délivre les attestations mais n'en reçoit pas : sans
+// spécimen, il ne pourrait pas voir à quoi ressemble le document qu'il signe.
+// Le code est réservé, la page de vérification le reconnaît et répond « ceci
+// est un spécimen » — jamais « authentique ». Le document porte en travers la
+// mention SPÉCIMEN, pour qu'un exemplaire imprimé ne puisse pas circuler.
+export const CODE_SPECIMEN = "SPEC-IMEN";
+
+export const faitsSpecimen = (): FaitsAttestation => ({
+  nomComplet: "Prénom Nom",
+  groupes: ["Groupe 1.1"],
+  compagnie: null,
+  jeunesEncadres: 10,
+  rapportsRemis: RAPPORTS_POSSIBLES,
+  rapportsPossibles: RAPPORTS_POSSIBLES,
+  points: SEUIL_POINTS_EXCELLENCE,
+  pointagesValides: 30,
+  responsabilitesCars: [],
+});
+
 export function lireFaits(json: string): FaitsAttestation {
   try {
     return JSON.parse(json) as FaitsAttestation;

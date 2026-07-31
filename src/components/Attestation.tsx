@@ -47,6 +47,8 @@ export type DonneesAttestation = {
   faits: FaitsAttestation;
   delivreeLe: Date;
   revoqueeLe: Date | null;
+  /** Exemplaire de démonstration : barré SPÉCIMEN, ne peut pas être confondu avec un vrai. */
+  specimen?: boolean;
 };
 
 // ---------- Éléments de décor ----------
@@ -208,7 +210,14 @@ function Feuille({
   );
 }
 
-export async function Attestation({ donnees }: { donnees: DonneesAttestation }) {
+export async function Attestation({
+  donnees,
+  derniere = true,
+}: {
+  donnees: DonneesAttestation;
+  /** Faux quand d'autres attestations suivent, à l'impression en lot de la clôture. */
+  derniere?: boolean;
+}) {
   const { code, role, sexe, faits } = donnees;
   const m = mention(donnees.mention);
   const url = `https://2026.fsy.ci/verification/${code}`;
@@ -251,6 +260,27 @@ export async function Attestation({ donnees }: { donnees: DonneesAttestation }) 
 
   // Filigrane : le logo en très grand, presque effacé. Il occupe le vide au
   // centre de la page, que le texte seul laisserait nu.
+  // Barré en travers de la page : un spécimen imprimé ne doit jamais pouvoir
+  // être présenté comme une attestation véritable.
+  const BarreSpecimen = () =>
+    donnees.specimen ? (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        <div
+          // 40 pt : à cette taille le mot tient en entier dans la diagonale
+          // d'une A4 portrait. Plus gros, ses extrémités sortaient de la page.
+          className="text-[40pt] font-bold tracking-[0.28em] -rotate-[32deg] whitespace-nowrap"
+          style={{
+            color: "#C0392B",
+            opacity: 0.22,
+            printColorAdjust: "exact",
+            WebkitPrintColorAdjust: "exact",
+          }}
+        >
+          SPÉCIMEN
+        </div>
+      </div>
+    ) : null;
+
   const Filigrane = () => (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -356,6 +386,7 @@ export async function Attestation({ donnees }: { donnees: DonneesAttestation }) 
         />
         <Cadre />
         <Filigrane />
+        <BarreSpecimen />
 
         <div className="relative h-full flex flex-col px-[20mm] pt-[16mm] pb-[13mm]">
           <EnTete
@@ -409,7 +440,7 @@ export async function Attestation({ donnees }: { donnees: DonneesAttestation }) 
       </Feuille>
 
       {/* ---------- Verso : anglais ---------- */}
-      <Feuille derniere>
+      <Feuille derniere={derniere}>
         <div
           className="absolute inset-x-0 top-0 h-[4mm]"
           style={{
@@ -420,6 +451,7 @@ export async function Attestation({ donnees }: { donnees: DonneesAttestation }) 
         />
         <Cadre />
         <Filigrane />
+        <BarreSpecimen />
 
         <div className="relative h-full flex flex-col px-[20mm] pt-[16mm] pb-[13mm]">
           <EnTete

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { CONFERENCE, lireFaits, mention } from "@/lib/attestations";
+import { CODE_SPECIMEN, CONFERENCE, lireFaits, mention } from "@/lib/attestations";
 import { Logo } from "@/components/Logo";
 
 export const metadata = {
@@ -48,6 +48,29 @@ export default async function VerificationPage({
       </div>
     </main>
   );
+
+  // Le code réservé au spécimen ne prétend rien : il explique. C'est ce que voit
+  // le couple dirigeant quand il scanne le document de démonstration.
+  if (propre === CODE_SPECIMEN) {
+    return (
+      <Cadre>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-amber-400">
+          <div className="text-5xl text-center">📄</div>
+          <h1 className="text-xl font-bold mt-3 text-center">Spécimen</h1>
+          <p className="text-slate-600 mt-3 text-sm leading-relaxed">
+            Ce code correspond au <strong>modèle de démonstration</strong> de l'attestation
+            d'encadrement, et non à une personne. Une attestation véritable affiche ici le nom
+            de son titulaire, la fonction qu'il a exercée, les effectifs dont il a eu la
+            charge, le nombre de comptes rendus quotidiens qu'il a remis, et la date de
+            délivrance.
+          </p>
+          <p className="text-slate-500 mt-3 text-sm">
+            Le document correspondant porte la mention SPÉCIMEN en travers de la page.
+          </p>
+        </div>
+      </Cadre>
+    );
+  }
 
   if (!attestation) {
     return (

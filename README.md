@@ -524,6 +524,20 @@ Refuser tout document à quelqu'un qui a veillé une nuit sur un jeune malade ma
 téléphone est tombé en panne aurait été injuste. Chacun voit sa progression sur
 `/attestation` **avant** la clôture : la mention n'est une surprise pour personne.
 
+### Spécimen et impression de la clôture
+
+Le couple dirigeant délivre mais ne reçoit pas d'attestation : sans spécimen, il signerait
+un document qu'il n'aurait jamais vu. **Attestations → Voir un spécimen** montre le
+document complet pour chacun des trois rôles, avec des données fictives et la mention
+**SPÉCIMEN** en travers de la page — un exemplaire imprimé ne peut donc pas circuler comme
+une attestation véritable. Son QR mène à `/verification/SPEC-IMEN`, qui répond
+« spécimen », jamais « authentique ».
+
+**Attestations → Imprimer en lot** sort les 64 documents en un seul travail d'impression,
+révoquées écartées, dans l'ordre de remise. Les imprimer un par un depuis l'espace de
+chacun aurait été impraticable le samedi de la clôture. Deux pages A4 par personne,
+exactement — à imprimer en recto-verso.
+
 ### Vérification par un employeur
 
 Chaque attestation porte un code à huit caractères (`A7K2-9M4X`), sans les caractères que
@@ -573,7 +587,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 - **Mon rapport** — rapport quotidien de chaque encadrant, une fois par journée de conférence. Voir la section dédiée ci-dessous.
 - **Rapport final** *(coordinateurs principaux et couple dirigeant)* — synthèse automatique de tous les rapports quotidiens, exportable.
 - **Mon attestation** — progression vers la mention avant la clôture ; après la délivrance, le document imprimable, le code de vérification et la formulation de CV.
-- **Attestations** *(couple dirigeant seul)* — délivrance en une fois, prévisions de mentions, avertissement sur les encadrants sans affectation, révocation.
+- **Attestations** *(couple dirigeant seul)* — délivrance en une fois, prévisions de mentions, avertissement sur les encadrants sans affectation, révocation, **spécimen** et **impression en lot** pour la cérémonie.
 - **Annonces** — ciblées par rôle (tous, coordinateurs, adjoints, conseillers) et **programmables** : une annonce datée dans le futur reste invisible jusqu'à son échéance. Les 18 annonces d'anniversaire sont générées automatiquement.
 - **Admin** — création de comptes, marquage présent/absent, octroi du droit de modification directe aux adjoints (couple dirigeant), **journal d'audit** (qui a fait quoi, quand).
 
