@@ -1,3 +1,6 @@
+import { REPORTEE } from "@/lib/report";
+import { MessageReport } from "@/components/BandeauReport";
+import { signatureDuCouple } from "@/lib/couple";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/Avatar";
@@ -131,12 +134,16 @@ export default async function Accueil() {
     !user.telephone && "votre numéro",
   ].filter(Boolean) as string[];
 
+  const signature = REPORTEE ? await signatureDuCouple() : "";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Bonjour {user.prenom} 👋</h1>
         <p className="text-slate-500 capitalize">{fmtDate.format(new Date())}</p>
       </div>
+
+      {REPORTEE && <MessageReport signature={signature} />}
 
       {/* Profil incomplet : rappel discret mais présent. Un numéro manquant se
           paie le jour du départ, quand personne n'arrive à joindre la personne. */}

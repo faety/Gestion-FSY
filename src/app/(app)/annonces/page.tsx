@@ -2,6 +2,9 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { annonceVisible, CIBLE_LABELS, roleAuMoins } from "@/lib/roles";
 import { creerAnnonce, supprimerAnnonce } from "@/lib/actions";
+import { ANNONCE_LE, REPORTEE } from "@/lib/report";
+import { MessageReport } from "@/components/BandeauReport";
+import { signatureDuCouple } from "@/lib/couple";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
@@ -29,9 +32,23 @@ export default async function AnnoncesPage() {
   const visibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
   const aVenir = programmees.filter((a) => annonceVisible(a.cible, user.role));
 
+  const signature = REPORTEE ? await signatureDuCouple() : "";
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">📢 Annonces</h1>
+
+      {/* Épinglée en tête, et non mêlée aux autres : c'est l'annonce qui
+          conditionne toutes les autres, et elle ne doit pas glisser vers le bas
+          à mesure qu'on en publie de nouvelles. */}
+      {REPORTEE && (
+        <div>
+          <p className="text-xs uppercase tracking-widest text-amber-700 font-semibold mb-1">
+            📌 Épinglé — {ANNONCE_LE}
+          </p>
+          <MessageReport signature={signature} />
+        </div>
+      )}
 
       {peutCreer && (
         <form

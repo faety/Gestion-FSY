@@ -9,6 +9,8 @@ import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/Avatar";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { SITE_AFFICHE } from "@/lib/site";
+import { REPORTEE } from "@/lib/report";
+import { BarreReport } from "@/components/BandeauReport";
 
 export default async function AppLayout({
   children,
@@ -95,6 +97,11 @@ export default async function AppLayout({
           <NavLinks liens={tous.map(({ href, label }) => ({ href, label }))} />
         </nav>
       </header>
+
+      {/* Le report se lit sur chaque page, pas seulement là où l'on pense à
+          aller le chercher : la conférence n'a plus de date, et rien de ce qui
+          est affiché en dessous ne doit se lire sans le savoir. */}
+      {REPORTEE && <BarreReport />}
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 pb-24 sm:pb-4">{children}</main>
 

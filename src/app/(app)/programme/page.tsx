@@ -3,6 +3,8 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { peutModifierDirectement, roleAuMoins } from "@/lib/roles";
 import { Programme } from "@/components/Programme";
 import { ResynchroniserProgramme } from "@/components/ResynchroniserProgramme";
+import { REPORTEE } from "@/lib/report";
+import { EncartReport } from "@/components/BandeauReport";
 
 export default async function ProgrammePage() {
   const user = await exigerUtilisateur();
@@ -26,6 +28,9 @@ export default async function ProgrammePage() {
 
   return (
     <div className="space-y-3">
+      {REPORTEE && (
+        <EncartReport precision="Les horaires ci-dessous restent ceux des manuels et seront repris tels quels à la nouvelle date. Aucune activité n'a lieu aux dates initialement prévues." />
+      )}
     <Programme
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}
       peutModifierDirect={peutModifierDirectement(user)}

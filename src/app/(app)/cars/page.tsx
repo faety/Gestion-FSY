@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { ETAPES_CAR } from "@/lib/etapes-car";
+import { REPORTEE } from "@/lib/report";
+import { EncartReport } from "@/components/BandeauReport";
 
 export default async function CarsPage() {
   const user = await exigerUtilisateur();
@@ -34,6 +36,9 @@ export default async function CarsPage() {
 
   return (
     <div className="space-y-4">
+      {REPORTEE && (
+        <EncartReport precision="Aucun car ne circule aux dates initialement prévues : ne pointez aucune arrivée ni aucun départ. Les affectations déjà faites sont conservées pour la nouvelle date." />
+      )}
       <div>
         <h1 className="text-2xl font-bold">🚌 Cars — Arrivées & départs</h1>
         <p className="text-slate-500 text-sm">

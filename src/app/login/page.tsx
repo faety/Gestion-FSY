@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { seConnecter } from "@/lib/actions";
 import { RetourAccueil } from "@/components/RetourAccueil";
+import { QUAND, REPORTEE, TITRE } from "@/lib/report";
 
 // Après une réinitialisation réussie, on revient ici : sans un mot, la personne
 // ne saurait pas si son nouveau mot de passe a bien été pris en compte.
@@ -34,7 +35,14 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
         </Link>
-        <p className="text-center text-slate-500 mb-6">Abidjan Ouest — Gestion de l'événement</p>
+        <p className="text-center text-slate-500 mb-4">Abidjan Ouest — Gestion de l'événement</p>
+        {/* Beaucoup arrivent ici sans compte, par un lien reçu : la nouvelle
+            doit se lire avant la connexion, pas après. */}
+        {REPORTEE && (
+          <p className="text-sm bg-amber-100 border border-amber-300 text-amber-900 rounded-lg p-3 mb-5">
+            <strong>⚠️ {TITRE}.</strong> {QUAND}
+          </p>
+        )}
         <Suspense fallback={null}>
           <MessageRetour />
         </Suspense>

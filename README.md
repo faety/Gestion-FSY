@@ -1005,6 +1005,49 @@ n'a même pas de page précédente où revenir. Chacune de ces quatre pages port
 **retour à l'accueil**, et leur logo y mène aussi — c'est là qu'on le cherche. Sans cela,
 la seule issue était de retaper l'adresse à la main.
 
+## Report de la conférence
+
+La conférence a été reportée : le site qui devait accueillir les jeunes n'est pas
+disponible. L'application le dit **partout**, et un seul fichier commande cet affichage —
+`src/lib/report.ts`.
+
+| Quand | Ce qu'il faut faire |
+|---|---|
+| La nouvelle date est connue | Renseigner `NOUVELLE_DATE`, redéployer. |
+| La conférence est maintenue | Passer `REPORTEE` à `false`, redéployer. |
+
+Le reste suit tout seul : le titre de l'onglet, l'accroche du site public, le message
+signé, la barre en tête de chaque page de l'espace encadrant, l'annonce épinglée, les
+avertissements du programme et des cars.
+
+**Pourquoi dans le code et non en base.** Une annonce se crée depuis l'application, mais
+elle ne s'affiche que sur la page des annonces, derrière la connexion. Or cette nouvelle
+doit atteindre d'abord ceux qui n'ont pas de compte — les jeunes et leurs familles, qui
+arrivent par le site public — et rester visible partout, sans dépendre de ce que
+quelqu'un pense à consulter.
+
+**Où elle apparaît :**
+
+- **Site public** : le titre de l'onglet et la description (ils voyagent dans les aperçus
+  de lien partagés sur WhatsApp — une page annonçant « du 3 au 8 août » se partagerait
+  encore comme si de rien n'était), l'accroche à la place des dates, puis le message
+  entier sous le hero.
+- **Connexion et demande d'accès** : une ligne, avant même de se connecter. Beaucoup
+  arrivent là par un lien reçu.
+- **Espace encadrant** : une barre en tête de **chaque** page, posée dans le gabarit
+  commun — rien de ce qui est affiché en dessous ne doit se lire sans le savoir.
+- **Accueil et Annonces** : le message entier, signé. Sur les annonces il est épinglé en
+  tête plutôt que mêlé aux autres : c'est celle qui conditionne toutes les autres, et elle
+  ne doit pas glisser vers le bas à mesure qu'on en publie de nouvelles.
+- **Programme** : les horaires restent ceux des manuels et seront repris à la nouvelle
+  date, mais aucune activité n'a lieu aux dates initialement prévues.
+- **Cars** : ne pointer aucune arrivée ni aucun départ. Les affectations sont conservées.
+
+La signature est **lue en base** — les noms du couple dirigeant en fonction — et non
+écrite en dur : un message d'excuses signé « la direction » n'engage personne, et une
+signature figée deviendrait fausse si le couple changeait. La page publique s'affiche même
+si la base ne répond pas ; elle retombe alors sur « Le couple dirigeant la conférence ».
+
 ## Page publique
 
 `/` est une page de présentation accessible sans compte : thème de l'année, dates,

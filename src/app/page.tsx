@@ -4,12 +4,25 @@ import { getUtilisateur } from "@/lib/auth";
 import { THEME_FSY } from "@/lib/theme";
 import { Logo } from "@/components/Logo";
 import { SITE_AFFICHE } from "@/lib/site";
+import { NOUVELLE_DATE, REPORTEE, TITRE } from "@/lib/report";
+import { MessageReport } from "@/components/BandeauReport";
+import { signatureDuCouple } from "@/lib/couple";
 
-export const metadata = {
-  title: "FSY 2026 — Abidjan Ouest · Marche avec moi",
-  description:
-    "Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du 3 au 8 août 2026. Programme, encadrement et informations pratiques.",
-};
+// Le titre et la description voyagent : ils s'affichent dans l'onglet, dans
+// les résultats de recherche et dans l'aperçu d'un lien partagé sur WhatsApp.
+// Une page annonçant « du 3 au 8 août » se partagerait encore comme si de rien
+// n'était.
+export const metadata = REPORTEE
+  ? {
+      title: "FSY 2026 — Abidjan Ouest · Conférence reportée",
+      description:
+        "La conférence FSY 2026 d'Abidjan Ouest, prévue du 3 au 8 août, est reportée à une date ultérieure. Les inscriptions restent valables.",
+    }
+  : {
+      title: "FSY 2026 — Abidjan Ouest · Marche avec moi",
+      description:
+        "Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du 3 au 8 août 2026. Programme, encadrement et informations pratiques.",
+    };
 
 const fmtNombre = new Intl.NumberFormat("fr-FR");
 
@@ -121,6 +134,7 @@ const PRATIQUE = [
 
 export default async function LandingPage() {
   const user = await getUtilisateur();
+  const signature = REPORTEE ? await signatureDuCouple() : "";
 
   // Chiffres agrégés uniquement : aucune donnée personnelle sur la page publique.
   const [nbJeunes, nbCompagnies, nbGroupes, nbPieux, nbActivites] = await Promise.all([
@@ -174,10 +188,25 @@ export default async function LandingPage() {
             FSY 2026
             <span className="block text-blue-100 text-2xl sm:text-4xl mt-1">Abidjan Ouest</span>
           </h1>
-          <p className="mt-5 text-lg sm:text-xl text-blue-50">
-            Du <strong>lundi 3</strong> au <strong>samedi 8 août 2026</strong> — six jours pour
-            {" "}{fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et districts.
-          </p>
+          {REPORTEE ? (
+            <>
+              <p className="mt-5 inline-block bg-amber-300 text-amber-950 font-bold rounded-lg px-4 py-2 text-base sm:text-lg">
+                ⚠️ {TITRE}
+              </p>
+              <p className="mt-3 text-lg sm:text-xl text-blue-50">
+                {NOUVELLE_DATE
+                  ? `Nouvelle date : ${NOUVELLE_DATE}.`
+                  : "La nouvelle date sera annoncée ici."}{" "}
+                Six jours pour {fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et
+                districts — les inscriptions restent valables.
+              </p>
+            </>
+          ) : (
+            <p className="mt-5 text-lg sm:text-xl text-blue-50">
+              Du <strong>lundi 3</strong> au <strong>samedi 8 août 2026</strong> — six jours pour
+              {" "}{fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et districts.
+            </p>
+          )}
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href="#programme"
@@ -194,6 +223,12 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      {REPORTEE && (
+        <div className="max-w-5xl mx-auto px-4 pt-8">
+          <MessageReport signature={signature} />
+        </div>
+      )}
 
       {/* Thème */}
       <section className="max-w-5xl mx-auto px-4 py-12">
