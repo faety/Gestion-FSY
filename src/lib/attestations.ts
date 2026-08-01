@@ -22,7 +22,7 @@ export const CONFERENCE = {
   jours: 6,
   // Valeurs de référence, utilisées tant que les chiffres n'ont pas été figés
   // sur une attestation. Les attestations délivrées portent les leurs.
-  participants: 644,
+  participants: 650,
   encadrants: 64,
   unites: 8,
 };

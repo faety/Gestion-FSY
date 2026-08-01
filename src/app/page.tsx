@@ -137,8 +137,14 @@ export default async function LandingPage() {
   const signature = REPORTEE ? await signatureDuCouple() : "";
 
   // Chiffres agrégés uniquement : aucune donnée personnelle sur la page publique.
+  //
+  // Le nombre annoncé est celui des inscriptions, toutes comptées : c'est le
+  // chiffre de la zone, celui que le couple dirigeant et les pieux donnent, et
+  // celui auquel les familles se reconnaissent. Retrancher les annulations
+  // aurait été une nuance d'organisation interne — juste, mais pas la réponse
+  // à « combien de jeunes ? ».
   const [nbJeunes, nbCompagnies, nbGroupes, nbPieux, nbActivites] = await Promise.all([
-    prisma.jeune.count({ where: { statutInscription: { not: "Annulé(e)" } } }),
+    prisma.jeune.count(),
     prisma.compagnie.count(),
     prisma.groupe.count(),
     prisma.pieu.count(),
@@ -146,7 +152,7 @@ export default async function LandingPage() {
   ]);
 
   const chiffres = [
-    { valeur: fmtNombre.format(nbJeunes), label: "jeunes attendus" },
+    { valeur: fmtNombre.format(nbJeunes), label: "jeunes inscrits" },
     { valeur: nbPieux, label: "pieux et districts" },
     { valeur: nbCompagnies, label: "compagnies" },
     { valeur: nbGroupes, label: "groupes" },
