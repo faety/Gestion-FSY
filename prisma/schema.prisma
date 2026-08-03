@@ -62,6 +62,8 @@ model User {
   attestationsDelivrees Attestation[] @relation("Delivreur")
   reinitialisations  ReinitialisationMotDePasse[]
   auditLogs          AuditLog[]
+  tachesPreparation  TachePreparation[]
+  responsabilites    Responsabilite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -400,6 +402,42 @@ model TentativeConnexion {
   createdAt DateTime @default(now())
 
   @@index([email, createdAt])
+}
+
+// Jalon du calendrier de préparation, tel que le fixe le guide de planification.
+//
+// Seul l'état est en base : l'intitulé, l'échéance et le responsable viennent
+// de src/lib/guide.ts, qui transcrit le guide. Une ligne n'existe que lorsque
+// quelqu'un a coché ou annoté — un calendrier vierge ne pèse rien.
+model TachePreparation {
+  id  String @id @default(cuid())
+  cle String @unique
+
+  faite    Boolean   @default(false)
+  faitLe   DateTime?
+  faitPar  User?     @relation(fields: [faitParId], references: [id])
+  faitParId String?
+  note     String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// Responsabilité du comité logistique, confiée nominativement.
+//
+// La personne n'a pas forcément de compte : l'administrateur des repas peut
+// être le gestionnaire de la cafétéria du site. On garde donc un nom et un
+// téléphone libres, et un lien vers un compte quand il existe.
+model Responsabilite {
+  id  String @id @default(cuid())
+  cle String @unique
+
+  user      User?   @relation(fields: [userId], references: [id])
+  userId    String?
+  nom       String?
+  telephone String?
+  note      String?
+
+  updatedAt DateTime @updatedAt
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure

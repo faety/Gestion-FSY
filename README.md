@@ -1005,6 +1005,70 @@ n'a même pas de page précédente où revenir. Chacune de ces quatre pages port
 **retour à l'accueil**, et leur logo y mène aussi — c'est là qu'on le cherche. Sans cela,
 la seule issue était de retaper l'adresse à la main.
 
+## Préparation — le guide de planification
+
+Le manuel de l'encadrant dit ce que chacun fait pendant les six jours ; l'application ne
+portait que cela. Le **guide de planification** dit ce qui doit être prêt *avant*, et ce
+que le site doit offrir. C'est ce qui sert maintenant : la conférence est reportée faute
+de site, et tout le travail de préparation reprend.
+
+`/preparation` (coordinateurs principaux et couple dirigeant) réunit quatre choses.
+
+### Ce que le site doit offrir
+
+Les exigences du guide, **chiffrées sur les effectifs réels**. C'est la différence entre
+une liste et un outil : un gestionnaire de site sait répondre à « combien de douches ? »,
+pas à « assez de douches ? ».
+
+| Ratio du guide | Pour cette conférence |
+|---|---|
+| Un lit par personne | 719 couchages |
+| Une toilette pour 16 femmes | 25 au minimum |
+| Une toilette ou un urinoir pour 18 hommes | 18 au minimum |
+| Une douche pour 12 personnes | 60 au minimum |
+| 50 personnes par salle de classe | 15 salles |
+| Un lieu de réunion par groupe | 72 lieux |
+| Un lieu de rassemblement par compagnie | 36 lieux |
+
+S'y ajoutent la salle où tout le monde s'assoit en même temps, la cafétéria, l'infirmerie,
+l'espace d'enregistrement, le stockage, la buanderie, le parking, et les exigences
+d'accessibilité. **Quinze sont marquées bloquantes** : sans elles la conférence ne peut pas
+se tenir sur ce site — c'est ce qu'on regarde en premier pendant une visite.
+
+Les chiffres se recalculent seuls : une inscription de plus, et la liste suit.
+
+### Calendrier de préparation
+
+Les jalons du guide qui relèvent de cette session — du site à réserver jusqu'au rapport
+remis après la conférence — groupés par échéance, avec qui en répond. Chacun se coche, et
+**se note** : « site réservé » et « site réservé, contrat en attente de signature » ne sont
+pas la même chose, et c'est la seconde qu'on veut relire trois semaines plus tard. Qui a
+coché et quand est enregistré.
+
+La case bascule sans attendre le serveur : sur un réseau mobile, une case qui ne bouge pas
+pendant une seconde se reclique, et le second clic annule le premier.
+
+### Comité logistique
+
+L'application ne connaissait que le comité de session — couple dirigeant, coordinateurs,
+adjoints, conseillers. Le **comité logistique** existe pourtant, et c'est lui qu'on cherche
+à joindre quand un repas manque ou qu'une chambre est inondée. Ses onze responsabilités
+(installations, finances, repas, bien-être, hébergement, inclusion, matériel, publicité,
+inscriptions, personnel encadrant, et l'administrateur de la logistique qui les coordonne)
+se confient nominativement.
+
+Le titulaire **n'a pas forcément de compte** : l'administrateur des repas peut être le
+gestionnaire de la cafétéria du site. Un nom et un numéro suffisent — c'est souvent tout ce
+qu'on a le jour où il faut appeler. Quand un compte est lié, le nom et le numéro en sont
+tirés plutôt que redoublés : deux vérités possibles, c'est une de trop.
+
+### Signaler un incident
+
+Le Rapport mondial des incidents a **une entrée propre aux conférences FSY** — l'adresse
+n'est pas celle des autres activités de l'Église, et c'est le genre de détail qu'on ne
+cherche pas au moment où il faut signaler. Elle est donnée avec les quatre cas qui exigent
+un rapport, et la règle du guide : *dans le doute, signalez*.
+
 ## Report de la conférence
 
 La conférence a été reportée : le site qui devait accueillir les jeunes n'est pas
@@ -1094,6 +1158,7 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 | Voir les alertes santé de tous les jeunes | — | Droit « Bien-être » | ✅ | ✅ |
 | Verser le fichier d'inscription, corriger un renseignement | — | Droit « Bien-être » | ✅ | ✅ |
 | Remettre le programme sur les rôles officiels | — | — | ✅ | ✅ |
+| Préparation : site, calendrier, comité logistique | — | — | ✅ | ✅ |
 | Changer l'appel d'un conseiller ou d'un adjoint | — | — | ✅ | ✅ |
 | Rattacher une inscription à un compte existant | — | — | ✅ | ✅ |
 | Fusionner deux comptes (conseiller, adjoint) | — | — | ✅ | ✅ |
@@ -1130,6 +1195,8 @@ src/lib/rapprochement.ts   # proximité des noms : inscriptions ↔ comptes, et 
 src/components/Doublons.tsx # deux comptes pour une personne : choix du compte gardé, fusion
 src/components/DecisionInscription.tsx # valider / refuser une inscription, refus des doublons
 src/lib/vigilance.ts       # renseignements médicaux rangés par nature, et déclarations à clarifier
+src/lib/guide.ts           # guide de planification : ratios du site, jalons, comité logistique, incidents
+src/lib/report.ts          # report de la conférence : le seul fichier à modifier
 src/components/Avatar.tsx  # portrait d'un encadrant, ou ses initiales colorées à défaut
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 src/lib/import-inscriptions.ts # lecture du fichier d'inscription, colonnes reconnues, rattachement aux jeunes

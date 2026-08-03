@@ -469,6 +469,85 @@ export async function supprimerMaPhoto() {
   return { ok: true };
 }
 
+// ---------- Préparation de la conférence ----------
+//
+// Le guide de planification fixe des jalons et un comité logistique que
+// l'application ne portait pas. Elle ne connaissait que les six jours ; or ce
+// qui se joue maintenant, c'est ce qui précède — d'autant que la conférence est
+// reportée et que tout le travail de préparation reprend.
+
+/** Cocher ou décocher un jalon du calendrier de préparation. */
+export async function basculerTachePreparation(cle: string, note?: string | null) {
+  const auteur = await exiger("COORDINATEUR");
+  const avant = await prisma.tachePreparation.findUnique({ where: { cle } });
+  const faite = !avant?.faite;
+  await prisma.tachePreparation.upsert({
+    where: { cle },
+    create: {
+      cle,
+      faite,
+      faitLe: faite ? new Date() : null,
+      faitParId: faite ? auteur.id : null,
+      note: note ?? null,
+    },
+    update: {
+      faite,
+      faitLe: faite ? new Date() : null,
+      faitParId: faite ? auteur.id : null,
+      ...(note === undefined ? {} : { note }),
+    },
+  });
+  await journaliser(auteur.id, faite ? "PREPARATION_FAITE" : "PREPARATION_ROUVERTE", cle);
+  revalidatePath("/preparation");
+  return { ok: true as const, faite };
+}
+
+/** Note libre attachée à un jalon : où en est-on, qui a été relancé. */
+export async function noterTachePreparation(cle: string, note: string) {
+  const auteur = await exiger("COORDINATEUR");
+  const propre = note.trim() || null;
+  await prisma.tachePreparation.upsert({
+    where: { cle },
+    create: { cle, note: propre },
+    update: { note: propre },
+  });
+  await journaliser(auteur.id, "PREPARATION_ANNOTEE", cle);
+  revalidatePath("/preparation");
+  return { ok: true as const };
+}
+
+/**
+ * Confier une responsabilité du comité logistique.
+ *
+ * La personne n'a pas forcément de compte : l'administrateur des repas peut
+ * être le gestionnaire de la cafétéria du site. Un nom et un téléphone libres
+ * suffisent donc, et c'est souvent tout ce qu'on a.
+ */
+export async function confierResponsabilite(
+  cle: string,
+  donnees: { userId?: string | null; nom?: string | null; telephone?: string | null; note?: string | null }
+) {
+  const auteur = await exiger("COORDINATEUR");
+  const userId = donnees.userId?.trim() || null;
+  const valeurs = {
+    userId,
+    // Un compte lié porte déjà le nom et le numéro : les redoubler ferait deux
+    // vérités possibles, dont une périmée.
+    nom: userId ? null : donnees.nom?.trim() || null,
+    telephone: userId ? null : donnees.telephone?.trim() || null,
+    note: donnees.note?.trim() || null,
+  };
+  await prisma.responsabilite.upsert({
+    where: { cle },
+    create: { cle, ...valeurs },
+    update: valeurs,
+  });
+  await journaliser(auteur.id, "RESPONSABILITE_CONFIEE", `${cle} → ${valeurs.nom ?? userId ?? "personne"}`);
+  revalidatePath("/preparation");
+  revalidatePath("/organigramme");
+  return { ok: true as const };
+}
+
 // ---------- Programme officiel : rôles attendus par niveau ----------
 //
 // Le programme est semé une fois, à la création de la base. Corriger le fichier

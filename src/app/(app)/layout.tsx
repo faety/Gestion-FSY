@@ -49,7 +49,10 @@ export default async function AppLayout({
     { href: "/organigramme", label: "Organigramme", icone: "🗂️" },
     { href: "/annonces", label: "Annonces", icone: "📢" },
     ...(estCoordinateur
-      ? [{ href: "/rapports/final", label: "Rapport final", icone: "📊" }]
+      ? [
+          { href: "/preparation", label: "Préparation", icone: "🧭", court: "Prépa." },
+          { href: "/rapports/final", label: "Rapport final", icone: "📊" },
+        ]
       : []),
     { href: "/profil", label: "Mon profil", icone: "🙋" },
     { href: "/attestation", label: "Mon attestation", icone: "🎓" },
