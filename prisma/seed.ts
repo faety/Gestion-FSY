@@ -337,7 +337,7 @@ async function main() {
       data: {
         titre: "Inscriptions à vérifier",
         contenu:
-          "Sept inscriptions approuvées méritent une vérification : six participants ont plus de 18 ans au 3 août (20, 20, 21, 22, 23 et 28 ans) alors qu'ils sont enregistrés comme participants, et une date de naissance est saisie « 0012-08-23 » — elle est conservée telle quelle et signalée, pas corrigée d'office.\n\n" +
+          "Sept inscriptions approuvées méritent une vérification : six participants ont plus de 18 ans au premier jour (20, 20, 21, 22, 23 et 28 ans) alors qu'ils sont enregistrés comme participants, et une date de naissance est saisie « 0012-08-23 » — elle est conservée telle quelle et signalée, pas corrigée d'office.\n\n" +
           "Trois personnes apparaissent aussi deux fois parmi les inscriptions approuvées. La page Pieux et districts détaille ces cas avec les éléments permettant de trancher.",
         cible: "COORDINATEURS",
         creeParId: dirigeant.id,

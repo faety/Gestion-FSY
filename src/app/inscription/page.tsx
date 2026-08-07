@@ -6,7 +6,7 @@ import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { useActionState } from "react";
 import { sInscrire } from "@/lib/actions";
 import { RetourAccueil } from "@/components/RetourAccueil";
-import { QUAND, REPORTEE, TITRE } from "@/lib/report";
+import { A_ANNONCER, QUAND, TITRE } from "@/lib/report";
 
 export default function InscriptionPage() {
   const [state, action, pending] = useActionState(sInscrire, undefined);
@@ -46,10 +46,9 @@ export default function InscriptionPage() {
           <h1 className="text-2xl font-bold text-center text-fsy-dark">FSY 2026</h1>
         </Link>
         <p className="text-center text-slate-500 text-sm">Demande de compte encadrant</p>
-        {REPORTEE && (
-          <p className="text-sm bg-amber-100 border border-amber-300 text-amber-900 rounded-lg p-3 mt-4">
-            <strong>⚠️ {TITRE}.</strong> {QUAND} Votre demande reste utile : les comptes
-            créés maintenant serviront à la nouvelle date.
+        {A_ANNONCER && (
+          <p className="text-sm bg-green-100 border border-green-300 text-green-900 rounded-lg p-3 mt-4">
+            <strong>{TITRE}.</strong> {QUAND}
           </p>
         )}
         <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 mt-4">

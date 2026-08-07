@@ -2,7 +2,7 @@
 
 **[fsy.ci](https://fsy.ci)**
 
-Application web de gestion de la conférence FSY 2026 (3 au 8 août 2026, Abidjan Ouest) :
+Application web de gestion de la conférence FSY 2026 (24 au 29 août 2026, Foyer des Jeunes de Jacqueville — zone Abidjan Ouest) :
 650 participants, hiérarchie de rôles, arrivées/départs par cars, programme, annonces et
 rapports quotidiens des encadrants. Une page publique présente la conférence ; tout le
 reste est derrière une authentification.
@@ -1069,6 +1069,155 @@ n'est pas celle des autres activités de l'Église, et c'est le genre de détail
 cherche pas au moment où il faut signaler. Elle est donnée avec les quatre cas qui exigent
 un rapport, et la règle du guide : *dans le doute, signalez*.
 
+## Quand et où — une seule source
+
+La date et le lieu étaient écrits en dur dans une douzaine de fichiers : la page publique,
+les gabarits d'e-mail, les attestations, le critère d'âge, la fenêtre des anniversaires, le
+programme, le pied de page. Quand la conférence a été déplacée du 3-8 août au **24-29 août
+2026, au Foyer des Jeunes de Jacqueville**, il a fallu les retrouver un par un — et il en
+serait resté.
+
+Tout se dérive désormais de `src/lib/theme.ts` :
+
+```ts
+export const PREMIER_JOUR = { annee: 2026, mois: 7, jour: 24 };
+export const LIEU = { nom: "Foyer des Jeunes de Jacqueville", ville: "Jacqueville", … };
+```
+
+En suivent les libellés (« lundi 24 août 2026 », « 24 au 29 août 2026 », « 24 August 2026 »),
+le titre de l'onglet et la description partagée, le critère d'âge, la fenêtre des
+anniversaires, les dates du programme et celles des attestations.
+
+**Le déplacement s'est fait à trois semaines près, ce qui a conservé les jours de la
+semaine.** Le premier jour reste un lundi, le quatrième un jeudi (vêtements du dimanche),
+le dernier un samedi : le programme des manuels tient tel quel. Une date future qui ne
+tomberait pas sur un lundi obligerait à reprendre les tenues et les réunions du dimanche —
+c'est écrit dans le fichier, pour que personne ne l'apprenne à ses dépens.
+
+### Ce que le déplacement a changé sans qu'on le demande
+
+- **Le critère d'âge suit le premier jour.** « Au plus 18 ans » se lit maintenant au
+  24 août et non au 3. Vérifié sur les 643 jeunes datés : **aucun ne bascule** au-dessus de
+  la limite. Un seul cas mérite d'être connu — Aggée Lagoké Bouazo aura 19 ans le 28 août,
+  soit pendant la conférence ; il reste éligible, le critère se lisant au premier jour.
+- **Les anniversaires changent entièrement.** La fenêtre va de la veille au dernier jour :
+  elle passe du 2-8 août au 23-29 août. Les dix jeunes fêtés dans la première période
+  cèdent la place à **neuf autres, aucun en commun**. Une fenêtre écrite en dur aurait fait
+  fêter des jeunes dont ce n'était plus l'anniversaire, et oublié les nouveaux.
+- **Le trajet s'allonge.** Le site est à Jacqueville et non à Abidjan : la page Cars le
+  signale, et les informations pratiques du site public aussi.
+
+### Appliquer le déplacement à une base déjà semée
+
+Le programme n'est semé qu'à la création de la base. Après un changement de dates, la base
+garde donc les anciens horaires et affiche une conférence qui n'aura pas lieu. Sur
+`/programme`, **« Programme officiel : horaires et rôles »** rejoue la référence sur les
+activités officielles : les quatre rôles attendus **et** les horaires, plus les dates des
+journées. Ni les titres, ni les lieux, ni les activités ajoutées sur place n'y sont
+touchés. L'appariement se fait par titre puis par ordre chronologique — inchangé par un
+décalage uniforme. Journalisé, rejouable sans effet.
+
+## Annoncer un changement
+
+`src/lib/report.ts` porte ce qu'il y a à annoncer, et un seul fichier commande l'affichage.
+
+| Situation | Réglage |
+|---|---|
+| La conférence est reportée sans date | `REPORTEE = true` |
+| Une nouvelle période vient d'être annoncée | `NOUVELLE_PERIODE = true` |
+| Tout le monde est au courant | les deux à `false` |
+
+Le reste suit : le bandeau du site public, la barre en tête de chaque page de l'espace
+encadrant, l'annonce épinglée, les avertissements du programme et des cars. **L'ambre pour
+un report, le vert pour une bonne nouvelle** — quelqu'un qui a lu « reportée » doit voir au
+premier coup d'œil que ce n'est plus la même chose qui est écrite.
+
+**Pourquoi dans le code et non en base.** Une annonce se crée depuis l'application, mais
+elle ne s'affiche que sur la page des annonces, derrière la connexion. Or ces nouvelles-là
+doivent atteindre d'abord ceux qui n'ont pas de compte — les jeunes et leurs familles, qui
+arrivent par le site public — et rester visibles partout, sans dépendre de ce que
+quelqu'un pense à consulter.
+
+**On ne retire pas une annonce sans la remplacer.** Le report levé, ceux qui avaient lu
+« reportée » lisent les nouvelles dates au même endroit ; sinon chacun croit ce qu'il veut.
+
+La signature est **lue en base** — les noms du couple dirigeant en fonction — et non écrite
+en dur : un message signé « la direction » n'engage personne. La page publique s'affiche
+même si la base ne répond pas ; elle retombe alors sur « Le couple dirigeant la
+conférence ».
+
+### Sortir des pages d'avant-connexion
+
+La connexion, la demande d'accès et le mot de passe oublié s'ouvrent souvent depuis un
+lien reçu par message : on y arrive sans être passé par la présentation, et le navigateur
+n'a même pas de page précédente où revenir. Chacune de ces quatre pages porte donc un
+**retour à l'accueil**, et leur logo y mène aussi — c'est là qu'on le cherche. Sans cela,
+la seule issue était de retaper l'adresse à la main.
+
+## Préparation — le guide de planification
+
+Le manuel de l'encadrant dit ce que chacun fait pendant les six jours ; l'application ne
+portait que cela. Le **guide de planification** dit ce qui doit être prêt *avant*, et ce
+que le site doit offrir. C'est ce qui sert maintenant : la conférence est reportée faute
+de site, et tout le travail de préparation reprend.
+
+`/preparation` (coordinateurs principaux et couple dirigeant) réunit quatre choses.
+
+### Ce que le site doit offrir
+
+Les exigences du guide, **chiffrées sur les effectifs réels**. C'est la différence entre
+une liste et un outil : un gestionnaire de site sait répondre à « combien de douches ? »,
+pas à « assez de douches ? ».
+
+| Ratio du guide | Pour cette conférence |
+|---|---|
+| Un lit par personne | 719 couchages |
+| Une toilette pour 16 femmes | 25 au minimum |
+| Une toilette ou un urinoir pour 18 hommes | 18 au minimum |
+| Une douche pour 12 personnes | 60 au minimum |
+| 50 personnes par salle de classe | 15 salles |
+| Un lieu de réunion par groupe | 72 lieux |
+| Un lieu de rassemblement par compagnie | 36 lieux |
+
+S'y ajoutent la salle où tout le monde s'assoit en même temps, la cafétéria, l'infirmerie,
+l'espace d'enregistrement, le stockage, la buanderie, le parking, et les exigences
+d'accessibilité. **Quinze sont marquées bloquantes** : sans elles la conférence ne peut pas
+se tenir sur ce site — c'est ce qu'on regarde en premier pendant une visite.
+
+Les chiffres se recalculent seuls : une inscription de plus, et la liste suit.
+
+### Calendrier de préparation
+
+Les jalons du guide qui relèvent de cette session — du site à réserver jusqu'au rapport
+remis après la conférence — groupés par échéance, avec qui en répond. Chacun se coche, et
+**se note** : « site réservé » et « site réservé, contrat en attente de signature » ne sont
+pas la même chose, et c'est la seconde qu'on veut relire trois semaines plus tard. Qui a
+coché et quand est enregistré.
+
+La case bascule sans attendre le serveur : sur un réseau mobile, une case qui ne bouge pas
+pendant une seconde se reclique, et le second clic annule le premier.
+
+### Comité logistique
+
+L'application ne connaissait que le comité de session — couple dirigeant, coordinateurs,
+adjoints, conseillers. Le **comité logistique** existe pourtant, et c'est lui qu'on cherche
+à joindre quand un repas manque ou qu'une chambre est inondée. Ses onze responsabilités
+(installations, finances, repas, bien-être, hébergement, inclusion, matériel, publicité,
+inscriptions, personnel encadrant, et l'administrateur de la logistique qui les coordonne)
+se confient nominativement.
+
+Le titulaire **n'a pas forcément de compte** : l'administrateur des repas peut être le
+gestionnaire de la cafétéria du site. Un nom et un numéro suffisent — c'est souvent tout ce
+qu'on a le jour où il faut appeler. Quand un compte est lié, le nom et le numéro en sont
+tirés plutôt que redoublés : deux vérités possibles, c'est une de trop.
+
+### Signaler un incident
+
+Le Rapport mondial des incidents a **une entrée propre aux conférences FSY** — l'adresse
+n'est pas celle des autres activités de l'Église, et c'est le genre de détail qu'on ne
+cherche pas au moment où il faut signaler. Elle est donnée avec les quatre cas qui exigent
+un rapport, et la règle du guide : *dans le doute, signalez*.
+
 ## Report de la conférence
 
 La conférence a été reportée : le site qui devait accueillir les jeunes n'est pas
@@ -1093,7 +1242,7 @@ quelqu'un pense à consulter.
 **Où elle apparaît :**
 
 - **Site public** : le titre de l'onglet et la description (ils voyagent dans les aperçus
-  de lien partagés sur WhatsApp — une page annonçant « du 3 au 8 août » se partagerait
+  de lien partagés sur WhatsApp — une page annonçant des dates périmées se partagerait
   encore comme si de rien n'était), l'accroche à la place des dates, puis le message
   entier sous le hero.
 - **Connexion et demande d'accès** : une ligne, avant même de se connecter. Beaucoup
@@ -1196,7 +1345,8 @@ src/components/Doublons.tsx # deux comptes pour une personne : choix du compte g
 src/components/DecisionInscription.tsx # valider / refuser une inscription, refus des doublons
 src/lib/vigilance.ts       # renseignements médicaux rangés par nature, et déclarations à clarifier
 src/lib/guide.ts           # guide de planification : ratios du site, jalons, comité logistique, incidents
-src/lib/report.ts          # report de la conférence : le seul fichier à modifier
+src/lib/report.ts          # ce qu'il y a à annoncer : report, nouvelle période
+src/lib/theme.ts           # thème, dates et lieu — la source unique dont tout se dérive
 src/components/Avatar.tsx  # portrait d'un encadrant, ou ses initiales colorées à défaut
 prisma/seed.ts             # amorçage : participants, groupes, programme, annonces
 src/lib/import-inscriptions.ts # lecture du fichier d'inscription, colonnes reconnues, rattachement aux jeunes

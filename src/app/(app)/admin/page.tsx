@@ -221,7 +221,7 @@ export default async function AdminPage() {
           </p>
           <p className="text-sm text-red-800 mt-2">
             Demandez-leur d'ouvrir l'application et de choisir un mot de passe. Pour celles qui
-            ne le feront pas avant le 3 août, utilisez « Mot de passe oublié » dans le tableau
+            ne le feront pas avant le début de la conférence, utilisez « Mot de passe oublié » dans le tableau
             ci-dessous : cela remplace le mot de passe commun par un provisoire propre à
             chacune.
           </p>

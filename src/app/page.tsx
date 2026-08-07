@@ -1,69 +1,64 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
-import { THEME_FSY } from "@/lib/theme";
+import { CONFERENCE, LIEU, THEME_FSY } from "@/lib/theme";
 import { Logo } from "@/components/Logo";
 import { SITE_AFFICHE } from "@/lib/site";
-import { NOUVELLE_DATE, REPORTEE, TITRE } from "@/lib/report";
+import { A_ANNONCER, QUAND, TITRE } from "@/lib/report";
 import { MessageReport } from "@/components/BandeauReport";
 import { signatureDuCouple } from "@/lib/couple";
 
-// Le titre et la description voyagent : ils s'affichent dans l'onglet, dans
-// les résultats de recherche et dans l'aperçu d'un lien partagé sur WhatsApp.
-// Une page annonçant « du 3 au 8 août » se partagerait encore comme si de rien
-// n'était.
-export const metadata = REPORTEE
-  ? {
-      title: "FSY 2026 — Abidjan Ouest · Conférence reportée",
-      description:
-        "La conférence FSY 2026 d'Abidjan Ouest, prévue du 3 au 8 août, est reportée à une date ultérieure. Les inscriptions restent valables.",
-    }
-  : {
-      title: "FSY 2026 — Abidjan Ouest · Marche avec moi",
-      description:
-        "Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du 3 au 8 août 2026. Programme, encadrement et informations pratiques.",
-    };
+// Le titre et la description voyagent : ils s'affichent dans l'onglet, dans les
+// résultats de recherche et dans l'aperçu d'un lien partagé sur WhatsApp. Une
+// page qui annoncerait encore les anciennes dates se partagerait comme si de
+// rien n'était — d'où la dérivation.
+export const metadata = {
+  title: `FSY 2026 — Abidjan Ouest · ${CONFERENCE.duAu}`,
+  description:
+    `Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du ${CONFERENCE.duAu}, au ${LIEU.nom} ` +
+    `(${LIEU.ville}). Programme, encadrement et informations pratiques.`,
+};
 
 const fmtNombre = new Intl.NumberFormat("fr-FR");
 
 // Journées, telles qu'elles ressortent des manuels officiels
 const JOURS = [
   {
-    jour: "Lundi 3 août",
+    jour: "Lundi 24 août",
     titre: "Arrivée et ouverture",
     detail:
       "Accueil aux cars, installation dans les dortoirs, formation des groupes et des compagnies, dévotion d'ouverture.",
     emoji: "🚌",
   },
   {
-    jour: "Mardi 4 août",
+    jour: "Mardi 25 août",
     titre: "Premier jour des cours",
     detail:
       "Dévotion du matin, classes, activités de compagnie, et le bal du soir.",
     emoji: "📖",
   },
   {
-    jour: "Mercredi 5 août",
+    jour: "Mercredi 26 août",
     titre: "Deuxième jour des cours",
     detail: "Classes, service, activités sportives et soirée jeux.",
     emoji: "🎯",
   },
   {
-    jour: "Jeudi 6 août",
+    jour: "Jeudi 27 août",
     titre: "Journée du dimanche",
     detail:
       "Réunions séparées jeunes gens et jeunes filles, spectacles des compagnies, soirée de témoignages.",
     emoji: "🕊️",
   },
   {
-    jour: "Vendredi 7 août",
+    jour: "Vendredi 28 août",
     titre: "Dernière journée complète",
     detail:
       "Classes, grand jeu, dévotion de clôture, veillée de nuit et préparation du retour.",
     emoji: "✨",
   },
   {
-    jour: "Samedi 8 août",
+    jour: "Samedi 29 août",
     titre: "Clôture et départs",
     detail: "Rangement, dévotion finale, remise des attestations, montée dans les cars.",
     emoji: "🏠",
@@ -111,9 +106,17 @@ const MODULES = [
 
 const PRATIQUE = [
   {
+    titre: "Quand et où",
+    texte:
+      `${CONFERENCE.duAuComplet.replace(/^du /, "Du ")}, au ${LIEU.nom}, à ${LIEU.ville}. ` +
+      `Les encadrants arrivent la veille, le ${CONFERENCE.veille}. Le site est hors d'Abidjan : ` +
+      "les cars partent de chaque pieu et district, et le trajet est plus long que pour une " +
+      "conférence tenue en ville — les horaires de départ sont donnés par les dirigeants de pieu.",
+  },
+  {
     titre: "Qui peut participer",
     texte:
-      "Les jeunes de 14 ans au plus tard le 31 décembre 2026, et de 18 ans au plus le 3 août 2026. L'inscription se fait par le pieu ou le district.",
+      `Les jeunes de 14 ans au plus tard le 31 décembre 2026, et de 18 ans au plus le ${CONFERENCE.du}. L'inscription se fait par le pieu ou le district.`,
   },
   {
     titre: "Encadrement",
@@ -134,7 +137,7 @@ const PRATIQUE = [
 
 export default async function LandingPage() {
   const user = await getUtilisateur();
-  const signature = REPORTEE ? await signatureDuCouple() : "";
+  const signature = A_ANNONCER ? await signatureDuCouple() : "";
 
   // Chiffres agrégés uniquement : aucune donnée personnelle sur la page publique.
   //
@@ -194,23 +197,16 @@ export default async function LandingPage() {
             FSY 2026
             <span className="block text-blue-100 text-2xl sm:text-4xl mt-1">Abidjan Ouest</span>
           </h1>
-          {REPORTEE ? (
-            <>
-              <p className="mt-5 inline-block bg-amber-300 text-amber-950 font-bold rounded-lg px-4 py-2 text-base sm:text-lg">
-                ⚠️ {TITRE}
-              </p>
-              <p className="mt-3 text-lg sm:text-xl text-blue-50">
-                {NOUVELLE_DATE
-                  ? `Nouvelle date : ${NOUVELLE_DATE}.`
-                  : "La nouvelle date sera annoncée ici."}{" "}
-                Six jours pour {fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et
-                districts — les inscriptions restent valables.
-              </p>
-            </>
-          ) : (
-            <p className="mt-5 text-lg sm:text-xl text-blue-50">
-              Du <strong>lundi 3</strong> au <strong>samedi 8 août 2026</strong> — six jours pour
-              {" "}{fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et districts.
+          <p className="mt-5 text-lg sm:text-xl text-blue-50">
+            <strong>{CONFERENCE.duAuComplet.replace(/^du /, "Du ")}</strong> — six jours pour{" "}
+            {fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et districts.
+          </p>
+          <p className="mt-1 text-lg text-blue-100">
+            Au <strong>{LIEU.nom}</strong>, à {LIEU.ville}.
+          </p>
+          {A_ANNONCER && (
+            <p className="mt-4 inline-block bg-green-300 text-green-950 font-bold rounded-lg px-4 py-2 text-base">
+              📅 {TITRE} — {QUAND}
             </p>
           )}
           <div className="mt-8 flex flex-wrap gap-3">
@@ -230,7 +226,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {REPORTEE && (
+      {A_ANNONCER && (
         <div className="max-w-5xl mx-auto px-4 pt-8">
           <MessageReport signature={signature} />
         </div>
@@ -387,7 +383,7 @@ export default async function LandingPage() {
 
       <footer className="bg-fsy-dark text-blue-100 text-sm">
         <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row gap-2 justify-between">
-          <span>FSY 2026 — Abidjan Ouest · 3 au 8 août 2026 · {SITE_AFFICHE}</span>
+          <span>FSY 2026 — Abidjan Ouest · {CONFERENCE.duAu} · {SITE_AFFICHE}</span>
           <span className="text-blue-300">« {THEME_FSY.titre} » — {THEME_FSY.reference}</span>
         </div>
       </footer>

@@ -1,10 +1,13 @@
-// Report de la conférence.
+// Ce qui a changé depuis l'annonce initiale.
 //
 // ════════════════════════════════════════════════════════════════════════════
 //  C'EST LE SEUL FICHIER À MODIFIER quand la situation change :
 //
-//   • Nouvelle date connue  → renseigner NOUVELLE_DATE, redéployer.
-//   • Conférence maintenue  → passer REPORTEE à false, redéployer.
+//   • Nouvelle période annoncée → NOUVELLE_PERIODE à true (les dates elles-mêmes
+//     se règlent dans src/lib/theme.ts).
+//   • Tout le monde est au courant → NOUVELLE_PERIODE à false, et l'application
+//     retrouve son affichage ordinaire.
+//   • Un nouveau report → REPORTEE à true.
 //
 //  Tout le reste — le bandeau du site public, la barre en tête de chaque page
 //  de l'espace encadrant, l'annonce épinglée, les avertissements du programme
@@ -13,48 +16,68 @@
 //
 // Pourquoi dans le code et non en base : une annonce se crée depuis
 // l'application, mais elle ne s'affiche que sur la page des annonces, derrière
-// la connexion. Or la nouvelle doit atteindre d'abord ceux qui n'ont pas de
-// compte — les jeunes et leurs familles, qui arrivent par le site public — et
-// elle doit rester visible partout, tout le temps, sans dépendre de ce que
-// quelqu'un pense à consulter.
+// la connexion. Or ces nouvelles-là doivent atteindre d'abord ceux qui n'ont
+// pas de compte — les jeunes et leurs familles, qui arrivent par le site
+// public — et rester visibles partout, sans dépendre de ce que quelqu'un pense
+// à consulter.
 
-export const REPORTEE = true;
+import { CONFERENCE, LIEU } from "./theme";
 
-/** Date de la décision, telle qu'elle est annoncée. */
+/** La conférence est-elle reportée sans date ? */
+export const REPORTEE = false;
+
+/**
+ * Une nouvelle période vient d'être annoncée.
+ *
+ * On ne se contente pas de retirer le report : ceux qui ont lu « reportée »
+ * doivent lire la suite au même endroit. Une annonce qui disparaît sans être
+ * remplacée laisse chacun croire ce qu'il veut.
+ */
+export const NOUVELLE_PERIODE = true;
+
+/** Date de l'annonce, telle qu'elle est donnée. */
 export const ANNONCE_LE = "1er août 2026";
 
-/** Renseigner dès que la date est arrêtée ; laisser null en attendant. */
-export const NOUVELLE_DATE: string | null = null;
+export const TITRE = REPORTEE
+  ? "La conférence FSY 2026 est reportée"
+  : "Nouvelles dates et nouveau lieu";
 
-/** Ce qui tenait en une ligne, pour les bandeaux étroits. */
-export const TITRE = "La conférence FSY 2026 est reportée";
+export const RAISON = "le site qui devait nous accueillir n'était pas disponible";
 
-export const RAISON =
-  "le site qui devait nous accueillir n'est finalement pas disponible";
+export const RESUME = REPORTEE
+  ? `La conférence est reportée à une date ultérieure : ${RAISON}.`
+  : `La conférence se tiendra ${CONFERENCE.duAuComplet}, au ${LIEU.nom}.`;
 
-export const RESUME =
-  `Prévue du 3 au 8 août, la conférence est reportée à une date ultérieure : ${RAISON}.`;
-
-export const QUAND = NOUVELLE_DATE
-  ? `Nouvelle date : ${NOUVELLE_DATE}.`
-  : "La nouvelle date sera communiquée ici dès qu'elle sera arrêtée.";
+export const QUAND = REPORTEE
+  ? "La nouvelle date sera communiquée ici dès qu'elle sera arrêtée."
+  : `${CONFERENCE.duAuComplet} · ${LIEU.nom}, ${LIEU.ville}.`;
 
 /**
  * Le message, tel qu'il doit être lu.
  *
- * Simple, court, et il présente des excuses — beaucoup de familles avaient
- * réservé ces journées, et plusieurs centaines de jeunes attendaient ce
- * moment depuis des mois. Une nouvelle pareille se donne sans détour et sans
- * se cacher derrière l'administration.
+ * Simple et court. Il dit d'abord ce qui a changé, puis ce que chacun veut
+ * savoir tout de suite : faut-il refaire quelque chose ? Il remercie de la
+ * patience, parce que le report a coûté à beaucoup de familles qui avaient
+ * réservé les premières dates.
  */
-export const MESSAGE = [
-  "Chers jeunes, chers parents, chers encadrants,",
-  `La conférence FSY 2026 d'Abidjan Ouest, prévue du 3 au 8 août, est reportée à une date ultérieure : ${RAISON}.`,
-  "Nous mesurons la déception que cette nouvelle apporte. Beaucoup d'entre vous s'étaient préparés, avaient pris des dispositions et réservé ces journées. Nous vous prions de bien vouloir nous en excuser.",
-  "Les inscriptions restent valables : personne n'a à se réinscrire, et rien n'est perdu de ce qui a été préparé.",
-  `${QUAND} Elle vous sera également transmise par vos dirigeants de pieu et de district.`,
-  "Merci de votre compréhension et de votre patience. Nous vous portons dans nos prières, et nous nous réjouissons de vous retrouver.",
-];
+export const MESSAGE = REPORTEE
+  ? [
+      "Chers jeunes, chers parents, chers encadrants,",
+      `La conférence FSY 2026 d'Abidjan Ouest est reportée à une date ultérieure : ${RAISON}.`,
+      "Nous mesurons la déception que cette nouvelle apporte et vous prions de bien vouloir nous en excuser.",
+      "Les inscriptions restent valables : personne n'a à se réinscrire.",
+      "La nouvelle date sera communiquée ici dès qu'elle sera arrêtée.",
+    ]
+  : [
+      "Chers jeunes, chers parents, chers encadrants,",
+      `La conférence FSY 2026 d'Abidjan Ouest se tiendra ${CONFERENCE.duAuComplet}, au ${LIEU.nom}, à ${LIEU.ville}.`,
+      `Le report annoncé début août tenait à l'indisponibilité du premier site. Un lieu a été trouvé, et ces dates-ci sont fermes : notez-les, et prévenez autour de vous.`,
+      "Les inscriptions faites pour les premières dates restent valables — personne n'a à se réinscrire, et rien n'est perdu de ce qui a été préparé. Les groupes, les compagnies et les affectations sont conservés.",
+      "Merci de votre patience pendant ces semaines d'attente. Nous nous réjouissons de vous retrouver.",
+    ];
 
 export const SIGNATURE_DEFAUT = "Le couple dirigeant la conférence";
 export const SIGNATURE_ROLE = "FSY 2026 — Abidjan Ouest";
+
+/** Y a-t-il quelque chose à annoncer, quelle qu'en soit la nature ? */
+export const A_ANNONCER = REPORTEE || NOUVELLE_PERIODE;

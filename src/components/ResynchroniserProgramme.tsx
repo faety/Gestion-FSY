@@ -14,11 +14,15 @@ const LIBELLES: Record<string, string> = {
   SI_ATTRIBUE: "si attribué",
   AUCUN: "ne le concerne pas",
 };
-const lisible = (r: string) =>
-  r
-    .split(" / ")
-    .map((x, i) => `${["conseiller", "adjoint", "coordinateur", "couple"][i]} : ${LIBELLES[x] ?? x}`)
+// Une ligne de rôles se lit « DIRIGER / RECEVOIR / … » ; une date, non. On ne
+// traduit que ce qui est une suite de quatre rôles connus.
+const lisible = (r: string) => {
+  const parts = r.split(" / ");
+  if (parts.length !== 4 || !parts.every((x) => x in LIBELLES)) return r;
+  return parts
+    .map((x, i) => `${["conseiller", "adjoint", "coordinateur", "couple"][i]} : ${LIBELLES[x]}`)
     .join(" · ");
+};
 
 // Remettre les rôles attendus du programme officiel sur les activités déjà en
 // base.
@@ -39,7 +43,7 @@ export function ResynchroniserProgramme() {
         onClick={() => setOuvert(true)}
         className="text-xs text-slate-400 hover:text-fsy underline"
       >
-        Rôles du programme officiel
+        Programme officiel : horaires et rôles
       </button>
     );
   }
@@ -49,11 +53,11 @@ export function ResynchroniserProgramme() {
       data-resync
       className="bg-white rounded-xl shadow-sm p-4 space-y-2 border border-slate-200"
     >
-      <h2 className="font-bold text-sm">Rôles du programme officiel</h2>
+      <h2 className="font-bold text-sm">Remettre le programme sur la référence</h2>
       <p className="text-xs text-slate-500">
-        Remet sur chaque activité officielle le rôle attendu de chaque niveau, tel que le
-        fixent les manuels. Ne touche ni aux titres, ni aux horaires, ni aux lieux, ni aux
-        activités ajoutées sur place.
+        Rejoue les horaires officiels et le rôle attendu de chaque niveau sur les activités
+        du programme. Ne touche ni aux titres, ni aux lieux, ni aux activités ajoutées sur
+        place. À lancer après un changement de dates.
       </p>
 
       <div className="flex gap-2">
@@ -73,7 +77,7 @@ export function ResynchroniserProgramme() {
           }
           className="text-xs bg-fsy hover:bg-fsy-dark text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-40"
         >
-          {pending ? "…" : "Mettre à jour les rôles"}
+          {pending ? "…" : "Mettre à jour le programme"}
         </button>
         <button
           onClick={() => setOuvert(false)}
@@ -94,7 +98,8 @@ export function ResynchroniserProgramme() {
           <p className="font-medium">
             {bilan.misAJour === 0
               ? "✅ Tout était déjà à jour."
-              : `✅ ${bilan.misAJour} activités remises sur les rôles officiels.`}{" "}
+              : `✅ ${bilan.misAJour} activités remises sur la référence` +
+                (bilan.datesDeplacees > 0 ? `, dont ${bilan.datesDeplacees} déplacées.` : ".")}{" "}
             <span className="font-normal text-green-800">
               {bilan.inchangees} déjà conformes.
             </span>

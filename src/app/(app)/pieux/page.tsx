@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { CONFERENCE } from "@/lib/theme";
 import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import {
@@ -157,7 +158,7 @@ export default async function PieuxPage() {
         <h2 className="font-bold">Contrôle des critères d'âge</h2>
         <p className="text-sm text-slate-500 mt-1">
           Pour être accepté, un participant doit avoir <strong>au moins 14 ans au
-          31 décembre 2026</strong> et <strong>au plus 18 ans au 3 août 2026</strong> (jour et
+          31 décembre 2026</strong> et <strong>au plus 18 ans au {CONFERENCE.du}</strong> (jour et
           mois pris en compte).
         </p>
         {horsCriteres.length === 0 ? (

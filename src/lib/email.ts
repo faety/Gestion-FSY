@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { SITE_AFFICHE, SITE_URL } from "./site";
+import { CONFERENCE } from "./theme";
 
 // Envoi d'e-mails par Resend.
 //
@@ -166,7 +167,7 @@ FSY 2026 — Abidjan Ouest
 ${corps}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f8fafc;color:#64748b;font-size:12px;line-height:1.5">
-Conférence pour la jeunesse FSY 2026, du 3 au 8 août 2026 · <a href="${SITE}" style="color:${BLEU}">${SITE_AFFICHE}</a><br>
+Conférence pour la jeunesse FSY 2026, du ${CONFERENCE.duAu} · <a href="${SITE}" style="color:${BLEU}">${SITE_AFFICHE}</a><br>
 Ce message est destiné à l'encadrement de la conférence. Si vous n'êtes pas concerné, ignorez-le.
 </td></tr>
 </table></body></html>`;

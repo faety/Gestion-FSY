@@ -3,7 +3,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { peutModifierDirectement, roleAuMoins } from "@/lib/roles";
 import { Programme } from "@/components/Programme";
 import { ResynchroniserProgramme } from "@/components/ResynchroniserProgramme";
-import { REPORTEE } from "@/lib/report";
+import { A_ANNONCER } from "@/lib/report";
 import { EncartReport } from "@/components/BandeauReport";
 
 export default async function ProgrammePage() {
@@ -28,8 +28,8 @@ export default async function ProgrammePage() {
 
   return (
     <div className="space-y-3">
-      {REPORTEE && (
-        <EncartReport precision="Les horaires ci-dessous restent ceux des manuels et seront repris tels quels à la nouvelle date. Aucune activité n'a lieu aux dates initialement prévues." />
+      {A_ANNONCER && (
+        <EncartReport precision="Les horaires sont ceux des manuels, décalés de trois semaines : les jours de la semaine sont inchangés, donc le programme tient tel quel." />
       )}
     <Programme
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}

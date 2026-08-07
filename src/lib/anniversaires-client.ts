@@ -1,7 +1,14 @@
-// Fenêtre des anniversaires fêtés pendant la conférence : du 2 au 8 août 2026,
-// bornes incluses. Version utilisable côté client (le module prisma/anniversaires.ts
-// sert à l'amorçage et à la génération des annonces).
-export const FENETRE = { mois: 8, jourDebut: 2, jourFin: 8, annee: 2026 };
+// Fenêtre des anniversaires fêtés pendant la conférence : de la veille au
+// dernier jour, bornes incluses. Version utilisable côté client (le module
+// prisma/anniversaires.ts sert à l'amorçage et à la génération des annonces).
+import { DATE_FIN, DATE_VEILLE } from "./theme";
+
+export const FENETRE = {
+  mois: DATE_VEILLE.getMonth() + 1,
+  jourDebut: DATE_VEILLE.getDate(),
+  jourFin: DATE_FIN.getDate(),
+  annee: DATE_FIN.getFullYear(),
+};
 
 export function anniversairePendantConference(d: Date): boolean {
   return (

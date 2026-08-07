@@ -17,7 +17,7 @@ export const ETAPES_CAR = [
   {
     cle: "DEPART",
     label: "Retour (dernier jour)",
-    description: "Montée dans le car le samedi 8 août, pour le départ du lieu de la conférence",
+    description: "Montée dans le car le dernier jour, pour le départ du lieu de la conférence",
     badge: "🏠 Reparti",
     couleur: "orange",
   },

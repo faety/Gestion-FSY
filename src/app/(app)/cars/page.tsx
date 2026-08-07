@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { ETAPES_CAR } from "@/lib/etapes-car";
-import { REPORTEE } from "@/lib/report";
+import { A_ANNONCER } from "@/lib/report";
 import { EncartReport } from "@/components/BandeauReport";
 
 export default async function CarsPage() {
@@ -36,8 +36,8 @@ export default async function CarsPage() {
 
   return (
     <div className="space-y-4">
-      {REPORTEE && (
-        <EncartReport precision="Aucun car ne circule aux dates initialement prévues : ne pointez aucune arrivée ni aucun départ. Les affectations déjà faites sont conservées pour la nouvelle date." />
+      {A_ANNONCER && (
+        <EncartReport precision="Les affectations sont conservées. Le trajet est plus long qu'annoncé au départ : le site est à Jacqueville, et non à Abidjan — prévoyez-le avec les pieux." />
       )}
       <div>
         <h1 className="text-2xl font-bold">🚌 Cars — Arrivées & départs</h1>

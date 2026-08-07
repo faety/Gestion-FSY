@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
+import { CONFERENCE } from "@/lib/theme";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s · FSY 2026 Abidjan Ouest",
   },
   description:
-    "Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du 3 au 8 août 2026. « Marche avec moi » — Moïse 6:34.",
+    `Conférence pour la jeunesse FSY 2026 Abidjan Ouest, du ${CONFERENCE.duAu}. « Marche avec moi » — Moïse 6:34.`,
   applicationName: "FSY 2026",
   // Ajoutée à l'écran d'accueil du téléphone, l'application s'ouvre sans la
   // barre du navigateur : un écran de plus pour les listes de pointage.
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   openGraph: {
     title: "FSY 2026 — Abidjan Ouest",
-    description: "« Marche avec moi » — Moïse 6:34. Du 3 au 8 août 2026.",
+    description: `« Marche avec moi » — Moïse 6:34. Du ${CONFERENCE.duAu}.`,
     url: SITE_URL,
     siteName: "FSY 2026 Abidjan Ouest",
     locale: "fr_CI",

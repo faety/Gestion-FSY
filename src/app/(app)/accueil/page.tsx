@@ -1,4 +1,4 @@
-import { REPORTEE } from "@/lib/report";
+import { A_ANNONCER } from "@/lib/report";
 import { MessageReport } from "@/components/BandeauReport";
 import { signatureDuCouple } from "@/lib/couple";
 import Link from "next/link";
@@ -134,7 +134,7 @@ export default async function Accueil() {
     !user.telephone && "votre numéro",
   ].filter(Boolean) as string[];
 
-  const signature = REPORTEE ? await signatureDuCouple() : "";
+  const signature = A_ANNONCER ? await signatureDuCouple() : "";
 
   return (
     <div className="space-y-6">
@@ -143,7 +143,7 @@ export default async function Accueil() {
         <p className="text-slate-500 capitalize">{fmtDate.format(new Date())}</p>
       </div>
 
-      {REPORTEE && <MessageReport signature={signature} />}
+      {A_ANNONCER && <MessageReport signature={signature} />}
 
       {/* Profil incomplet : rappel discret mais présent. Un numéro manquant se
           paie le jour du départ, quand personne n'arrive à joindre la personne. */}

@@ -1,15 +1,23 @@
 // ============================================================================
 // ANNIVERSAIRES PENDANT LA CONFÉRENCE — FSY 2026
 // ============================================================================
-// Les jeunes dont l'anniversaire tombe entre le 2 et le 8 août 2026 (bornes
-// incluses) sont fêtés pendant la conférence. Pour chaque date concernée, trois
-// annonces sont programmées à l'avance : J-2, J-1 et le jour même.
+// Les jeunes dont l'anniversaire tombe pendant la conférence, veille comprise,
+// sont fêtés sur place. Pour chaque date concernée, trois annonces sont
+// programmées à l'avance : J-2, J-1 et le jour même.
+//
+// La fenêtre se déduit des dates de la conférence : quand elle a été déplacée
+// du 3 au 24 août, les dix anniversaires de la première période ont cédé la
+// place à neuf autres, entièrement différents. Une fenêtre écrite en dur aurait
+// fait fêter des jeunes dont ce n'était plus l'anniversaire, et oublié les
+// autres.
 // ============================================================================
 
+import { DATE_FIN, DATE_VEILLE } from "../src/lib/theme";
+
 export const FENETRE_ANNIVERSAIRES = {
-  debut: { mois: 8, jour: 2 },
-  fin: { mois: 8, jour: 8 },
-  annee: 2026,
+  debut: { mois: DATE_VEILLE.getMonth() + 1, jour: DATE_VEILLE.getDate() },
+  fin: { mois: DATE_FIN.getMonth() + 1, jour: DATE_FIN.getDate() },
+  annee: DATE_FIN.getFullYear(),
 };
 
 export type JeuneAnniversaire = {

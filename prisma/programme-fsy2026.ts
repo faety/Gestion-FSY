@@ -1,5 +1,5 @@
 // ============================================================================
-// PROGRAMME OFFICIEL — FSY 2026 ABIDJAN OUEST (3 au 8 août 2026)
+// PROGRAMME OFFICIEL — FSY 2026 ABIDJAN OUEST
 // ============================================================================
 //
 // Thème de l'année : Moïse 6:34 — « Marche avec moi »
@@ -14,8 +14,16 @@
 //  3. Canevas des réunions spirituelles matinales des jours 2, 3 et 4
 //     (PD80061859 140) : thèmes doctrinaux.
 //
-// DATES : jour zéro = dimanche 2 août 2026 (veille, encadrants uniquement —
-// d'où la tenue du dimanche), jour 1 = lundi 3 août … jour 6 = samedi 8 août.
+// DATES : elles ne sont pas écrites ici. Le jour 1 vient de src/lib/theme.ts,
+// et tout le reste s'y rapporte — jour zéro = la veille (encadrants uniquement,
+// d'où la tenue du dimanche), jour 6 = le dernier.
+//
+// La conférence a été déplacée du 3-8 août au 24-29 août : trois semaines
+// exactement, ce qui a conservé les jours de la semaine. Le premier jour reste
+// un lundi, le quatrième un jeudi (vêtements du dimanche), le dernier un
+// samedi. Le programme des manuels tient donc tel quel. Un déplacement qui ne
+// tomberait pas sur un lundi obligerait à reprendre les tenues et les réunions
+// spirituelles du dimanche.
 //
 // DIVERGENCES ENTRE LES DEUX MANUELS — arbitrages retenus :
 //  • Jour 5, message « À emporter chez soi » : le manuel du participant indique
@@ -61,8 +69,8 @@
 // peuplement, afin qu'il n'existe qu'une seule version du texte.
 export { THEME_FSY } from "../src/lib/theme";
 
-// Jour 1 = lundi 3 août 2026 (le jour zéro tombe donc le dimanche 2 août)
-export const DATE_JOUR_1 = { annee: 2026, mois: 7 /* août */, jour: 3 };
+// Jour 1 de la conférence — défini une seule fois, dans src/lib/theme.ts.
+export { PREMIER_JOUR as DATE_JOUR_1 } from "../src/lib/theme";
 
 export const JOURNEES = [
   {
@@ -135,7 +143,7 @@ export type ActiviteSeed = {
 };
 
 export const PROGRAMME: ActiviteSeed[] = [
-  // ══════════ JOUR ZÉRO — dimanche 2 août : encadrants uniquement ══════════
+  // ══════════ JOUR ZÉRO — dimanche : encadrants uniquement ══════════
   {
     jour: 0,
     debut: "16:00",
@@ -195,7 +203,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     r: ["DIRIGER", "ASSISTER", "ASSISTER", "FACULTATIF"],
   },
 
-  // ══════════════ JOUR 1 — lundi 3 août : arrivées ══════════════
+  // ══════════════ JOUR 1 — lundi : arrivées ══════════════
   { jour: 1, debut: "07:30", fin: "08:20", titre: "Petit-déjeuner des encadrants", encadrants: true, r: ["ASSISTER", "ASSISTER", "ASSISTER", "ASSISTER"] },
   { jour: 1, debut: "08:00", fin: "08:25", titre: "Réunion coordinateurs / adjoints", encadrants: true, r: R.REUNION_COORD_ADJOINTS },
   {
@@ -747,7 +755,7 @@ export const PROGRAMME: ActiviteSeed[] = [
   },
   { jour: 5, debut: "22:30", titre: "Réunion coordinateurs / adjoints", encadrants: true, r: R.REUNION_COORD_ADJOINTS },
 
-  // ══════════════ JOUR 6 — samedi 8 août : départs ══════════════
+  // ══════════════ JOUR 6 — samedi : départs ══════════════
   {
     jour: 6,
     debut: "06:30",

@@ -23,7 +23,8 @@ import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
 import { candidats, rapprochementBloquant } from "./rapprochement";
 import { renseignementUtile } from "./renseignements";
-import { PROGRAMME, type ActiviteSeed } from "../../prisma/programme-fsy2026";
+import { JOURNEES, PROGRAMME, type ActiviteSeed } from "../../prisma/programme-fsy2026";
+import { dateDuJour } from "./theme";
 import {
   apparier,
   extraireFiches,
@@ -553,8 +554,12 @@ export async function confierResponsabilite(
 // Le programme est semé une fois, à la création de la base. Corriger le fichier
 // de référence ne change donc rien à une base déjà remplie — et c'est le cas de
 // la production. Cette action rejoue la référence sur les activités officielles
-// déjà présentes, en ne touchant qu'aux quatre champs de rôle : ni les titres,
-// ni les horaires, ni les lieux, ni les activités ajoutées sur place.
+// déjà présentes : les quatre rôles attendus, et les horaires. Ni les titres,
+// ni les lieux, ni les activités ajoutées sur place n'y sont touchés.
+//
+// Les horaires comptent autant que les rôles depuis que la conférence a été
+// déplacée du 3-8 août au 24-29 août : la base gardait les anciennes dates, et
+// le programme affichait une conférence qui n'aurait pas lieu.
 //
 // L'appariement se fait par titre puis par ordre chronologique, et non par
 // horodatage : quatorze activités s'appellent « Rassemblement en compagnie |
@@ -564,6 +569,7 @@ export async function confierResponsabilite(
 export type BilanProgramme = {
   ok: true;
   misAJour: number;
+  datesDeplacees: number;
   inchangees: number;
   details: { titre: string; jour: number; heure: string; avant: string; apres: string }[];
   ignores: string[];
@@ -579,6 +585,7 @@ export async function resynchroniserProgramme(): Promise<BilanProgramme | Refus>
       id: true,
       titre: true,
       debut: true,
+      fin: true,
       roleConseiller: true,
       roleAdjoint: true,
       roleCoordinateur: true,
@@ -605,6 +612,8 @@ export async function resynchroniserProgramme(): Promise<BilanProgramme | Refus>
   const details: BilanProgramme["details"] = [];
   const ignores: string[] = [];
   let inchangees = 0;
+  let datesDeplacees = 0;
+  const jourFr = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 
   for (const [titre, reference] of attendues) {
     const trouvees = parTitre.get(titre);
@@ -615,10 +624,19 @@ export async function resynchroniserProgramme(): Promise<BilanProgramme | Refus>
       continue;
     }
     for (let i = 0; i < reference.length; i++) {
-      const r = reference[i].r ?? ["ASSISTER", "ASSISTER", "ASSISTER", "FACULTATIF"];
+      const ref = reference[i];
+      const r = ref.r ?? ["ASSISTER", "ASSISTER", "ASSISTER", "FACULTATIF"];
       const a = trouvees[i];
       const avant = [a.roleConseiller, a.roleAdjoint, a.roleCoordinateur, a.roleDirigeant];
-      if (avant.join("|") === r.join("|")) {
+      const rolesAChanger = avant.join("|") !== r.join("|");
+
+      const debut = dateDuJour(ref.jour, ref.debut);
+      const fin = ref.fin ? dateDuJour(ref.jour, ref.fin) : null;
+      const datesAChanger =
+        a.debut.getTime() !== debut.getTime() ||
+        (a.fin?.getTime() ?? null) !== (fin?.getTime() ?? null);
+
+      if (!rolesAChanger && !datesAChanger) {
         inchangees++;
         continue;
       }
@@ -629,28 +647,56 @@ export async function resynchroniserProgramme(): Promise<BilanProgramme | Refus>
           roleAdjoint: r[1],
           roleCoordinateur: r[2],
           roleDirigeant: r[3],
+          debut,
+          fin,
         },
       });
+      if (datesAChanger) datesDeplacees++;
       details.push({
         titre,
-        jour: reference[i].jour,
-        heure: reference[i].debut,
-        avant: avant.join(" / "),
-        apres: r.join(" / "),
+        jour: ref.jour,
+        heure: ref.debut,
+        avant: datesAChanger ? jourFr.format(a.debut) : avant.join(" / "),
+        apres: datesAChanger ? jourFr.format(debut) : r.join(" / "),
       });
     }
+  }
+
+  // Les journées portent les tenues et servent de repère au programme : elles
+  // doivent suivre le même décalage, sinon le jour 1 s'affiche à une date et
+  // ses activités à une autre.
+  for (const j of JOURNEES) {
+    const date = dateDuJour(j.numero);
+    await prisma.journeeConference.upsert({
+      where: { numero: j.numero },
+      update: { date },
+      create: {
+        numero: j.numero,
+        date,
+        tenue: j.tenue,
+        tenueEncadrants: j.tenueEncadrants,
+        note: j.note,
+      },
+    });
   }
 
   if (details.length > 0) {
     await journaliser(
       auteur.id,
       "PROGRAMME_RESYNCHRONISE",
-      `${details.length} activités remises sur les rôles officiels`
+      `${details.length} activités remises sur la référence (${datesDeplacees} horaires déplacés)`
     );
-    revalidatePath("/programme");
-    revalidatePath("/accueil");
   }
-  return { ok: true, misAJour: details.length, inchangees, details: details.slice(0, 40), ignores };
+  revalidatePath("/programme");
+  revalidatePath("/accueil");
+  return {
+    ok: true,
+    misAJour: details.length,
+    datesDeplacees,
+    inchangees,
+    details: details.slice(0, 40),
+    ignores,
+  };
 }
 
 // ---------- Renseignements médicaux et alimentaires ----------

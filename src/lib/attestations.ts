@@ -10,16 +10,17 @@
 // contrôler l'authenticité sur fsy.ci.
 
 import type { Role } from "./roles";
+import { CONFERENCE as CONFERENCE_DATES, LIEU } from "./theme";
 
 export const CONFERENCE = {
   nom: "FSY 2026 — Abidjan Ouest",
-  du: "3 août 2026",
-  au: "8 août 2026",
-  duEn: "3 August 2026",
-  auEn: "8 August 2026",
-  lieu: "Abidjan, Côte d'Ivoire",
-  lieuEn: "Abidjan, Ivory Coast",
-  jours: 6,
+  du: CONFERENCE_DATES.du,
+  au: CONFERENCE_DATES.au,
+  duEn: CONFERENCE_DATES.duEn,
+  auEn: CONFERENCE_DATES.auEn,
+  lieu: `${LIEU.nom}, ${LIEU.villePays}`,
+  lieuEn: `${LIEU.nom}, ${LIEU.villePaysEn}`,
+  jours: CONFERENCE_DATES.jours,
   // Valeurs de référence, utilisées tant que les chiffres n'ont pas été figés
   // sur une attestation. Les attestations délivrées portent les leurs.
   participants: 650,
@@ -322,7 +323,7 @@ export function phraseCV(role: string, sexe: string, faits: FaitsAttestation): s
         : `Encadrement continu ${groupe} sur ${CONFERENCE.jours} jours, au sein d'une organisation de ${a.participants} participants`;
 
   return (
-    `${intitule} · Conférence FSY 2026 Abidjan Ouest — août 2026\n` +
+    `${intitule} · Conférence FSY 2026 Abidjan Ouest — ${CONFERENCE_DATES.duAu}\n` +
     `${perimetre}. Responsable de leur sécurité, du suivi individuel et du reporting ` +
     `quotidien auprès de la coordination.`
   );

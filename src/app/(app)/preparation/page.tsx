@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { CALENDRIER, COMITE_LOGISTIQUE, RAPPORT_INCIDENTS, exigencesDuSite } from "@/lib/guide";
-import { REPORTEE } from "@/lib/report";
+import { A_ANNONCER } from "@/lib/report";
 import { EncartReport } from "@/components/BandeauReport";
 import { Calendrier, Comite, type EtatTache, type Titulaire } from "@/components/Preparation";
 
@@ -15,9 +15,9 @@ const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
 //
 // Le manuel de l'encadrant dit ce que chacun fait pendant la conférence ;
 // l'application ne portait que cela. Le guide de planification dit ce qui doit
-// être prêt avant, et ce que le site doit offrir — et c'est ce qui sert
-// maintenant, puisque la conférence est reportée faute de site et que tout le
-// travail de préparation reprend.
+// être prêt avant, et ce que le site doit offrir. La liste chiffrée a servi à
+// évaluer le Foyer des Jeunes de Jacqueville ; elle sert encore à vérifier, une
+// fois sur place, que ce qui avait été annoncé y est.
 export default async function PreparationPage() {
   const user = await exigerUtilisateur();
   if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/accueil");
@@ -81,8 +81,8 @@ export default async function PreparationPage() {
         </p>
       </div>
 
-      {REPORTEE && (
-        <EncartReport precision="Cette page est celle qui sert maintenant : la préparation reprend, et le site reste à trouver." />
+      {A_ANNONCER && (
+        <EncartReport precision="Les exigences ci-dessous ont servi à retenir le site ; vérifiez-les une dernière fois sur place, avant l'arrivée des jeunes." />
       )}
 
       {/* ---------- Ce que le site doit offrir ---------- */}
