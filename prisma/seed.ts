@@ -291,22 +291,59 @@ async function main() {
     // remet le calendrier en place sans toucher aux heures, donc sans défaire
     // un horaire ajusté sur place — ce qu'une réécriture depuis la référence
     // aurait fait.
-    const premiere = await prisma.activite.findFirst({
+
+    // La base de production a été semée avant que le drapeau « officielle »
+    // n'existe : ses activités portent la valeur par défaut, false, et tout ce
+    // qui vise le programme officiel — ce décalage, la resynchronisation —
+    // passait au travers sans un mot. Tant qu'aucune activité n'est marquée,
+    // celles dont le titre est celui de la référence le deviennent.
+    if ((await prisma.activite.count({ where: { officielle: true } })) === 0) {
+      const marquees = await prisma.activite.updateMany({
+        where: { titre: { in: [...new Set(PROGRAMME.map((a) => a.titre))] } },
+        data: { officielle: true },
+      });
+      if (marquees.count > 0) {
+        console.log(`   🏷️  ${marquees.count} activités reconnues comme programme officiel.`);
+      }
+    }
+
+    const officielles = await prisma.activite.findMany({
       where: { officielle: true },
       orderBy: { debut: "asc" },
-      select: { debut: true },
+      select: { titre: true, debut: true },
     });
-    if (premiere) {
-      const attendue = dateDe(0, "00:00");
+    if (officielles.length > 0) {
+      // L'écart se mesure titre par titre — première occurrence en base contre
+      // première occurrence de la référence — et c'est l'écart majoritaire qui
+      // l'emporte. Supposer que la plus ancienne activité en base est celle de
+      // la veille casserait dès qu'elle aurait été renommée ou retirée.
       const jourDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-      const ecartJours = Math.round((jourDe(attendue) - jourDe(premiere.debut)) / 86_400_000);
+      const enBase = new Map<string, Date>();
+      for (const a of officielles) if (!enBase.has(a.titre)) enBase.set(a.titre, a.debut);
+      const reference = new Map<string, number>();
+      for (const a of PROGRAMME) if (!reference.has(a.titre)) reference.set(a.titre, a.jour);
+      const votes = new Map<number, number>();
+      for (const [titre, debut] of enBase) {
+        const jour = reference.get(titre);
+        if (jour === undefined) continue;
+        const ecart = Math.round((jourDe(dateDe(jour, "00:00")) - jourDe(debut)) / 86_400_000);
+        votes.set(ecart, (votes.get(ecart) ?? 0) + 1);
+      }
+      const ecartJours = [...votes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0;
       if (ecartJours !== 0) {
-        const officielles = await prisma.activite.findMany({
-          where: { officielle: true },
+        // Toute l'ancienne période part d'un bloc, y compris ce qui n'y est pas
+        // marqué officiel : une activité ajoutée sur place l'a été pour la
+        // conférence, elle déménage avec elle. Ce qui vit hors de la période ne
+        // bouge pas.
+        const jours = PROGRAMME.map((a) => a.jour);
+        const ms = ecartJours * 86_400_000;
+        const ancienDebut = new Date(jourDe(dateDe(Math.min(...jours), "00:00")) - ms);
+        const ancienneFin = new Date(jourDe(dateDe(Math.max(...jours), "00:00")) - ms + 86_400_000);
+        const aDeplacer = await prisma.activite.findMany({
+          where: { debut: { gte: ancienDebut, lt: ancienneFin } },
           select: { id: true, debut: true, fin: true },
         });
-        const ms = ecartJours * 86_400_000;
-        for (const a of officielles) {
+        for (const a of aDeplacer) {
           await prisma.activite.update({
             where: { id: a.id },
             data: {
@@ -317,7 +354,7 @@ async function main() {
         }
         console.log(
           `   ⏩ Programme décalé de ${ecartJours > 0 ? "+" : ""}${ecartJours} jours : ` +
-            `${officielles.length} activités replacées sur la nouvelle période.`
+            `${aDeplacer.length} activités replacées sur la nouvelle période.`
         );
       }
     }
