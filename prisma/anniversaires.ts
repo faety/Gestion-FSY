@@ -12,13 +12,20 @@
 // autres.
 // ============================================================================
 
-import { DATE_FIN, DATE_VEILLE } from "../src/lib/theme";
-
-export const FENETRE_ANNIVERSAIRES = {
-  debut: { mois: DATE_VEILLE.getMonth() + 1, jour: DATE_VEILLE.getDate() },
-  fin: { mois: DATE_FIN.getMonth() + 1, jour: DATE_FIN.getDate() },
-  annee: DATE_FIN.getFullYear(),
-};
+// La règle est définie une seule fois, dans src/lib/anniversaires-client.ts :
+// l'application et l'amorçage doivent répondre la même chose à « qui fête son
+// anniversaire pendant la conférence ? ». Deux implémentations finiraient par
+// diverger, et personne ne s'en apercevrait avant le jour venu.
+export {
+  FENETRE as FENETRE_ANNIVERSAIRES,
+  ageALaConference,
+  anniversairePendantConference,
+} from "../src/lib/anniversaires-client";
+import {
+  FENETRE,
+  ageALaConference,
+  anniversairePendantConference,
+} from "../src/lib/anniversaires-client";
 
 export type JeuneAnniversaire = {
   prenom: string;
@@ -28,19 +35,6 @@ export type JeuneAnniversaire = {
   pieu: string;
   groupe?: string | null;
 };
-
-// Anniversaire dans la fenêtre de la conférence ? (jour et mois uniquement)
-export function anniversairePendantConference(d: Date): boolean {
-  const mois = d.getMonth() + 1;
-  const jour = d.getDate();
-  if (mois !== FENETRE_ANNIVERSAIRES.debut.mois) return false;
-  return jour >= FENETRE_ANNIVERSAIRES.debut.jour && jour <= FENETRE_ANNIVERSAIRES.fin.jour;
-}
-
-// Âge atteint le jour de l'anniversaire, pendant la conférence
-export function ageALaConference(dateNaissance: Date): number {
-  return FENETRE_ANNIVERSAIRES.annee - dateNaissance.getFullYear();
-}
 
 const fmtJour = new Intl.DateTimeFormat("fr-FR", {
   weekday: "long",
@@ -72,18 +66,27 @@ export type AnnonceAnniversaire = {
 export function annoncesAnniversaires(
   jeunes: JeuneAnniversaire[]
 ): AnnonceAnniversaire[] {
-  // Regroupement par jour du mois
-  const parJour = new Map<number, JeuneAnniversaire[]>();
+  // Regroupement par date, mois compris : une conférence à cheval sur deux mois
+  // — 30 août au 4 septembre, par exemple — mêlerait sinon le 1er septembre au
+  // 1er août, et l'annonce tomberait un mois trop tôt.
+  const parDate = new Map<string, JeuneAnniversaire[]>();
   for (const j of jeunes) {
     if (!anniversairePendantConference(j.dateNaissance)) continue;
-    const jour = j.dateNaissance.getDate();
-    parJour.set(jour, [...(parJour.get(jour) ?? []), j]);
+    const cle = `${j.dateNaissance.getMonth() + 1}-${j.dateNaissance.getDate()}`;
+    parDate.set(cle, [...(parDate.get(cle) ?? []), j]);
   }
 
   const annonces: AnnonceAnniversaire[] = [];
-  for (const [jour, liste] of [...parJour.entries()].sort((a, b) => a[0] - b[0])) {
+  const ordre = (cle: string) => {
+    const [m, d] = cle.split("-").map(Number);
+    return m * 100 + d;
+  };
+  for (const [cle, liste] of [...parDate.entries()].sort((a, b) => ordre(a[0]) - ordre(b[0]))) {
     liste.sort((a, b) => a.dateNaissance.getTime() - b.dateNaissance.getTime());
-    const dateAnniv = new Date(FENETRE_ANNIVERSAIRES.annee, FENETRE_ANNIVERSAIRES.debut.mois - 1, jour);
+    const [mois, jour] = cle.split("-").map(Number);
+    // L'année de la conférence, pas celle de naissance : c'est l'anniversaire
+    // qui se fête, à la date où il tombe cette année-là.
+    const dateAnniv = new Date(FENETRE.annee, mois - 1, jour);
     const libelleJour = fmtJour.format(dateAnniv);
     const nb = liste.length;
     const pluriel = nb > 1 ? "s" : "";

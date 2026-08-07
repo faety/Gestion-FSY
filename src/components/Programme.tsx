@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { CONFERENCE, LIEU } from "@/lib/theme";
 import {
   creerActivite,
   modifierActivite,
@@ -140,6 +141,11 @@ export function Programme({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">📅 Programme</h1>
+          {/* L'étendue du programme, veille comprise : elle commence un jour
+              avant la conférence des jeunes, quand les encadrants arrivent. */}
+          <p className="text-sm font-medium text-slate-700">
+            {CONFERENCE.duAuAvecVeille.replace(/^du /, "Du ")} · {LIEU.nom}
+          </p>
           <p className="text-sm text-slate-500">
             FSY 2026 — « Marche avec moi » (Moïse 6:34)
           </p>

@@ -1084,9 +1084,16 @@ export const PREMIER_JOUR = { annee: 2026, mois: 7, jour: 24 };
 export const LIEU = { nom: "Foyer des Jeunes de Jacqueville", ville: "Jacqueville", … };
 ```
 
-En suivent les libellés (« lundi 24 août 2026 », « 24 au 29 août 2026 », « 24 August 2026 »),
+En suivent les libellés (« lundi 24 août 2026 », « 24 au 29 août 2026 », « 24 August 2026 »,
+et « du dimanche 23 au samedi 29 août 2026 » pour l'étendue du programme, veille comprise),
 le titre de l'onglet et la description partagée, le critère d'âge, la fenêtre des
 anniversaires, les dates du programme et celles des attestations.
+
+**Deux plages, toutes deux justes.** La conférence des jeunes court du **24 au 29** ; le
+programme, lui, commence la veille — le **dimanche 23**, quand les encadrants arrivent,
+visitent le site et se réunissent. La page Programme affiche donc « du dimanche 23 au
+samedi 29 », et l'annonce publique « du lundi 24 au samedi 29 ». Les confondre ferait
+arriver les encadrants un jour trop tard.
 
 **Le déplacement s'est fait à trois semaines près, ce qui a conservé les jours de la
 semaine.** Le premier jour reste un lundi, le quatrième un jeudi (vêtements du dimanche),
@@ -1100,10 +1107,18 @@ c'est écrit dans le fichier, pour que personne ne l'apprenne à ses dépens.
   24 août et non au 3. Vérifié sur les 643 jeunes datés : **aucun ne bascule** au-dessus de
   la limite. Un seul cas mérite d'être connu — Aggée Lagoké Bouazo aura 19 ans le 28 août,
   soit pendant la conférence ; il reste éligible, le critère se lisant au premier jour.
-- **Les anniversaires changent entièrement.** La fenêtre va de la veille au dernier jour :
-  elle passe du 2-8 août au 23-29 août. Les dix jeunes fêtés dans la première période
-  cèdent la place à **neuf autres, aucun en commun**. Une fenêtre écrite en dur aurait fait
-  fêter des jeunes dont ce n'était plus l'anniversaire, et oublié les nouveaux.
+- **Les anniversaires changent entièrement.** La fenêtre va de la veille au dernier jour,
+  bornes comprises : **du 23 au 29 août**. Elle passe donc du 2-8 août au 23-29 août, et les
+  dix jeunes fêtés dans la première période cèdent la place à **neuf autres, aucun en
+  commun**. Une fenêtre écrite en dur aurait fait fêter des jeunes dont ce n'était plus
+  l'anniversaire, et oublié les nouveaux.
+
+  La règle est définie **une seule fois** (`src/lib/anniversaires-client.ts`) : l'application
+  et l'amorçage, qui programme les annonces J-2, J-1 et jour J, s'en servent tous les deux.
+  Deux implémentations pour une même question finiraient par diverger sans que personne s'en
+  aperçoive avant le jour venu. La comparaison porte sur le rang dans l'année et non sur le
+  seul quantième, pour qu'une conférence à cheval sur deux mois — 30 août au 4 septembre,
+  par exemple — ne donne pas une réponse fausse en silence.
 - **Le trajet s'allonge.** Le site est à Jacqueville et non à Abidjan : la page Cars le
   signale, et les informations pratiques du site public aussi.
 

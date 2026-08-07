@@ -72,6 +72,15 @@ export const CONFERENCE = {
   duAu: `${courtSansAnnee.format(DATE_DEBUT).replace(/\s\S+$/, "")} au ${avecAnnee.format(DATE_FIN)}`,
   /** « du lundi 24 au samedi 29 août 2026 » */
   duAuComplet: `du ${complet.format(DATE_DEBUT).replace(/\s\d{4}$/, "").replace(/\s\S+$/, "")} au ${complet.format(DATE_FIN)}`,
+  /**
+   * « du dimanche 23 au samedi 29 août 2026 » — l'étendue du programme.
+   *
+   * Le programme commence la veille : les encadrants arrivent, visitent le
+   * site et se réunissent. La conférence des jeunes, elle, court du 24 au 29.
+   * Les deux plages sont justes, chacune à sa place, et les confondre ferait
+   * arriver les encadrants un jour trop tard.
+   */
+  duAuAvecVeille: `du ${complet.format(DATE_VEILLE).replace(/\s\d{4}$/, "").replace(/\s\S+$/, "")} au ${complet.format(DATE_FIN)}`,
   /** Pour les attestations */
   du: avecAnnee.format(DATE_DEBUT),
   au: avecAnnee.format(DATE_FIN),

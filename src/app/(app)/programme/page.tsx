@@ -29,7 +29,7 @@ export default async function ProgrammePage() {
   return (
     <div className="space-y-3">
       {A_ANNONCER && (
-        <EncartReport precision="Les horaires sont ceux des manuels, décalés de trois semaines : les jours de la semaine sont inchangés, donc le programme tient tel quel." />
+        <EncartReport precision="Le programme court du dimanche 23 — arrivée des encadrants — au samedi 29. Les horaires sont ceux des manuels, décalés de trois semaines : les jours de la semaine sont inchangés, donc tout tient tel quel." />
       )}
     <Programme
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}
