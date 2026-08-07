@@ -1103,10 +1103,15 @@ c'est écrit dans le fichier, pour que personne ne l'apprenne à ses dépens.
 
 ### Ce que le déplacement a changé sans qu'on le demande
 
-- **Le critère d'âge suit le premier jour.** « Au plus 18 ans » se lit maintenant au
-  24 août et non au 3. Vérifié sur les 643 jeunes datés : **aucun ne bascule** au-dessus de
-  la limite. Un seul cas mérite d'être connu — Aggée Lagoké Bouazo aura 19 ans le 28 août,
-  soit pendant la conférence ; il reste éligible, le critère se lisant au premier jour.
+- **Le critère d'âge se lit au dernier jour.** « Au plus 18 ans » vaut pour **toute la
+  durée** de la conférence, pas seulement pour son premier matin : quelqu'un qui dépasse la
+  limite en cours de route y serait majeur d'un jour à l'autre, au milieu de mineurs. La
+  référence est donc le 29 août.
+
+  Le cas s'est présenté et c'est lui qui a fait changer la règle : Aggée Lagoké Bouazo, né
+  le 28 août 2007, a dix-huit ans le 24 et dix-neuf le 28. Lu au premier jour, le critère
+  l'acceptait. Lu au dernier, il l'écarte. **Sept jeunes** sont désormais hors critères
+  d'âge (six l'étaient déjà), plus une date de naissance illisible.
 - **Les anniversaires changent entièrement.** La fenêtre va de la veille au dernier jour,
   bornes comprises : **du 23 au 29 août**. Elle passe donc du 2-8 août au 23-29 août, et les
   dix jeunes fêtés dans la première période cèdent la place à **neuf autres, aucun en
@@ -1131,6 +1136,19 @@ activités officielles : les quatre rôles attendus **et** les horaires, plus le
 journées. Ni les titres, ni les lieux, ni les activités ajoutées sur place n'y sont
 touchés. L'appariement se fait par titre puis par ordre chronologique — inchangé par un
 décalage uniforme. Journalisé, rejouable sans effet.
+
+### Signaler n'est pas supprimer
+
+Aucun jeune n'est jamais retiré automatiquement. Un écart aux critères pose un
+**avertissement sur sa fiche** — visible partout où elle apparaît, y compris dans la liste
+des anniversaires — le fait remonter dans l'onglet « Hors critères » et dans le contrôle
+par pieu. Il garde son groupe, sa place dans les listes de car et son compte dans les
+effectifs.
+
+C'est délibéré : une date de naissance peut avoir été mal saisie, un pieu peut avoir une
+dérogation, et un jeune écarté par erreur trois semaines avant le départ ne s'en aperçoit
+qu'à l'arrivée. L'application dit ce qu'elle voit ; la décision de retirer quelqu'un
+appartient au couple dirigeant, qui la prend en changeant le statut d'inscription.
 
 ## Annoncer un changement
 

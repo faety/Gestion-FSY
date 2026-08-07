@@ -116,7 +116,10 @@ const PRATIQUE = [
   {
     titre: "Qui peut participer",
     texte:
-      `Les jeunes de 14 ans au plus tard le 31 décembre 2026, et de 18 ans au plus le ${CONFERENCE.du}. L'inscription se fait par le pieu ou le district.`,
+      `Les jeunes de 14 ans au plus tard le 31 décembre 2026, et de 18 ans au plus pendant toute ` +
+      `la conférence — soit au ${CONFERENCE.au}, dernier jour. Quelqu'un qui atteint dix-neuf ans ` +
+      `en cours de séjour ne peut pas y participer comme jeune. L'inscription se fait par le pieu ` +
+      `ou le district.`,
   },
   {
     titre: "Encadrement",

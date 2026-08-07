@@ -158,7 +158,8 @@ export default async function PieuxPage() {
         <h2 className="font-bold">Contrôle des critères d'âge</h2>
         <p className="text-sm text-slate-500 mt-1">
           Pour être accepté, un participant doit avoir <strong>au moins 14 ans au
-          31 décembre 2026</strong> et <strong>au plus 18 ans au {CONFERENCE.du}</strong> (jour et
+          31 décembre 2026</strong> et <strong>au plus 18 ans pendant toute la conférence</strong>,
+          soit au {CONFERENCE.au}, dernier jour (jour et
           mois pris en compte).
         </p>
         {horsCriteres.length === 0 ? (
@@ -176,7 +177,8 @@ export default async function PieuxPage() {
                   {jeune.dateNaissance
                     ? fmtDate.format(jeune.dateNaissance)
                     : `saisie « ${jeune.dateNaissanceBrute} »`}
-                  {verdict.ageConference !== null && ` · ${verdict.ageConference} ans au 03/08`}
+                  {verdict.ageConference !== null &&
+                    ` · ${verdict.ageConference} ans au ${CONFERENCE.au}`}
                   {" · "}
                   {jeune.paroisse} · {jeune.pieu.nom}
                 </div>
