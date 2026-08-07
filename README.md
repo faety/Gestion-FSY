@@ -1127,15 +1127,26 @@ c'est écrit dans le fichier, pour que personne ne l'apprenne à ses dépens.
 - **Le trajet s'allonge.** Le site est à Jacqueville et non à Abidjan : la page Cars le
   signale, et les informations pratiques du site public aussi.
 
-### Appliquer le déplacement à une base déjà semée
+### Le déplacement s'applique tout seul
 
-Le programme n'est semé qu'à la création de la base. Après un changement de dates, la base
-garde donc les anciens horaires et affiche une conférence qui n'aura pas lieu. Sur
-`/programme`, **« Programme officiel : horaires et rôles »** rejoue la référence sur les
-activités officielles : les quatre rôles attendus **et** les horaires, plus les dates des
-journées. Ni les titres, ni les lieux, ni les activités ajoutées sur place n'y sont
-touchés. L'appariement se fait par titre puis par ordre chronologique — inchangé par un
-décalage uniforme. Journalisé, rejouable sans effet.
+Le programme n'est semé qu'à la création de la base. Après un changement de dates, elle
+gardait les anciens horaires : les journées affichaient les nouvelles dates, les activités
+les anciennes, et plus rien ne se rapportait à rien — les onglets s'intitulaient « J ? ».
+
+L'amorçage, qui tourne à chaque déploiement, **rattrape désormais le décalage sans que
+personne ait à y penser**. Il compare la date de la première activité officielle à celle
+attendue pour la veille et, si elles diffèrent, décale tout d'autant de jours entiers.
+
+Un décalage *uniforme* et non une réécriture depuis la référence : il remet le calendrier
+en place sans toucher aux heures, donc **sans défaire un horaire ajusté sur place**. Une
+activité avancée d'un quart d'heure par les coordinateurs garde son avance.
+
+Le bouton **« Programme officiel : horaires et rôles »** de `/programme` reste disponible
+pour rejouer la référence entière — les quatre rôles attendus, les horaires, les dates des
+journées. Il sert quand ce sont les *rôles* qui ont changé, ce qu'un décalage ne corrige
+pas. Ni les titres, ni les lieux, ni les activités ajoutées sur place n'y sont touchés ;
+l'appariement se fait par titre puis par ordre chronologique. Journalisé, rejouable sans
+effet.
 
 ### Signaler n'est pas supprimer
 

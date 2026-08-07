@@ -56,7 +56,10 @@ export function EncartReport({ precision }: { precision?: string }) {
       <h2 className="font-bold">{TON.signe} {TITRE}</h2>
       <p className="text-sm mt-1">{RESUME}</p>
       {precision && <p className="text-sm mt-1.5 font-medium">{precision}</p>}
-      <p className={`text-sm mt-1.5 ${TON.secondaire}`}>{QUAND}</p>
+      {/* Le rappel de la date ne s'ajoute que s'il apprend quelque chose. Quand
+          la période est connue, le résumé la porte déjà : la répéter une
+          troisième fois dans le même encadré fait du bruit, pas de l'insistance. */}
+      {REPORTEE && <p className={`text-sm mt-1.5 ${TON.secondaire}`}>{QUAND}</p>}
     </div>
   );
 }

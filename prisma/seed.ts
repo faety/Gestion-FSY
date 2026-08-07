@@ -278,6 +278,49 @@ async function main() {
     console.log(
       `   ${PROGRAMME.length} activités du programme (${PROGRAMME.length - aConfirmer} officielles, ${aConfirmer} à confirmer).`
     );
+  } else {
+    // ---------- La conférence a-t-elle changé de dates ? ----------
+    //
+    // Le programme n'est semé qu'une fois. Quand la conférence a été déplacée
+    // du 3-8 août au 24-29, la base a gardé les anciens horaires : les journées
+    // affichaient les nouvelles dates, les activités les anciennes, et plus
+    // rien ne se rapportait à rien — les onglets s'intitulaient « J ? ».
+    //
+    // Le décalage est donc rattrapé ici, à chaque déploiement, sans que
+    // personne ait à y penser. Un décalage *uniforme* de jours entiers : il
+    // remet le calendrier en place sans toucher aux heures, donc sans défaire
+    // un horaire ajusté sur place — ce qu'une réécriture depuis la référence
+    // aurait fait.
+    const premiere = await prisma.activite.findFirst({
+      where: { officielle: true },
+      orderBy: { debut: "asc" },
+      select: { debut: true },
+    });
+    if (premiere) {
+      const attendue = dateDe(0, "00:00");
+      const jourDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const ecartJours = Math.round((jourDe(attendue) - jourDe(premiere.debut)) / 86_400_000);
+      if (ecartJours !== 0) {
+        const officielles = await prisma.activite.findMany({
+          where: { officielle: true },
+          select: { id: true, debut: true, fin: true },
+        });
+        const ms = ecartJours * 86_400_000;
+        for (const a of officielles) {
+          await prisma.activite.update({
+            where: { id: a.id },
+            data: {
+              debut: new Date(a.debut.getTime() + ms),
+              fin: a.fin ? new Date(a.fin.getTime() + ms) : null,
+            },
+          });
+        }
+        console.log(
+          `   ⏩ Programme décalé de ${ecartJours > 0 ? "+" : ""}${ecartJours} jours : ` +
+            `${officielles.length} activités replacées sur la nouvelle période.`
+        );
+      }
+    }
   }
 
   // ---------- Annonces d'anniversaire programmées ----------

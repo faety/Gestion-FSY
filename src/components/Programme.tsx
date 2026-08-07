@@ -171,7 +171,7 @@ export function Programme({
           <>
             {" "}
             <strong>{nbAConfirmer} activité(s) « À confirmer »</strong> : horaires de la
-            veille et lieux, à renseigner pour le site d'Abidjan Ouest.
+            veille et lieux, à renseigner pour le {LIEU.nom}.
           </>
         )}
       </p>
