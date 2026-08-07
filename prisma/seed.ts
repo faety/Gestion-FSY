@@ -17,6 +17,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DOMAINE_ATTENTE, transfererReferences } from "../src/lib/fusion";
+import { jetons, proximite } from "../src/lib/rapprochement";
 import { lireDroits, roleAuMoins, type Role } from "../src/lib/roles";
 import { PROGRAMME, DATE_JOUR_1, JOURNEES, THEME_FSY } from "./programme-fsy2026";
 import { annoncesAnniversaires, anniversairePendantConference } from "./anniversaires";
@@ -41,15 +42,29 @@ async function main() {
   // Quand la personne existe déjà sous sa vraie adresse — e-mail changé sur le
   // compte d'amorçage, ou compte rattaché —, on ne recrée pas l'identifiant
   // d'attente : ce serait ressusciter un doublon à chaque déploiement, avec le
-  // mot de passe commun en prime. On la reconnaît à son nom.
-  const dejaSousSaVraieAdresse = (nom: string, prenom: string) =>
-    prisma.user.findFirst({
-      where: {
-        prenom: { equals: prenom, mode: "insensitive" },
-        nom: { equals: nom, mode: "insensitive" },
-        NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
-      },
+  // mot de passe commun en prime.
+  //
+  // On la reconnaît comme la page des doublons le fait, par les mots du nom et
+  // non à la lettre : entre la liste officielle et l'inscription, l'ordre
+  // s'inverse (« Okon Emmanuel Wisdom » / « Wisdom Emmanuel Okon »), un accent
+  // tombe (« Kone » / « Koné »), un prénom s'ajoute (« Nassira » / « Nassira
+  // priscille »). L'égalité stricte laissait tous ces cas renaître.
+  const memePersonne = (
+    a: { prenom: string; nom: string },
+    b: { prenom: string; nom: string }
+  ) => {
+    const ja = jetons(a.prenom, a.nom);
+    const jb = jetons(b.prenom, b.nom);
+    const communs = ja.filter((m) => jb.includes(m)).length;
+    return communs >= 2 && proximite(ja, jb) >= 0.99;
+  };
+  const dejaSousSaVraieAdresse = async (nom: string, prenom: string) => {
+    const reels = await prisma.user.findMany({
+      where: { NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } } },
+      select: { id: true, prenom: true, nom: true },
     });
+    return reels.find((r) => memePersonne({ prenom, nom }, r)) ?? null;
+  };
 
   const creerUser = async (
     email: string,
@@ -245,17 +260,35 @@ async function main() {
   const attentes = await prisma.user.findMany({
     where: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
   });
+  const comptesReels = await prisma.user.findMany({
+    where: { NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } } },
+  });
   for (const attente of attentes) {
-    const reel = await prisma.user.findFirst({
-      where: {
-        id: { not: attente.id },
-        prenom: { equals: attente.prenom, mode: "insensitive" },
-        nom: { equals: attente.nom, mode: "insensitive" },
-        NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
-      },
+    // La résorption n'agit que sur une paire sans ambiguïté : un seul compte
+    // réel reconnu « certain » pour cette attente, et aucune autre attente
+    // reconnue « certain » pour ce compte réel. Deux personnes distinctes des
+    // listes officielles ne doivent jamais se fondre dans un même compte —
+    // tout ce qui prête à discussion reste à la page Administration.
+    const correspondants = comptesReels.filter((r) => memePersonne(attente, r));
+    if (correspondants.length !== 1) {
+      if (correspondants.length > 1) {
+        console.log(
+          `   ⚠️  ${attente.email} ressemble à plusieurs comptes réels : fusion laissée à la page Administration.`
+        );
+      }
+      continue;
+    }
+    const candidat = correspondants[0];
+    if (attentes.some((x) => x.id !== attente.id && memePersonne(x, candidat))) {
+      console.log(
+        `   ⚠️  Plusieurs identifiants d'attente ressemblent à ${candidat.email} : fusion laissée à la page Administration.`
+      );
+      continue;
+    }
+    const reel = await prisma.user.findUniqueOrThrow({
+      where: { id: candidat.id },
       include: { rapports: { select: { jour: true } } },
     });
-    if (!reel) continue;
 
     // Mêmes garde-fous que la fusion manuelle : on ne résorbe pas ce qui
     // effacerait du travail. Le cas est improbable pour un compte d'attente ;
