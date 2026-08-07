@@ -16,6 +16,8 @@
 // coordinateurs ne sont jamais touchés.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DOMAINE_ATTENTE, transfererReferences } from "../src/lib/fusion";
+import { lireDroits, roleAuMoins, type Role } from "../src/lib/roles";
 import { PROGRAMME, DATE_JOUR_1, JOURNEES, THEME_FSY } from "./programme-fsy2026";
 import { annoncesAnniversaires, anniversairePendantConference } from "./anniversaires";
 import participants from "./participants.json";
@@ -35,18 +37,36 @@ async function main() {
   }
 
   // ---------- Équipe d'encadrement ----------
-  const creerUser = (
+  //
+  // Quand la personne existe déjà sous sa vraie adresse — e-mail changé sur le
+  // compte d'amorçage, ou compte rattaché —, on ne recrée pas l'identifiant
+  // d'attente : ce serait ressusciter un doublon à chaque déploiement, avec le
+  // mot de passe commun en prime. On la reconnaît à son nom.
+  const dejaSousSaVraieAdresse = (nom: string, prenom: string) =>
+    prisma.user.findFirst({
+      where: {
+        prenom: { equals: prenom, mode: "insensitive" },
+        nom: { equals: nom, mode: "insensitive" },
+        NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
+      },
+    });
+
+  const creerUser = async (
     email: string,
     nom: string,
     prenom: string,
     sexe: string,
     role: string,
     telephone?: string
-  ) =>
-    prisma.user.upsert({
-      where: { email },
-      update: { nom, prenom, telephone },
-      create: {
+  ) => {
+    const existant = await prisma.user.findUnique({ where: { email } });
+    if (existant) {
+      return prisma.user.update({ where: { email }, data: { nom, prenom, telephone } });
+    }
+    const reel = await dejaSousSaVraieAdresse(nom, prenom);
+    if (reel) return reel;
+    return prisma.user.create({
+      data: {
         email,
         passwordHash: hash,
         nom,
@@ -57,6 +77,7 @@ async function main() {
         doitChangerMotDePasse: true,
       },
     });
+  };
 
   // Couple dirigeant de la conférence (réel)
   await creerUser("berenger@fsy2026.ci", "Dahakpoin", "Bérenger", "M", "DIRIGEANT");
@@ -179,13 +200,19 @@ async function main() {
     const mots = p.nom.trim().split(/\s+/);
     const nom = mots[0];
     const prenom = mots.slice(1).join(" ") || mots[0];
-    await prisma.user.upsert({
-      where: { email: p.email },
+    const existant = await prisma.user.findUnique({ where: { email: p.email } });
+    if (existant) {
       // Le rôle et l'orthographe du nom peuvent changer d'une liste à l'autre ;
       // ni le sexe ni les affectations ne sont écrasés, car ils ont pu être
       // corrigés à la main dans l'application.
-      update: { nom, prenom, role: p.role },
-      create: {
+      await prisma.user.update({ where: { email: p.email }, data: { nom, prenom, role: p.role } });
+      continue;
+    }
+    // Même règle que pour le couple dirigeant et les coordinateurs : pas de
+    // résurrection quand la personne s'est établie sous sa vraie adresse.
+    if (await dejaSousSaVraieAdresse(nom, prenom)) continue;
+    await prisma.user.create({
+      data: {
         email: p.email,
         passwordHash: hash,
         nom,
@@ -205,6 +232,79 @@ async function main() {
   console.log(
     `   ${encadrement.length} encadrants : ${nbAdjoints} adjoints, ${encadrement.length - nbAdjoints} conseillers (affectations à faire dans l'application).`
   );
+
+  // ---------- Un seul compte par personne ----------
+  //
+  // Décision du couple dirigeant : seuls les profils à vraie adresse restent.
+  // Un compte d'attente (@fsy2026.ci) qui coexiste avec le compte réel de la
+  // même personne est un doublon — l'organigramme la montrait deux fois. On
+  // reverse au compte réel ce que l'attente portait encore (appel le plus
+  // élevé, droits, groupes, affectations, photo, téléphone), puis on le
+  // supprime. Il ne renaîtra pas : la personne est reconnue plus haut par son
+  // nom avant toute création.
+  const attentes = await prisma.user.findMany({
+    where: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
+  });
+  for (const attente of attentes) {
+    const reel = await prisma.user.findFirst({
+      where: {
+        id: { not: attente.id },
+        prenom: { equals: attente.prenom, mode: "insensitive" },
+        nom: { equals: attente.nom, mode: "insensitive" },
+        NOT: { email: { endsWith: DOMAINE_ATTENTE, mode: "insensitive" } },
+      },
+      include: { rapports: { select: { jour: true } } },
+    });
+    if (!reel) continue;
+
+    // Mêmes garde-fous que la fusion manuelle : on ne résorbe pas ce qui
+    // effacerait du travail. Le cas est improbable pour un compte d'attente ;
+    // s'il se présente, il reste visible sur la page Administration.
+    const rapportsAttente = await prisma.rapportQuotidien.findMany({
+      where: { auteurId: attente.id },
+      select: { jour: true },
+    });
+    const conflitRapports = rapportsAttente.some((r) =>
+      reel.rapports.some((x) => x.jour === r.jour)
+    );
+    const attestations = await prisma.attestation.count({
+      where: { userId: { in: [attente.id, reel.id] } },
+    });
+    if (conflitRapports || attestations > 1) {
+      console.log(
+        `   ⚠️  ${attente.email} et ${reel.email} portent des données en conflit : fusion laissée à la page Administration.`
+      );
+      continue;
+    }
+
+    const droits = [
+      ...new Set([...lireDroits(reel.droitsSupplementaires), ...lireDroits(attente.droitsSupplementaires)]),
+    ];
+    // L'appel le plus élevé des deux : résorber un doublon ne doit jamais
+    // faire perdre un accès que la personne exerçait déjà.
+    const plusHaut = roleAuMoins(attente.role, reel.role as Role) ? attente.role : reel.role;
+    await prisma.$transaction(async (tx) => {
+      await transfererReferences(tx, attente.id, reel.id);
+      await tx.user.delete({ where: { id: attente.id } });
+      await tx.user.update({
+        where: { id: reel.id },
+        data: {
+          role: plusHaut,
+          droitsSupplementaires: JSON.stringify(droits),
+          telephone: reel.telephone ?? attente.telephone,
+          photoPublicId: reel.photoPublicId ?? attente.photoPublicId,
+          dateNaissance: reel.dateNaissance ?? attente.dateNaissance,
+          pieuId: reel.pieuId ?? attente.pieuId,
+          compagnieId: reel.compagnieId ?? attente.compagnieId,
+          valide: true,
+          actif: reel.actif || attente.actif,
+        },
+      });
+    });
+    console.log(
+      `   🧹 Doublon résorbé : ${attente.email} supprimé — ${reel.prenom} ${reel.nom} ne garde que ${reel.email}.`
+    );
+  }
 
   // ---------- Cars : un par pieu/district ----------
   // Le pointage est affecté étape par étape par le couple dirigeant ou les
@@ -250,7 +350,17 @@ async function main() {
     where: { role: "COORDINATEUR" },
     orderBy: { email: "asc" },
   });
-  const dirigeant = await prisma.user.findUnique({ where: { email: "berenger@fsy2026.ci" } });
+  // L'adresse d'amorçage a pu céder la place à la vraie : on retrouve le
+  // dirigeant par son appel et son nom, plus par un e-mail qui n'existe
+  // peut-être plus.
+  const dirigeant =
+    (await prisma.user.findFirst({
+      where: {
+        role: "DIRIGEANT",
+        prenom: { equals: "Bérenger", mode: "insensitive" },
+        nom: { equals: "Dahakpoin", mode: "insensitive" },
+      },
+    })) ?? (await prisma.user.findFirst({ where: { role: "DIRIGEANT" } }));
 
   if ((await prisma.activite.count()) === 0) {
     for (const a of PROGRAMME) {
@@ -431,6 +541,7 @@ async function main() {
   console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
   console.log("  Coordinateurs principaux : cedric@fsy2026.ci · candela@fsy2026.ci");
   console.log(`  Encadrants               : ${encadrement.length} comptes, adresses prenom.nom@fsy2026.ci`);
+  console.log("  (adresses d'amorçage : dès que la personne passe à sa vraie adresse, l'ancienne disparaît)");
 }
 
 main()

@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { estAdresseDAttente } from "./fusion";
 import { SITE_AFFICHE, SITE_URL } from "./site";
 import { CONFERENCE } from "./theme";
 
@@ -17,11 +18,10 @@ import { CONFERENCE } from "./theme";
 //      ce domaine n'existe pas. Écrire à ces adresses ne ferait qu'accumuler
 //      des rejets et abîmer la réputation d'envoi du domaine réel.
 
-/** Domaine des identifiants fabriqués à l'amorçage : aucune boîte derrière. */
-export const DOMAINE_ATTENTE = "@fsy2026.ci";
-
-export const estAdresseDAttente = (email: string) =>
-  email.trim().toLowerCase().endsWith(DOMAINE_ATTENTE);
+// Le domaine d'attente est défini dans fusion.ts, que l'amorçage importe sans
+// tirer le client Resend avec lui ; on le réexpose ici, où tout le monde le
+// cherche.
+export { DOMAINE_ATTENTE, estAdresseDAttente } from "./fusion";
 
 /** Adresse plausible ? Contrôle volontairement large : on refuse l'évident, pas le rare. */
 export const emailPlausible = (email: string) =>

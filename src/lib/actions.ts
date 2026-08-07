@@ -43,6 +43,7 @@ import {
   envoyer,
   estAdresseDAttente,
 } from "./email";
+import { transfererReferences } from "./fusion";
 import {
   ROLES_ATTESTABLES,
   RAPPORTS_POSSIBLES,
@@ -1162,33 +1163,7 @@ export async function fusionnerComptes(garderId: string, absorberId: string) {
   const plusHaut = roleAuMoins(absorbe.role, garde.role as Role) ? absorbe.role : garde.role;
 
   await prisma.$transaction(async (tx) => {
-    // Un même encadrant affecté deux fois au même pointage romprait l'unicité
-    // (car, étape, personne) : on retire d'abord les affectations que le
-    // compte gardé possède déjà.
-    const deja = await tx.affectationCar.findMany({
-      where: { userId: garderId },
-      select: { carId: true, etape: true },
-    });
-    if (deja.length > 0) {
-      await tx.affectationCar.deleteMany({
-        where: { userId: absorberId, OR: deja.map((d) => ({ carId: d.carId, etape: d.etape })) },
-      });
-    }
-
-    await Promise.all([
-      tx.groupe.updateMany({ where: { conseillerId: absorberId }, data: { conseillerId: garderId } }),
-      tx.affectationCar.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
-      tx.mouvement.updateMany({ where: { valideParId: absorberId }, data: { valideParId: garderId } }),
-      tx.annonce.updateMany({ where: { creeParId: absorberId }, data: { creeParId: garderId } }),
-      tx.activite.updateMany({ where: { creeParId: absorberId }, data: { creeParId: garderId } }),
-      tx.modificationProgramme.updateMany({ where: { proposeParId: absorberId }, data: { proposeParId: garderId } }),
-      tx.modificationProgramme.updateMany({ where: { valideParId: absorberId }, data: { valideParId: garderId } }),
-      tx.rapportQuotidien.updateMany({ where: { auteurId: absorberId }, data: { auteurId: garderId } }),
-      tx.attestation.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
-      tx.attestation.updateMany({ where: { delivreeParId: absorberId }, data: { delivreeParId: garderId } }),
-      tx.auditLog.updateMany({ where: { userId: absorberId }, data: { userId: garderId } }),
-      tx.reinitialisationMotDePasse.deleteMany({ where: { userId: absorberId } }),
-    ]);
+    await transfererReferences(tx, absorberId, garderId);
 
     // Le compte absorbé disparaît avant la mise à jour : son adresse est unique
     // en base, et c'est peut-être elle qu'on va poser sur le compte gardé.
