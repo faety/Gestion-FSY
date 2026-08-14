@@ -340,6 +340,18 @@ export function FormulaireRapport({
                 </select>
               )}
 
+              {q.type === "NOMBRE" && (
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={lireTexte(q.id)}
+                  onChange={(e) => poser(q.id, e.target.value)}
+                  placeholder="0"
+                  className="w-32 rounded-lg border border-slate-300 px-3 py-2.5 text-base text-center font-mono"
+                />
+              )}
+
               {q.type === "CASES" && (
                 <div className="flex flex-wrap gap-2">
                   {(q.options ?? []).map((o) => {

@@ -19,6 +19,7 @@ export type TypeQuestion =
   | "CHOIX" // liste déroulante
   | "CASES" // cases à cocher, plusieurs réponses
   | "ETAT" // pour chaque point : ça va / il y a un souci / non concerné
+  | "NOMBRE" // un effectif — l'appel des présents
   | "TEXTE"; // texte court
 
 export type Question = {
@@ -43,6 +44,8 @@ export type Section = {
 };
 
 const TOUS = ROLES;
+const CONSEILLERS = ["CONSEILLER"] as const;
+const ADJOINTS = ["ADJOINT"] as const;
 const ENCADRANTS_TERRAIN = ["CONSEILLER", "ADJOINT"] as const;
 const RESPONSABLES = ["ADJOINT", "COORDINATEUR", "DIRIGEANT"] as const;
 const DIRECTION = ["COORDINATEUR", "DIRIGEANT"] as const;
@@ -79,6 +82,8 @@ export const POINTS_INTENDANCE = [
   "Sécurité du site et contrôle des entrées",
   "Propreté générale et ramassage des déchets",
   "Trousse de premiers secours accessible",
+  // Les rapports de détériorations du manuel : « ça va » = rien à signaler.
+  "Locaux sans nouvelle détérioration",
 ];
 
 // ---------- Sections du questionnaire ----------
@@ -103,12 +108,44 @@ export const SECTIONS: Section[] = [
     titre: "Mes jeunes",
     icone: "👥",
     questions: [
+      // L'appel des présents remonte de niveau en niveau (manuel de
+      // l'encadrant) : les conseillers comptent, les adjoints reçoivent leurs
+      // rapports et font rapport aux coordinateurs. Le rapport quotidien
+      // enregistre ce compte à chaque maillon.
+      {
+        id: "appelMidi",
+        label: "Appel d'après déjeuner : jeunes présents",
+        type: "NOMBRE",
+        aide: "Le compte fait au rassemblement en compagnie — celui que vous signalez à votre adjoint sans attendre.",
+        roles: CONSEILLERS,
+      },
+      {
+        id: "appelSoir",
+        label: "Appel du soir : jeunes présents",
+        type: "NOMBRE",
+        aide: "Au dortoir. L'appel du soir signifie aussi que personne n'en sort.",
+        roles: CONSEILLERS,
+      },
       {
         id: "presences",
-        label: "Tous vos jeunes étaient présents aujourd'hui ?",
+        label: "Tous vos jeunes ont répondu aux appels d'aujourd'hui ?",
         type: "OUI_NON",
-        siNon: "Qui manquait, et pourquoi ?",
+        siNon: "Qui manquait, à quel appel, et qu'avez-vous fait ?",
         roles: ENCADRANTS_TERRAIN,
+      },
+      {
+        id: "appelsRecus",
+        label: "Chaque conseiller vous a fait rapport de l'appel (midi et soir) ?",
+        type: "OUI_NON",
+        aide: "Puis vous faites rapport aux coordinateurs avant « Réfléchir et revoir » — c'est la chaîne du manuel.",
+        siNon: "Quels rapports manquent, et où en est le compte ?",
+        roles: ADJOINTS,
+      },
+      {
+        id: "effectifSoir",
+        label: "Total des jeunes comptés dans votre périmètre à l'appel du soir",
+        type: "NOMBRE",
+        roles: ADJOINTS,
       },
       {
         id: "participation",
@@ -165,6 +202,7 @@ export const SECTIONS: Section[] = [
           "Dévotion du matin",
           "Classe suivie en entier",
           "Veillée ou dévotion du soir",
+          "« Réfléchir et revoir » tenu avec les jeunes",
           "Prière en groupe",
           "Étude des Écritures",
           "Entretien personnel avec un jeune",
@@ -223,11 +261,20 @@ export const SECTIONS: Section[] = [
         roles: RESPONSABLES,
       },
       {
+        id: "rapportsAdjoints",
+        label: "Tous les adjoints ont fait rapport de l'appel du soir ?",
+        type: "OUI_NON",
+        aide: "Impératif pour que tous les jeunes soient comptabilisés. Un jeune manquant se signale immédiatement au couple dirigeant.",
+        siNon: "Quels rapports manquent, et où en est le compte ?",
+        roles: DIRECTION,
+      },
+      {
         id: "coordination",
         label: "Coordination",
         type: "CASES",
         options: [
           "Réunion du matin tenue",
+          "Réunion de l'après-midi tenue",
           "Réunion du soir tenue",
           "Consignes transmises à temps",
           "Programme respecté",

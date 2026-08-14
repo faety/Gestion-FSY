@@ -141,6 +141,45 @@ export default async function RapportFinalPage() {
         </ul>
       </section>
 
+      {/* Appels des présents */}
+      {s.appels.length > 0 && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold">🙋 Appels des présents</h2>
+          <p className="text-sm text-slate-500 mb-3">
+            Les effectifs comptés et rapportés par la chaîne d&apos;appel — le total ne vaut que
+            pour les rapports remis, leur nombre est donné à côté.
+          </p>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {s.appels.map((a) => (
+              <li key={a.numero} className="py-2 flex flex-wrap gap-x-4 gap-y-1">
+                <span className="font-medium w-16">{a.libelle}</span>
+                {a.soir.rapports > 0 && (
+                  <span>
+                    Soir : <strong>{a.soir.total}</strong> jeunes comptés
+                    <span className="text-slate-400"> · {a.soir.rapports} conseiller(s)</span>
+                  </span>
+                )}
+                {a.midi.rapports > 0 && (
+                  <span>
+                    Midi : <strong>{a.midi.total}</strong>
+                    <span className="text-slate-400"> · {a.midi.rapports} conseiller(s)</span>
+                  </span>
+                )}
+                {a.perimetresAdjoints.rapports > 0 && (
+                  <span>
+                    Adjoints : <strong>{a.perimetresAdjoints.total}</strong>
+                    <span className="text-slate-400">
+                      {" "}
+                      · {a.perimetresAdjoints.rapports} périmètre(s)
+                    </span>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Intendance */}
       <section className="bg-white rounded-xl shadow-sm p-4">
         <h2 className="font-bold">Intendance et logistique</h2>

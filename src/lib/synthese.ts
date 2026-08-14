@@ -118,6 +118,43 @@ export function construireSynthese(
     };
   }).sort((a, b) => b.souci - a.souci);
 
+  // ---------- Appels des présents ----------
+  //
+  // Les comptes remontés par la chaîne du manuel : les conseillers comptent
+  // leur groupe (midi et soir), les adjoints totalisent leur périmètre. On
+  // additionne ce qui a été rapporté, en disant sur combien de rapports le
+  // total repose — un total sans sa base se lirait comme un effectif complet.
+  const nombre = (v: unknown) => {
+    const n = Number(enTexte(v));
+    return Number.isFinite(n) && n >= 0 && enTexte(v).trim() !== "" ? n : null;
+  };
+  const sommeDe = (liste: RapportBrut[], cle: string) => {
+    let total = 0;
+    let rapportsComptes = 0;
+    for (const r of liste) {
+      const n = nombre(lireReponses(r.reponses)[cle]);
+      if (n !== null) {
+        total += n;
+        rapportsComptes++;
+      }
+    }
+    return { total, rapports: rapportsComptes };
+  };
+  const appels = journees
+    .map((j) => {
+      const duJour = rapports.filter((r) => r.jour === j.numero);
+      const conseillers = duJour.filter((r) => r.auteur.role === "CONSEILLER");
+      const adjoints = duJour.filter((r) => r.auteur.role === "ADJOINT");
+      return {
+        numero: j.numero,
+        libelle: libelleJour(j.numero),
+        midi: sommeDe(conseillers, "appelMidi"),
+        soir: sommeDe(conseillers, "appelSoir"),
+        perimetresAdjoints: sommeDe(adjoints, "effectifSoir"),
+      };
+    })
+    .filter((a) => a.midi.rapports + a.soir.rapports + a.perimetresAdjoints.rapports > 0);
+
   // ---------- Incidents, santé, vie spirituelle ----------
   const incidents = compterCases(rapports, "incidents");
   const sante = compterCases(rapports, "sante");
@@ -160,6 +197,8 @@ export function construireSynthese(
         [
           ["presences", "Jeunes"],
           ["presenceEncadrants", "Encadrants"],
+          ["appelsRecus", "Rapports d'appel des conseillers"],
+          ["rapportsAdjoints", "Rapports d'appel des adjoints"],
         ] as const
       ).map(([cle, quoi]) => ({
         jour: r.jour,
@@ -223,6 +262,7 @@ export function construireSynthese(
     })),
     parJour,
     parRole,
+    appels,
     intendance,
     incidents,
     sante,
@@ -274,6 +314,26 @@ export function syntheseEnTexte(s: Synthese, titre: string): string {
   bloc(
     "Remise par niveau de responsabilité",
     s.parRole.filter((r) => r.remis > 0).map((r) => `- ${r.label} : ${r.remis} rapports (${r.auteurs} personnes)`)
+  );
+
+  bloc(
+    "Appels des présents",
+    s.appels.map((a) => {
+      const morceaux = [
+        ...(a.soir.rapports > 0
+          ? [`soir : ${a.soir.total} jeunes comptés par ${a.soir.rapports} conseiller(s)`]
+          : []),
+        ...(a.midi.rapports > 0
+          ? [`midi : ${a.midi.total} par ${a.midi.rapports} conseiller(s)`]
+          : []),
+        ...(a.perimetresAdjoints.rapports > 0
+          ? [
+              `périmètres des adjoints : ${a.perimetresAdjoints.total} sur ${a.perimetresAdjoints.rapports} rapport(s)`,
+            ]
+          : []),
+      ];
+      return `- ${a.libelle} — ${morceaux.join(" ; ")}`;
+    })
   );
 
   bloc(
@@ -345,6 +405,11 @@ export function syntheseEnTexte(s: Synthese, titre: string): string {
 // une question ajoutée au questionnaire sans l'agréger ici.
 export const QUESTIONS_AGREGEES = [
   "ambiance",
+  "appelMidi",
+  "appelSoir",
+  "appelsRecus",
+  "effectifSoir",
+  "rapportsAdjoints",
   "presences",
   "participation",
   "incidents",
