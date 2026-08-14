@@ -130,7 +130,10 @@ export const ROLE_ACTIVITE_LABELS: Record<string, string> = {
   SUPERVISER: "Vous supervisez",
   AIDER: "Vous aidez",
   ASSISTER: "Vous assistez",
-  RECEVOIR: "Vous recevez l'appel",
+  // L'appel des présents remonte de niveau en niveau : les conseillers le
+  // font, les adjoints puis les coordinateurs en reçoivent le rapport.
+  // « Vous recevez l'appel » se lisait comme un appel téléphonique.
+  RECEVOIR: "Les rapports d'appel vous remontent",
   FACULTATIF: "Si vous le souhaitez",
   SI_ATTRIBUE: "Si la tâche vous est attribuée",
 };

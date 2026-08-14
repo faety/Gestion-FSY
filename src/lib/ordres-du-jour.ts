@@ -293,6 +293,27 @@ const FICHES: Fiche[] = [
     ],
   },
 
+  // ---------- L'appel, à chaque rassemblement ----------
+  //
+  // « Vous recevez l'appel » laissait les coordinateurs perplexes — on aurait
+  // dit un appel téléphonique. Le manuel décrit une chaîne de rapports : cette
+  // fiche la donne, sur chaque activité d'appel.
+  {
+    titres: ["Appel", "Rassemblement en compagnie | Appel"],
+    objet:
+      "L'appel des présents : chaque jeune est compté, et le compte remonte de niveau en niveau jusqu'à ce que tous soient comptabilisés.",
+    nature: "reperes",
+    points: [
+      "Conseillers : faites l'appel de votre groupe au point de rassemblement de la compagnie ; faites les annonces et donnez les instructions pour la suite de la journée",
+      "◦ Les jeunes signalent leur présence même s'ils participent au spectacle musical ou de variétés",
+      "◦ Signalez l'appel à votre coordinateur adjoint sans attendre, en notant tout jeune manquant",
+      "Adjoints : veillez à recevoir le rapport de chaque conseiller, avec précision, puis faites rapport aux coordinateurs",
+      "◦ Le soir, l'appel signifie aussi que les jeunes sont dans leur dortoir et n'en sortent plus",
+      "Coordinateurs : les rapports des adjoints vous remontent ; si l'un tarde, proposez votre aide",
+      "Si un jeune manque à l'appel : contactez immédiatement le couple dirigeant",
+    ],
+  },
+
   // ---------- Jour 4 : réunions spirituelles par sexe ----------
   {
     titres: [

@@ -17,7 +17,7 @@ export function OrdreDuJourSuggere({
   return (
     <details className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm open:bg-white">
       <summary className="cursor-pointer select-none px-3 py-1.5 text-fsy-dark font-medium">
-        📋 {fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères du manuel"}
+        📋 {fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"}
         <span className="text-slate-400 font-normal"> — manuel de l&apos;encadrant</span>
       </summary>
       <div className="px-3 pb-2.5 space-y-1.5">

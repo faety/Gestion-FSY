@@ -9,7 +9,7 @@ const LIBELLES: Record<string, string> = {
   SUPERVISER: "supervise",
   AIDER: "aide",
   ASSISTER: "assiste",
-  RECEVOIR: "reçoit l'appel",
+  RECEVOIR: "reçoit les rapports d'appel",
   FACULTATIF: "facultatif",
   SI_ATTRIBUE: "si attribué",
   AUCUN: "ne le concerne pas",

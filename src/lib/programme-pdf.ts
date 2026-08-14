@@ -29,7 +29,7 @@ const ROLE_NEUTRE: Record<string, string> = {
   SUPERVISER: "supervise",
   AIDER: "aide",
   ASSISTER: "assiste",
-  RECEVOIR: "reçoit l'appel",
+  RECEVOIR: "reçoit les rapports d'appel",
   FACULTATIF: "facultatif",
   SI_ATTRIBUE: "si la tâche est attribuée",
   AUCUN: "non concernés",
@@ -284,6 +284,7 @@ export async function genererProgrammePdf(
   c.espace(6);
 
   // ---------- Jours ----------
+  const fichesImprimees = new Set<string>();
   for (const numero of numeros) {
     const duJour = activites.filter((a) => a.numero === numero);
     const journee: Journee | undefined = journees.find((j) => j.numero === numero);
@@ -406,8 +407,19 @@ export async function genererProgrammePdf(
       // Ordre du jour suggéré par le manuel de l'encadrant — attaché à
       // l'affichage, jamais en base : les modifications des coordinateurs
       // restent maîtresses des horaires et des textes.
+      //
+      // Comme dans le manuel, une fiche déjà imprimée telle quelle ne se
+      // répète pas : l'appel revient deux fois par jour, ses consignes une
+      // seule fois par document.
       const fiche = annulee ? null : ordreDuJourDe(a.titre, a.numero, a.debut.getUTCHours());
-      if (fiche) {
+      const cleFiche = fiche ? `${a.titre}|${fiche.points.join("|")}` : "";
+      if (fiche && fichesImprimees.has(cleFiche)) {
+        c.paragraphe(
+          `${fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"} : voir la même réunion plus haut.`,
+          { police: c.oblique, taille: 8, couleur: GRIS, x: xTexte, largeur: largeurTexte }
+        );
+      } else if (fiche) {
+        fichesImprimees.add(cleFiche);
         c.espace(3);
         c.paragraphe(
           `${fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"} — manuel de l'encadrant`,
