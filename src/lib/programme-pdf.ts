@@ -10,6 +10,7 @@ import path from "path";
 import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "./db";
 import { CONFERENCE, LIEU, NB_JOURS, DATE_VEILLE } from "./theme";
+import { ordreDuJourDe } from "./ordres-du-jour";
 import { PUBLIC_LABELS, TYPE_LABELS } from "./roles";
 
 // Couleurs de la charte (globals.css)
@@ -400,6 +401,45 @@ export async function genererProgrammePdf(
           x: xTexte,
           largeur: largeurTexte,
         });
+      }
+
+      // Ordre du jour suggéré par le manuel de l'encadrant — attaché à
+      // l'affichage, jamais en base : les modifications des coordinateurs
+      // restent maîtresses des horaires et des textes.
+      const fiche = annulee ? null : ordreDuJourDe(a.titre, a.numero, a.debut.getUTCHours());
+      if (fiche) {
+        c.espace(3);
+        c.paragraphe(
+          `${fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"} — manuel de l'encadrant`,
+          { police: c.grasse, taille: 8, couleur: FSY_SOMBRE, x: xTexte, largeur: largeurTexte }
+        );
+        if (fiche.objet) {
+          c.paragraphe(fiche.objet, {
+            police: c.oblique,
+            taille: 8,
+            couleur: GRIS,
+            x: xTexte,
+            largeur: largeurTexte,
+          });
+        }
+        for (const point of fiche.points) {
+          const sous = point.startsWith("◦");
+          c.paragraphe(sous ? point : `• ${point}`, {
+            taille: 8,
+            couleur: sous ? GRIS : ENCRE,
+            x: xTexte + (sous ? 14 : 4),
+            largeur: largeurTexte - (sous ? 14 : 4),
+          });
+        }
+        if (fiche.formations) {
+          c.paragraphe(`Sujets de formation suggérés : ${fiche.formations.join(" · ")}.`, {
+            police: c.oblique,
+            taille: 7.5,
+            couleur: GRIS,
+            x: xTexte + 4,
+            largeur: largeurTexte - 4,
+          });
+        }
       }
 
       // Filet de séparation

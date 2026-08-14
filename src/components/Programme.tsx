@@ -17,6 +17,7 @@ import {
   TYPES_CREATION,
 } from "@/lib/roles";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
+import { OrdreDuJourSuggere } from "@/components/OrdreDuJourSuggere";
 
 type ActiviteVue = {
   id: string;
@@ -380,6 +381,13 @@ export function Programme({
                       )}
                       {a.description && (
                         <p className="text-sm text-slate-600 mt-1">{a.description}</p>
+                      )}
+                      {a.statut !== "ANNULE" && (
+                        <OrdreDuJourSuggere
+                          titre={a.titre}
+                          jour={journee?.numero}
+                          debut={a.debut}
+                        />
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
