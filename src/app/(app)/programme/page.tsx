@@ -3,6 +3,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { peutModifierDirectement, roleAuMoins } from "@/lib/roles";
 import { Programme } from "@/components/Programme";
 import { ResynchroniserProgramme } from "@/components/ResynchroniserProgramme";
+import { TelechargerProgramme } from "@/components/TelechargerProgramme";
 import { A_ANNONCER } from "@/lib/report";
 import { EncartReport } from "@/components/BandeauReport";
 
@@ -85,7 +86,8 @@ export default async function ProgrammePage() {
       groupes={groupes.map((g) => ({ id: g.id, nom: g.nom }))}
     />
       {roleAuMoins(user.role, "COORDINATEUR") && (
-        <div className="pt-1">
+        <div className="pt-1 space-y-3">
+          <TelechargerProgramme />
           <ResynchroniserProgramme />
         </div>
       )}
