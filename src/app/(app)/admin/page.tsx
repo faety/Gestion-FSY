@@ -22,6 +22,8 @@ import {
 import { DecisionInscription } from "@/components/DecisionInscription";
 import { Doublons, type CompteDouble, type PaireDouble } from "@/components/Doublons";
 import { RemiseAZero } from "@/components/RemiseAZero";
+import { RechercheEncadrant } from "@/components/RechercheEncadrant";
+import { COMITE_LOGISTIQUE } from "@/lib/guide";
 
 const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium" });
 
@@ -30,7 +32,7 @@ export default async function AdminPage() {
   if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/accueil");
   const estDirigeant = user.role === "DIRIGEANT";
 
-  const [utilisateurs, compagnies, audit] = await Promise.all([
+  const [utilisateurs, compagnies, audit, responsabilites] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ role: "asc" }, { nom: "asc" }],
       include: {
@@ -46,6 +48,7 @@ export default async function AdminPage() {
       take: 100,
       include: { user: true },
     }),
+    prisma.responsabilite.findMany(),
   ]);
 
   const enAttente = utilisateurs.filter((u) => !u.valide);
@@ -313,6 +316,38 @@ export default async function AdminPage() {
       </section>
 
       {estDirigeant && <RemiseAZero choses={CHOSES_A_EFFACER} />}
+
+      <RechercheEncadrant
+        estDirigeant={estDirigeant}
+        personnes={equipe.map((u) => ({
+          id: u.id,
+          prenom: u.prenom,
+          nom: u.nom,
+          email: u.email,
+          telephone: u.telephone,
+          role: u.role,
+          actif: u.actif,
+          attente: estAdresseDAttente(u.email),
+          motDePasseProvisoire: u.doitChangerMotDePasse,
+          droits: lireDroits(u.droitsSupplementaires),
+          groupes: u.groupesDiriges.map((g) => g.nom),
+          compagnie: u.compagnie?.nom ?? null,
+        }))}
+        responsabilites={COMITE_LOGISTIQUE.map((r) => {
+          const tenue = responsabilites.find((x) => x.cle === r.cle);
+          const titulaireCompte = tenue?.userId
+            ? equipe.find((u) => u.id === tenue.userId)
+            : null;
+          return {
+            cle: r.cle,
+            nom: r.nom,
+            titulaireId: tenue?.userId ?? null,
+            titulaire: titulaireCompte
+              ? `${titulaireCompte.prenom} ${titulaireCompte.nom}`
+              : (tenue?.nom ?? null),
+          };
+        })}
+      />
 
       <section className="bg-white rounded-xl shadow-sm overflow-x-auto">
         <h2 className="font-bold p-4 pb-0">Équipe ({equipe.length})</h2>
