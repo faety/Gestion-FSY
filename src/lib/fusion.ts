@@ -51,6 +51,7 @@ export async function transfererReferences(
     tx.attestation.updateMany({ where: { userId: deId }, data: { userId: versId } }),
     tx.attestation.updateMany({ where: { delivreeParId: deId }, data: { delivreeParId: versId } }),
     tx.auditLog.updateMany({ where: { userId: deId }, data: { userId: versId } }),
+    tx.clotureEtapeCar.updateMany({ where: { clotureParId: deId }, data: { clotureParId: versId } }),
     tx.tachePreparation.updateMany({ where: { faitParId: deId }, data: { faitParId: versId } }),
     tx.responsabilite.updateMany({ where: { userId: deId }, data: { userId: versId } }),
     tx.reinitialisationMotDePasse.deleteMany({ where: { userId: deId } }),

@@ -1310,36 +1310,73 @@ async function verifierDroitDePointage(
   user: { id: string; role: string },
   carId: string,
   etape: string
-) {
-  if (roleAuMoins(user.role, "COORDINATEUR")) return;
+): Promise<string | null> {
+  if (roleAuMoins(user.role, "COORDINATEUR")) return null;
   const affectations = await prisma.affectationCar.findMany({ where: { carId, etape } });
-  if (affectations.length === 0) return;
-  if (affectations.some((a) => a.userId === user.id)) return;
-  throw new Error(
-    `Vous n'êtes pas affecté au pointage « ${etapeCar(etape)?.label ?? etape} » de ce car.`
-  );
+  if (affectations.length === 0) return null;
+  if (affectations.some((a) => a.userId === user.id)) return null;
+  return `Le pointage « ${etapeCar(etape)?.label ?? etape} » de ce car est confié à quelqu'un d'autre.`;
 }
 
-export async function validerMouvement(jeuneId: string, carId: string, type: string) {
-  const user = await exiger("CONSEILLER");
-  if (!ETAPES_VALIDES.includes(type)) throw new Error("Étape invalide");
-  await verifierDroitDePointage(user, carId, type);
-  const jeune = await prisma.jeune.findUniqueOrThrow({ where: { id: jeuneId } });
-  await prisma.mouvement.create({
-    data: { type, jeuneId, carId, valideParId: user.id },
+// Les refus se renvoient, ils ne se lancent pas : en production, Next efface
+// le message d'une exception d'action serveur, et le pointeur lirait « une
+// erreur est survenue » au lieu de « l'étape est clôturée ».
+export type ResultatPointage = { ok: true } | { ok: false; motif: string };
+
+async function etapeCloturee(carId: string, etape: string) {
+  return prisma.clotureEtapeCar.findUnique({
+    where: { carId_etape: { carId, etape } },
   });
-  await journaliser(
-    user.id,
-    `MOUVEMENT_${type}`,
-    `${jeune.prenom} ${jeune.nom} (car ${carId})`
-  );
+}
+
+export async function validerMouvement(
+  jeuneId: string,
+  carId: string,
+  type: string
+): Promise<ResultatPointage> {
+  const user = await exiger("CONSEILLER");
+  if (!ETAPES_VALIDES.includes(type)) return { ok: false, motif: "Étape invalide." };
+  const refus = await verifierDroitDePointage(user, carId, type);
+  if (refus) return { ok: false, motif: refus };
+  if (await etapeCloturee(carId, type)) {
+    return {
+      ok: false,
+      motif: "Cette étape est clôturée : plus rien ne s'y enregistre. Un coordinateur peut la rouvrir.",
+    };
+  }
+  const jeune = await prisma.jeune.findUniqueOrThrow({ where: { id: jeuneId } });
+  // Un double appui ne compte pas deux fois : un jeune n'a qu'un pointage par
+  // étape et par car.
+  const deja = await prisma.mouvement.findFirst({ where: { jeuneId, carId, type } });
+  if (!deja) {
+    await prisma.mouvement.create({
+      data: { type, jeuneId, carId, valideParId: user.id },
+    });
+    await journaliser(
+      user.id,
+      `MOUVEMENT_${type}`,
+      `${jeune.prenom} ${jeune.nom} (car ${carId})`
+    );
+  }
   revalidatePath(`/cars/${carId}`);
   revalidatePath("/cars");
+  return { ok: true };
 }
 
-export async function annulerDernierMouvement(jeuneId: string, carId: string, type: string) {
+export async function annulerDernierMouvement(
+  jeuneId: string,
+  carId: string,
+  type: string
+): Promise<ResultatPointage> {
   const user = await exiger("CONSEILLER");
-  await verifierDroitDePointage(user, carId, type);
+  const refus = await verifierDroitDePointage(user, carId, type);
+  if (refus) return { ok: false, motif: refus };
+  if (await etapeCloturee(carId, type)) {
+    return {
+      ok: false,
+      motif: "Cette étape est clôturée : plus rien ne s'y modifie. Un coordinateur peut la rouvrir.",
+    };
+  }
   const dernier = await prisma.mouvement.findFirst({
     where: { jeuneId, carId, type },
     orderBy: { horodatage: "desc" },
@@ -1350,28 +1387,95 @@ export async function annulerDernierMouvement(jeuneId: string, carId: string, ty
   }
   revalidatePath(`/cars/${carId}`);
   revalidatePath("/cars");
+  return { ok: true };
+}
+
+// ---------- Clôture d'une étape de pointage ----------
+
+/**
+ * Le pointeur affecté — ou un coordinateur — déclare l'étape terminée. Le
+ * compte des jeunes pointés est figé à cet instant : c'est le résultat
+ * officiel. Après clôture, plus aucun pointage ni annulation sur l'étape.
+ */
+export async function cloturerEtapeCar(carId: string, etape: string): Promise<ResultatPointage> {
+  const user = await exiger("CONSEILLER");
+  if (!ETAPES_VALIDES.includes(etape)) return { ok: false, motif: "Étape invalide." };
+  const refus = await verifierDroitDePointage(user, carId, etape);
+  if (refus) return { ok: false, motif: refus };
+  if (await etapeCloturee(carId, etape)) {
+    return { ok: false, motif: "Cette étape est déjà clôturée." };
+  }
+  const [car, distincts] = await Promise.all([
+    prisma.car.findUniqueOrThrow({ where: { id: carId } }),
+    prisma.mouvement.findMany({
+      where: { carId, type: etape },
+      distinct: ["jeuneId"],
+      select: { jeuneId: true },
+    }),
+  ]);
+  await prisma.clotureEtapeCar.create({
+    data: { carId, etape, clotureParId: user.id, pointes: distincts.length },
+  });
+  await journaliser(
+    user.id,
+    "POINTAGE_CLOTURE",
+    `${etapeCar(etape)?.label} de ${car.nom} — ${distincts.length} jeunes pointés`
+  );
+  revalidatePath(`/cars/${carId}`);
+  revalidatePath("/cars");
+  return { ok: true };
+}
+
+/** Rouvrir une étape clôturée : coordinateurs principaux et couple dirigeant. */
+export async function rouvrirEtapeCar(carId: string, etape: string): Promise<ResultatPointage> {
+  const user = await exiger("COORDINATEUR");
+  const cloture = await etapeCloturee(carId, etape);
+  if (!cloture) return { ok: false, motif: "Cette étape n'est pas clôturée." };
+  const car = await prisma.car.findUniqueOrThrow({ where: { id: carId } });
+  await prisma.clotureEtapeCar.delete({ where: { id: cloture.id } });
+  await journaliser(
+    user.id,
+    "POINTAGE_ROUVERT",
+    `${etapeCar(etape)?.label} de ${car.nom} — était clôturée à ${cloture.pointes} pointés`
+  );
+  revalidatePath(`/cars/${carId}`);
+  revalidatePath("/cars");
+  return { ok: true };
 }
 
 // ---------- Affectation du pointage des cars ----------
 
 // Le couple dirigeant et les coordinateurs principaux désignent, pour chaque car
 // et chaque étape, qui coche les noms des jeunes.
+//
+// Un seul pointeur à la fois : deux personnes qui cochent en même temps le même
+// car, c'est un jeune compté deux fois ou zéro. Affecter quelqu'un d'autre
+// REMPLACE donc le titulaire — l'ancien perd la main à l'instant, le nouveau
+// continue le pointage là où il en est. Le journal garde la passation.
 export async function affecterPointageCar(carId: string, etape: string, userId: string) {
   const user = await exiger("COORDINATEUR");
   if (!ETAPES_VALIDES.includes(etape)) throw new Error("Étape invalide");
-  const [car, cible] = await Promise.all([
+  const [car, cible, anciens] = await Promise.all([
     prisma.car.findUniqueOrThrow({ where: { id: carId } }),
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+    prisma.affectationCar.findMany({ where: { carId, etape }, include: { user: true } }),
   ]);
-  await prisma.affectationCar.upsert({
-    where: { carId_etape_userId: { carId, etape, userId } },
-    update: {},
-    create: { carId, etape, userId },
-  });
+  await prisma.$transaction([
+    prisma.affectationCar.deleteMany({ where: { carId, etape, userId: { not: userId } } }),
+    prisma.affectationCar.upsert({
+      where: { carId_etape_userId: { carId, etape, userId } },
+      update: {},
+      create: { carId, etape, userId },
+    }),
+  ]);
+  const remplaces = anciens.filter((a) => a.userId !== userId);
   await journaliser(
     user.id,
     "POINTAGE_AFFECTE",
-    `${cible.prenom} ${cible.nom} → ${etapeCar(etape)?.label} de ${car.nom}`
+    `${cible.prenom} ${cible.nom} → ${etapeCar(etape)?.label} de ${car.nom}` +
+      (remplaces.length > 0
+        ? ` (remplace ${remplaces.map((a) => `${a.user.prenom} ${a.user.nom}`).join(", ")})`
+        : "")
   );
   revalidatePath(`/cars/${carId}`);
   revalidatePath("/cars");

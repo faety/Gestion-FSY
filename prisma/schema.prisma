@@ -53,6 +53,7 @@ model User {
   groupesDiriges     Groupe[]
   affectationsCars   AffectationCar[]
   mouvementsValides  Mouvement[]
+  cloturesCars       ClotureEtapeCar[] @relation("ClotureurCar")
   annoncesCreees     Annonce[]
   activitesCreees    Activite[]
   modifsProposees    ModificationProgramme[] @relation("Proposeur")
@@ -153,6 +154,7 @@ model Car {
   pieuId       String
   mouvements   Mouvement[]
   affectations AffectationCar[]
+  clotures     ClotureEtapeCar[]
 }
 
 // Qui coche les noms, pour un car et une étape donnés. Désigné par le couple
@@ -170,6 +172,25 @@ model AffectationCar {
 
   @@unique([carId, etape, userId])
   @@index([userId])
+}
+
+// Clôture d'un pointage : le pointeur (ou un coordinateur) déclare l'étape
+// terminée. Une ligne n'existe que pour une étape clôturée — tant qu'elle est
+// absente, le pointage est ouvert. Après clôture, plus aucun mouvement n'est
+// accepté sur cette étape ; seul un coordinateur peut la rouvrir (la ligne est
+// alors supprimée, et la réouverture journalisée).
+model ClotureEtapeCar {
+  id           String   @id @default(cuid())
+  car          Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  carId        String
+  etape        String
+  cloturePar   User     @relation("ClotureurCar", fields: [clotureParId], references: [id])
+  clotureParId String
+  clotureLe    DateTime @default(now())
+  // Jeunes pointés au moment de la clôture : le résultat officiel de l'étape.
+  pointes      Int
+
+  @@unique([carId, etape])
 }
 
 // Mouvement : chaque validation d'arrivée/départ, horodatée

@@ -4,6 +4,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { ETAPES_CAR } from "@/lib/etapes-car";
 import { A_ANNONCER } from "@/lib/report";
 import { EncartReport } from "@/components/BandeauReport";
+import { RafraichirAuto } from "@/components/RafraichirAuto";
 
 export default async function CarsPage() {
   const user = await exigerUtilisateur();
@@ -16,6 +17,7 @@ export default async function CarsPage() {
         },
       },
       affectations: { include: { user: true } },
+      clotures: true,
     },
   });
 
@@ -24,9 +26,24 @@ export default async function CarsPage() {
     a.nom.localeCompare(b.nom, "fr", { numeric: true, sensitivity: "base" })
   );
 
-  const mouvements = await prisma.mouvement.groupBy({ by: ["carId", "type"], _count: true });
+  // Un jeune ne compte qu'une fois par étape, et l'heure du dernier pointage
+  // dit si le car est « en cours » : c'est le tableau de bord du direct.
+  const mouvements = await prisma.mouvement.findMany({
+    select: { carId: true, type: true, jeuneId: true, horodatage: true },
+  });
+  const parEtape = new Map<string, { jeunes: Set<string>; dernier: Date }>();
+  for (const m of mouvements) {
+    const cle = `${m.carId}|${m.type}`;
+    const e = parEtape.get(cle) ?? { jeunes: new Set<string>(), dernier: m.horodatage };
+    e.jeunes.add(m.jeuneId);
+    if (m.horodatage > e.dernier) e.dernier = m.horodatage;
+    parEtape.set(cle, e);
+  }
   const compte = (carId: string, type: string) =>
-    mouvements.find((m) => m.carId === carId && m.type === type)?._count ?? 0;
+    parEtape.get(`${carId}|${type}`)?.jeunes.size ?? 0;
+  const dernierPointage = (carId: string, type: string) =>
+    parEtape.get(`${carId}|${type}`)?.dernier ?? null;
+  const fmtHeure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
   const nonAffectes = cars.reduce(
     (n, c) =>
@@ -36,6 +53,7 @@ export default async function CarsPage() {
 
   return (
     <div className="space-y-4">
+      <RafraichirAuto secondes={12} />
       {A_ANNONCER && (
         <EncartReport precision="Les affectations sont conservées. Le trajet est plus long qu'annoncé au départ : le site est à Jacqueville, et non à Abidjan — prévoyez-le avec les pieux." />
       )}
@@ -70,6 +88,8 @@ export default async function CarsPage() {
               {ETAPES_CAR.map((e) => {
                 const pointeurs = car.affectations.filter((a) => a.etape === e.cle);
                 const jeSuisAffecte = pointeurs.some((a) => a.userId === user.id);
+                const cloture = car.clotures.find((c) => c.etape === e.cle) ?? null;
+                const dernier = dernierPointage(car.id, e.cle);
                 return (
                   <li key={e.cle} className="text-sm flex items-start justify-between gap-2">
                     <span className="text-slate-600">
@@ -83,16 +103,28 @@ export default async function CarsPage() {
                         {jeSuisAffecte && <span className="text-fsy font-medium"> · vous</span>}
                       </span>
                     </span>
-                    <span
-                      className={`text-xs rounded-full px-2 py-0.5 whitespace-nowrap ${
-                        e.couleur === "blue"
-                          ? "bg-blue-50 text-blue-700"
-                          : e.couleur === "green"
-                            ? "bg-green-50 text-green-700"
-                            : "bg-orange-50 text-orange-700"
-                      }`}
-                    >
-                      {compte(car.id, e.cle)}/{car.pieu._count.jeunes}
+                    <span className="text-right shrink-0">
+                      <span
+                        className={`text-xs rounded-full px-2 py-0.5 whitespace-nowrap inline-block ${
+                          cloture
+                            ? "bg-green-600 text-white"
+                            : e.couleur === "blue"
+                              ? "bg-blue-50 text-blue-700"
+                              : e.couleur === "green"
+                                ? "bg-green-50 text-green-700"
+                                : "bg-orange-50 text-orange-700"
+                        }`}
+                      >
+                        {cloture ? `🔒 ${cloture.pointes}` : compte(car.id, e.cle)}/
+                        {car.pieu._count.jeunes}
+                      </span>
+                      <span className="block text-[10px] text-slate-400 mt-0.5">
+                        {cloture
+                          ? `clôturé à ${fmtHeure.format(cloture.clotureLe)}`
+                          : dernier
+                            ? `en cours · dernier à ${fmtHeure.format(dernier)}`
+                            : "pas commencé"}
+                      </span>
                     </span>
                   </li>
                 );

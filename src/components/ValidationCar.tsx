@@ -6,6 +6,9 @@ import {
   annulerDernierMouvement,
   affecterPointageCar,
   retirerPointageCar,
+  cloturerEtapeCar,
+  rouvrirEtapeCar,
+  type ResultatPointage,
 } from "@/lib/actions";
 import { ETAPES_CAR, type EtapeCar } from "@/lib/etapes-car";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
@@ -24,6 +27,7 @@ type JeuneCar = {
 
 type Affectation = { etape: string; userId: string; nom: string; role: string };
 type Encadrant = { id: string; nom: string; role: string; sexe: string };
+type Cloture = { par: string; heure: string; pointes: number };
 
 const COULEURS: Record<string, string> = {
   blue: "bg-blue-100 text-blue-700",
@@ -40,6 +44,7 @@ export function ValidationCar({
   peutAffecter,
   monId,
   historique,
+  clotures,
 }: {
   car: { id: string; nom: string; capacite: number; pieu: string };
   jeunes: JeuneCar[];
@@ -49,6 +54,7 @@ export function ValidationCar({
   peutAffecter: boolean;
   monId: string;
   historique: { id: string; type: string; jeune: string; par: string; heure: string }[] | null;
+  clotures: Record<string, Cloture | null>;
 }) {
   const [recherche, setRecherche] = useState("");
   const [etape, setEtape] = useState<EtapeCar>("MONTEE");
@@ -67,14 +73,17 @@ export function ValidationCar({
 
   const nbParEtape = (cle: string) => jeunes.filter((j) => j.etapes.includes(cle)).length;
   const pointeursDe = (cle: string) => affectations.filter((a) => a.etape === cle);
-  const jePeuxCocher = droits[etape] ?? false;
+  const cloture = clotures[etape] ?? null;
+  const jePeuxCocher = (droits[etape] ?? false) && !cloture;
   const etapeCourante = ETAPES_CAR.find((e) => e.cle === etape)!;
+  const fmtHeure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
-  const lancer = (fn: () => Promise<void>) => {
+  const lancer = (fn: () => Promise<void | ResultatPointage>) => {
     setErreur(null);
     startTransition(async () => {
       try {
-        await fn();
+        const res = await fn();
+        if (res && res.ok === false) setErreur(res.motif);
       } catch (e) {
         setErreur(e instanceof Error ? e.message : "Erreur inattendue");
       }
@@ -85,12 +94,11 @@ export function ValidationCar({
     if (!jePeuxCocher || pending) return;
     setEnCours(jeune.id);
     lancer(async () => {
-      if (jeune.etapes.includes(etape)) {
-        await annulerDernierMouvement(jeune.id, car.id, etape);
-      } else {
-        await validerMouvement(jeune.id, car.id, etape);
-      }
+      const res = jeune.etapes.includes(etape)
+        ? await annulerDernierMouvement(jeune.id, car.id, etape)
+        : await validerMouvement(jeune.id, car.id, etape);
       setEnCours(null);
+      return res;
     });
   }
 
@@ -112,6 +120,49 @@ export function ValidationCar({
       </div>
 
       {erreur && <p className="text-sm text-red-700 bg-red-50 rounded-lg p-3">{erreur}</p>}
+
+      {/* Étape clôturée : le résultat est figé, et il est dit par qui et quand. */}
+      {cloture && (
+        <div className="bg-green-50 border border-green-300 text-green-900 rounded-xl p-3 text-sm flex items-center justify-between gap-3 flex-wrap">
+          <span>
+            🔒 <strong>{etapeCourante.label}</strong> clôturée à{" "}
+            {fmtHeure.format(new Date(cloture.heure))} par {cloture.par} —{" "}
+            <strong>{cloture.pointes} jeunes pointés</strong> sur {jeunes.length} attendus.
+          </span>
+          {peutAffecter && (
+            <button
+              disabled={pending}
+              onClick={() => {
+                if (confirm("Rouvrir cette étape ? Le pointage redeviendra modifiable."))
+                  lancer(() => rouvrirEtapeCar(car.id, etape));
+              }}
+              className="text-sm underline font-medium disabled:opacity-50"
+            >
+              Rouvrir
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Clôturer : le pointeur affecté, ou un coordinateur. */}
+      {!cloture && jePeuxCocher && (
+        <button
+          disabled={pending}
+          onClick={() => {
+            const n = nbParEtape(etape);
+            if (
+              confirm(
+                `Clôturer « ${etapeCourante.label} » avec ${n} jeunes pointés sur ${jeunes.length} attendus ?\n` +
+                  "Plus rien ne pourra être modifié ensuite (un coordinateur peut rouvrir)."
+              )
+            )
+              lancer(() => cloturerEtapeCar(car.id, etape));
+          }}
+          className="w-full bg-white border-2 border-green-500 text-green-700 font-semibold rounded-xl py-2.5 text-sm hover:bg-green-50 disabled:opacity-50"
+        >
+          🔒 Clôturer « {etapeCourante.label} » — {nbParEtape(etape)}/{jeunes.length} pointés
+        </button>
+      )}
 
       {/* Sélecteur d'étape */}
       <div className="flex gap-2 flex-wrap">
@@ -150,7 +201,8 @@ export function ValidationCar({
         <div className="mt-2 text-sm">
           {pointeursDe(etape).length === 0 ? (
             <span className="text-amber-700">
-              Personne d'affecté — tout encadrant peut cocher pour le moment.
+              Personne d&apos;affecté — tout encadrant peut cocher pour le moment. Confiez le
+              pointage à une seule personne pour verrouiller.
             </span>
           ) : (
             <ul className="flex flex-wrap gap-1.5">
@@ -185,7 +237,14 @@ export function ValidationCar({
         {gestion && peutAffecter && (
           <div className="mt-3 border-t border-slate-100 pt-3">
             <label className="text-sm text-slate-600">
-              Ajouter une personne pour « {etapeCourante.label} » :
+              Confier « {etapeCourante.label} » à :
+              {pointeursDe(etape).length > 0 && (
+                <span className="text-slate-400">
+                  {" "}
+                  (remplace {pointeursDe(etape).map((a) => a.nom).join(", ")} — un seul
+                  pointeur à la fois)
+                </span>
+              )}
             </label>
             <select
               defaultValue=""
@@ -219,10 +278,11 @@ export function ValidationCar({
         className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-fsy bg-white"
       />
 
-      {!jePeuxCocher && (
+      {!jePeuxCocher && !cloture && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
-          Vous n'êtes pas affecté au pointage « {etapeCourante.label} » de ce car : lecture
-          seule. Demandez aux coordinateurs de vous affecter si nécessaire.
+          Le pointage « {etapeCourante.label} » de ce car est confié à{" "}
+          {pointeursDe(etape).map((a) => a.nom).join(", ") || "quelqu'un d'autre"} : vous
+          suivez en lecture seule, la liste se met à jour toute seule.
         </p>
       )}
 

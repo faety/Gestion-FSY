@@ -4,6 +4,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { ETAPES_CAR } from "@/lib/etapes-car";
 import { ValidationCar } from "@/components/ValidationCar";
+import { RafraichirAuto } from "@/components/RafraichirAuto";
 
 export default async function CarDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +23,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
         },
       },
       affectations: { include: { user: true } },
+      clotures: { include: { cloturePar: true } },
       mouvements: {
         orderBy: { horodatage: "desc" },
         include: { jeune: true, validePar: true },
@@ -67,8 +69,26 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
   );
 
   return (
-    <ValidationCar
+    <>
+      {/* Le pointage se suit en direct : la page se redemande d'elle-même. */}
+      <RafraichirAuto secondes={12} />
+      <ValidationCar
       car={{ id: car.id, nom: car.nom, capacite: car.capacite, pieu: car.pieu.nom }}
+      clotures={Object.fromEntries(
+        ETAPES_CAR.map((e) => {
+          const c = car.clotures.find((x) => x.etape === e.cle);
+          return [
+            e.cle,
+            c
+              ? {
+                  par: `${c.cloturePar.prenom} ${c.cloturePar.nom}`,
+                  heure: c.clotureLe.toISOString(),
+                  pointes: c.pointes,
+                }
+              : null,
+          ];
+        })
+      )}
       affectations={car.affectations.map((a) => ({
         etape: a.etape,
         userId: a.userId,
@@ -106,6 +126,7 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
             }))
           : null
       }
-    />
+      />
+    </>
   );
 }
