@@ -421,6 +421,15 @@ export async function genererProgrammePdf(
       } else if (fiche) {
         fichesImprimees.add(cleFiche);
         c.espace(3);
+        if (fiche.alerte) {
+          c.paragraphe(`! ${fiche.alerte}`, {
+            police: c.grasse,
+            taille: 8,
+            couleur: AMBRE,
+            x: xTexte,
+            largeur: largeurTexte,
+          });
+        }
         c.paragraphe(
           `${fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"} — manuel de l'encadrant`,
           { police: c.grasse, taille: 8, couleur: FSY_SOMBRE, x: xTexte, largeur: largeurTexte }

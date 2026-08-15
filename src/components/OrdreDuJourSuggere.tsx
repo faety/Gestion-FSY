@@ -15,7 +15,14 @@ export function OrdreDuJourSuggere({
   const fiche = ordreDuJourDe(titre, jour ?? -1, new Date(debut).getHours());
   if (!fiche) return null;
   return (
-    <details className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm open:bg-white">
+    <>
+      {/* La règle qui ne pardonne pas se lit sans ouvrir quoi que ce soit. */}
+      {fiche.alerte && (
+        <p className="mt-1.5 text-xs font-medium text-amber-900 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5">
+          ⚠️ {fiche.alerte}
+        </p>
+      )}
+      <details className="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm open:bg-white">
       <summary className="cursor-pointer select-none px-3 py-1.5 text-fsy-dark font-medium">
         📋 {fiche.nature === "ordre" ? "Ordre du jour suggéré" : "Repères"}
         <span className="text-slate-400 font-normal"> — manuel de l&apos;encadrant</span>
@@ -48,6 +55,7 @@ export function OrdreDuJourSuggere({
           </details>
         )}
       </div>
-    </details>
+      </details>
+    </>
   );
 }

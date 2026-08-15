@@ -500,6 +500,59 @@ async function main() {
             `${aDeplacer.length} activités replacées sur la nouvelle période.`
         );
       }
+
+      // ---------- Rôles attendus : la référence fait foi ----------
+      //
+      // Personne ne modifie les rôles depuis l'application — seuls l'amorçage
+      // et la resynchronisation les posent. Les rejouer ici à chaque
+      // déploiement est donc sans risque, et une correction du fichier de
+      // référence (relue sur le tableau officiel) atteint la production toute
+      // seule. Même appariement prudent que la resynchronisation : par titre,
+      // en ordre chronologique, seulement quand les comptes concordent.
+      const enBaseRoles = await prisma.activite.findMany({
+        where: { officielle: true },
+        orderBy: { debut: "asc" },
+        select: {
+          id: true,
+          titre: true,
+          roleConseiller: true,
+          roleAdjoint: true,
+          roleCoordinateur: true,
+          roleDirigeant: true,
+        },
+      });
+      const parTitreBase = new Map<string, typeof enBaseRoles>();
+      for (const a of enBaseRoles) {
+        parTitreBase.set(a.titre, [...(parTitreBase.get(a.titre) ?? []), a]);
+      }
+      const parTitreRef = new Map<string, (typeof PROGRAMME)[number][]>();
+      for (const a of PROGRAMME) {
+        parTitreRef.set(a.titre, [...(parTitreRef.get(a.titre) ?? []), a]);
+      }
+      let rolesRealignes = 0;
+      for (const [titre, refs] of parTitreRef) {
+        const bases = parTitreBase.get(titre);
+        if (!bases || bases.length !== refs.length) continue;
+        for (let i = 0; i < refs.length; i++) {
+          const attendu = refs[i].r ?? ["ASSISTER", "ASSISTER", "ASSISTER", "FACULTATIF"];
+          const b = bases[i];
+          const actuel = [b.roleConseiller, b.roleAdjoint, b.roleCoordinateur, b.roleDirigeant];
+          if (actuel.join("|") === attendu.join("|")) continue;
+          await prisma.activite.update({
+            where: { id: b.id },
+            data: {
+              roleConseiller: attendu[0],
+              roleAdjoint: attendu[1],
+              roleCoordinateur: attendu[2],
+              roleDirigeant: attendu[3],
+            },
+          });
+          rolesRealignes++;
+        }
+      }
+      if (rolesRealignes > 0) {
+        console.log(`   🎯 Rôles réalignés sur le tableau officiel : ${rolesRealignes} activités.`);
+      }
     }
   }
 

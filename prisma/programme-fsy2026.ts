@@ -108,7 +108,7 @@ const R = {
   // de tâche, mais il répond de la conférence : un jeune manquant doit lui
   // parvenir. Le laisser à « AUCUN » effaçait l'appel de son programme, et il
   // ne voyait même pas à quelle heure on compte les jeunes.
-  APPEL: ["DIRIGER", "RECEVOIR", "RECEVOIR", "RECEVOIR"] as Roles,
+  APPEL: ["DIRIGER", "RECEVOIR", "RECEVOIR", "AUCUN"] as Roles,
   REPAS: ["ASSISTER", "SI_ATTRIBUE", "ASSISTER", "ASSISTER"] as Roles,
   CONSEILLER_DIRIGE: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"] as Roles,
   CONSEILLER_SEUL: ["DIRIGER", "AUCUN", "FACULTATIF", "FACULTATIF"] as Roles,
@@ -117,9 +117,9 @@ const R = {
   // et le coordinateur aident, le couple dirigeant supervise. C'est le moment
   // où six cent quarante mineurs sont couchés sur un site qui n'est pas le
   // leur ; il n'a pas à disparaître du programme de ceux qui en répondent.
-  EXTINCTION: ["SUPERVISER", "AIDER", "AIDER", "SUPERVISER"] as Roles,
+  EXTINCTION: ["SUPERVISER", "AIDER", "AIDER", "AUCUN"] as Roles,
   REUNION_COORD_ADJOINTS: ["AUCUN", "ASSISTER", "DIRIGER", "FACULTATIF"] as Roles,
-  REUNION_COORD_CONSEILLERS: ["ASSISTER", "DIRIGER", "ASSISTER", "FACULTATIF"] as Roles,
+  REUNION_COORD_CONSEILLERS: ["ASSISTER", "DIRIGER", "FACULTATIF", "AUCUN"] as Roles,
   SPIRITUELLE: ["ASSISTER", "ASSISTER", "DIRIGER", "ENSEIGNER"] as Roles,
   SPECTACLE: ["SI_ATTRIBUE", "SI_ATTRIBUE", "ASSISTER", "ASSISTER"] as Roles,
   REPETITION: ["SI_ATTRIBUE", "SI_ATTRIBUE", "FACULTATIF", "FACULTATIF"] as Roles,
@@ -182,7 +182,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     description:
       "Chaque adjoint rencontre les conseillers qu'il supervise : attentes, buts de la semaine, questions.",
     encadrants: true,
-    r: ["ASSISTER", "DIRIGER", "FACULTATIF", "FACULTATIF"],
+    r: ["ASSISTER", "DIRIGER", "AUCUN", "AUCUN"],
   },
   {
     jour: 0,
@@ -435,7 +435,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_COMPAGNIE",
     description:
       "Les jeunes seuls réalisent bannière et cri ; les conseillers encouragent sans participer. Cri d'une minute maximum, sans accessoire, sans salto ni porté, sans nom de la Divinité ni Écriture.",
-    r: ["DIRIGER", "SI_ATTRIBUE", "ASSISTER", "FACULTATIF"],
+    r: ["DIRIGER", "SI_ATTRIBUE", "FACULTATIF", "FACULTATIF"],
   },
   {
     jour: 2,
@@ -649,7 +649,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_COMPAGNIE",
     description:
       "Cantique et prière, sièges réservés à l'avant, témoignages simples et sincères centrés sur le Sauveur. Terminer à l'heure ; ceux qui n'ont pas pu témoigner le feront à « Réfléchir et revoir ».",
-    r: ["DIRIGER", "ASSISTER", "ASSISTER", "ASSISTER"],
+    r: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"],
   },
   { jour: 4, debut: "21:00", titre: "Rassemblement en compagnie | Appel", type: "PAR_COMPAGNIE", r: R.APPEL },
   { jour: 4, debut: "21:00", fin: "21:45", titre: "Moment de tranquillité | Préparation au coucher", type: "PAR_GROUPE", r: R.TRANQUILLITE },
@@ -764,7 +764,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_GROUPE",
     // Le départ de six cent quarante mineurs est ce dont le couple dirigeant
     // répond le plus directement : il supervise, il n'est pas absent.
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
   },
   {
     jour: 6,
@@ -774,7 +774,7 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_GROUPE",
     description:
       "Inspection de chaque chambre avec les jeunes, récupération des clés, vérification des placards et tiroirs. Les conseillers valident les départs dans l'application (module Cars) et restent avec les jeunes jusqu'à leur prise en charge.",
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
   },
   {
     jour: 6,

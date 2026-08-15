@@ -31,6 +31,8 @@ type Fiche = {
   ancre?: string;
   /** Sujets de formation suggérés (réunion de l'après-midi adjoints/conseillers). */
   formations?: string[];
+  /** Ce qui doit se voir sans ouvrir le volet : une règle qui ne pardonne pas. */
+  alerte?: string;
 };
 
 const FICHES: Fiche[] = [
@@ -293,6 +295,181 @@ const FICHES: Fiche[] = [
     ],
   },
 
+
+  // ---------- Instructions de terrain des conseillers ----------
+  //
+  // Transcrites du fascicule « Les Conseillers » : ce que « vous dirigez »
+  // recouvre concrètement, activité par activité. L'alerte porte la règle qui
+  // ne pardonne pas ; le reste attend, replié, qu'on l'ouvre.
+  {
+    titres: ["Distribution du matériel | Auditions des chanteurs | Répétition des danseurs"],
+    objet: "Conseillers : sous la direction de l'adjoint responsable, préparer un enregistrement sans accroc.",
+    nature: "reperes",
+    points: [
+      "Transporter le matériel d'enregistrement jusqu'au lieu convenu",
+      "Disposer badges et bracelets sur les tables ; classer les tee-shirts par taille (en exposer quelques-uns en référence)",
+      "Auditions des chanteurs (facultatif) : pour chanter en solo pendant la conférence, passer une audition sur l'album du thème — réponse dans l'après-midi du premier jour",
+      "Répétition des danseurs : tous les conseillers qui connaissent les danses en ligne — ou veulent les apprendre — sont bienvenus",
+    ],
+  },
+  {
+    titres: ["Arrivée et enregistrement"],
+    objet: "Conseillers : la première impression de la conférence. Professionnels, ouverts, amicaux — et à l'heure.",
+    nature: "reperes",
+    alerte: "Ne remettez jamais bracelet ni matériel à quelqu'un qui n'est pas inscrit. En cas de doute : la table des solutions.",
+    points: [
+      "Inscription sur place, changement de chambre, questions des parents : à renvoyer vers les coordinateurs, le couple dirigeant ou la table des solutions — pas d'improvisation",
+      "Vérifier le nom avec chaque participant à la remise du badge ; exactitude de chaque renseignement",
+      "Badge au tour de cou, bracelet au poignet, en expliquant leur importance : ils ouvrent toutes les activités, repas et bals",
+      "Faire écrire le nom sur le manuel, à garder à portée de main toute la conférence",
+      "Motiver sans agitation ; souplesse si la météo ou les circonstances bousculent le déroulé",
+    ],
+  },
+  {
+    titres: ["Vérification des chambres"],
+    objet: "Conseillers : l'état des lieux se fait AVANT que les jeunes ne s'installent.",
+    nature: "reperes",
+    points: [
+      "Vérifier chaque chambre ou dortoir avec les jeunes, avant l'installation",
+      "Tout dégât constaté se signale immédiatement à votre coordinateur adjoint — surtout ce qui doit être réparé sans attendre (douche, robinet, prise)",
+      "Dire aux jeunes de signaler immédiatement tout dégât survenu pendant la conférence",
+      "Inciter à laisser chambre et lieux en meilleur état qu'à l'arrivée",
+    ],
+  },
+  {
+    titres: ["Rencontre ton conseiller"],
+    objet: "Conseillers : votre première heure avec vos jeunes — liens, attentes, règles. Un ton aimant et gentil pour favoriser la présence de l'Esprit.",
+    nature: "reperes",
+    alerte: "Chaque jeune signe et date son engagement en bas de la page « Rencontre ton conseiller » de son manuel.",
+    points: [
+      "Présentez-vous avec joie ; chaque jeune se présente et dit quelque chose d'amusant ou d'unique",
+      "But de la conférence : fortifier la foi en Jésus-Christ, appartenir, continuer chez soi",
+      "Expliquer une à une les six règles de conduite du manuel du participant, et s'assurer qu'elles sont comprises",
+      "Bracelet porté en tout temps ; manuel et guide « Jeunes, soyez forts » toujours à portée de main (nom du jeune et du conseiller inscrits)",
+      "Respect : envers soi, les autres, les encadrants, les lieux — le harcèlement n'est pas toléré",
+      "Santé et sécurité : pour les toilettes ou l'eau, le jeune prévient son conseiller et signale son retour ; au-delà des environs immédiats, deux encadrants l'accompagnent, ou un encadrant avec deux à quatre jeunes — jamais un encadrant seul avec un jeune",
+      "Téléphones : usage approprié, moments opportuns ; le vôtre reste allumé en vibreur pour être joignable",
+      "Attribuer aux jeunes les réunions spirituelles matinales des jours 2 à 5 (enseigner en binômes, préparation pendant les temps libres)",
+    ],
+  },
+  {
+    titres: ["Rencontre ta compagnie"],
+    objet: "Conseillers : créer l'unité de la compagnie — vos deux groupes ensemble.",
+    nature: "reperes",
+    points: [
+      "Atmosphère d'unité et de bienveillance ; chercher à rencontrer aussi les jeunes de vos collègues conseillers",
+      "Jeux pour se connaître (30 minutes) : le dénominateur commun, « toi, moi, gauche, droite », le nœud humain — les conseillers restent en dehors du nœud et encouragent",
+      "Discussion préparée sur le discours de Jeffrey R. Holland « Être avec eux et les fortifier » : reconnaître les occasions de servir",
+      "Rester positif si l'activité est gênante au premier abord — votre exemple entraîne",
+    ],
+  },
+  {
+    titres: ["Nom et cri de la compagnie"],
+    objet: "Conseillers : le nom, son Écriture, puis le cri — préparé le matin même avec votre collègue.",
+    nature: "reperes",
+    points: [
+      "Nom et Écriture (10 minutes) : lire ensemble le passage de la compagnie, discuter de ce que le nom signifie et de son influence sur la semaine",
+      "Cri (5 minutes) : un chant simple qui unit et aide à retenir le nom — utilisable toute la conférence quand la compagnie est libérée",
+    ],
+  },
+  {
+    titres: ["Réunion d'accueil"],
+    objet: "Conseillers : votre enthousiasme donne le ton de la semaine.",
+    nature: "reperes",
+    points: [
+      "Rester debout et danser pour l'ambiance, un œil sur les jeunes, jusqu'à ce que le coordinateur se lève pour lancer la réunion",
+      "S'asseoir côté couloir : voir qui a besoin de sortir (toilettes), et réserver un siège à ceux qui reviennent",
+      "Applaudir tout le monde et tout ce qui est présenté — les jeunes suivront votre exemple",
+      "Possibilité d'apprendre une danse en ligne et de l'exécuter à la réunion",
+    ],
+  },
+  {
+    titres: [
+      "Cours — 1re session",
+      "Cours — 2e session",
+      "Cours ou activité — 3e session",
+      "Cours ou activité — 4e session",
+      "Cours ou activité — 1re session",
+      "Cours ou activité — 2e session",
+      "Cours ou activité — 4e session (dernière)",
+    ],
+    objet: "Conseillers, si une tâche de cours vous est attribuée : cours du matin, présentez-vous à l'adjoint responsable dès le matin ; cours de l'après-midi, vers la fin du déjeuner.",
+    nature: "reperes",
+    points: [
+      "Tâche de direction, avant l'arrivée des jeunes : se présenter à l'instructeur (s'il est en retard, envoyer un conseiller prévenir l'adjoint — on n'annule pas le cours), convenir du cantique d'ouverture, promettre le signal « cinq minutes », demander comment le présenter, vérifier salle et matériel",
+      "Solliciter quatre participants : diriger le cantique, piano le cas échéant, prière d'ouverture, prière de clôture",
+      "Pendant le cours : accueillir, faire ouvrir Écritures et manuel, annonces utiles, présenter l'instructeur — puis s'asseoir parmi les jeunes pour les aider à se concentrer",
+      "Ne rien ajouter quand l'instructeur a terminé ; si le cours finit en avance, discussion dans le calme",
+      "Itinérants et couloirs : en poste avant l'arrivée des jeunes, aider chacun à trouver une salle, surveiller les couloirs, se joindre à une classe pendant le cours, regagner son poste avant la prière de clôture",
+    ],
+  },
+  {
+    titres: ["Temps libre des participants"],
+    objet: "Conseillers affectés : votre poste est votre responsabilité — recevez lieu et consignes de l'adjoint.",
+    nature: "reperes",
+    points: [
+      "Rester à l'endroit assigné pendant tout le créneau",
+      "Sécurité, comportement correct et respectueux, et respect des limites du site fixées pour la conférence",
+    ],
+  },
+  {
+    titres: ["Bal"],
+    objet: "Conseillers affectés : présentez-vous à l'adjoint responsable avant votre heure pour recevoir votre poste — entrée, chaperonnage, point d'eau ou zone.",
+    nature: "reperes",
+    alerte: "À l'entrée : bracelet ou badge vérifié pour tous — personne d'extérieur à la conférence sur la piste.",
+    points: [
+      "Entrée : filtrer soigneusement, et rester au poste toute la durée du bal",
+      "Chaperonnage : surveiller la piste, faire respecter gentiment les règles du bal, atténuer les perturbations, encourager les jeunes vers ceux qui sont seuls ; signaler tout problème à un adjoint",
+      "Point d'eau : approvisionnement continu, propreté, de quoi essuyer un renversement",
+      "Postes et zones : couloirs, toilettes, entrées et sorties — pas de sortie sans l'autorisation d'un conseiller, pas d'attroupement",
+      "Fixer à votre compagnie un lieu de rassemblement après le bal, pour se retrouver et se disperser en ordre",
+    ],
+  },
+  {
+    titres: ["Réunions de témoignage"],
+    objet: "Conseiller chargé de la direction : un cadre simple, du recueillement, et l'heure tenue.",
+    nature: "reperes",
+    points: [
+      "Choisir un cantique d'ouverture ; désigner deux personnes pour les prières d'ouverture et de clôture",
+      "Réserver des sièges à l'avant pour ceux qui attendent de témoigner",
+      "Ouvrir par la bienvenue, le cantique et la prière ; inviter tous ceux qui le souhaitent, en rappelant l'heure de fin",
+      "Entre les témoignages, recueillement : Écritures, ou écrire témoignage et impressions dans le manuel",
+      "Tenir le temps : observer la file et l'heure, annoncer gentiment s'il n'y en aura pas pour tous — ceux qui n'ont pas pu témoigneront en groupe pendant « Réfléchir et revoir »",
+      "Clore par la prière, et renvoyer les compagnies dans la révérence",
+    ],
+  },
+  {
+    titres: ["Réunion spirituelle matinale des participants"],
+    objet: "Conseillers : ce sont les jeunes qui enseignent, des jours 2 à 5 — vous dirigez le cadre.",
+    nature: "reperes",
+    points: [
+      "Les tâches ont été attribuées dès « Rencontre ton conseiller » ; enseigner en binômes est recommandé",
+      "Les réunions s'appuient sur les principes de « Jeunes, soyez forts » (fin du manuel du participant) — préciser jour et page à ceux qui enseignent",
+      "Le meilleur moment pour les aider à se préparer : les temps libres et les moments de tranquillité",
+    ],
+  },
+  {
+    titres: ["Moment de tranquillité | Préparation au coucher", "Moment de tranquillité | Journal"],
+    objet: "Conseillers : vous supervisez — calme, préparation au coucher, et pour ceux qui enseignent le lendemain, un moment pour se préparer.",
+    nature: "reperes",
+    points: [
+      "Faire baisser le rythme : préparation au coucher, journal, Écritures",
+      "Aider les jeunes chargés de la réunion spirituelle du lendemain à se préparer",
+    ],
+  },
+  {
+    titres: ["Extinction des feux", "Extinction des feux | Veille de nuit"],
+    objet: "Conseillers : chacun dans sa chambre, lumières éteintes — et vos jeunes savent où vous trouver.",
+    nature: "reperes",
+    alerte: "Après l'appel du soir, plus personne ne quitte son étage ou son dortoir sans l'autorisation de son conseiller et un accompagnement.",
+    points: [
+      "22 h 30 : tous les participants dans leur chambre, lumières éteintes",
+      "Vos jeunes savent où vous dormez, pour vous trouver en cas d'urgence",
+      "Fenêtres occultées le cas échéant ; vigilance particulière après l'extinction",
+      "Le cinquième soir : garde de nuit — postes et consignes donnés par les coordinateurs",
+    ],
+  },
+
   // ---------- L'appel, à chaque rassemblement ----------
   //
   // « Vous recevez l'appel » laissait les coordinateurs perplexes — on aurait
@@ -356,6 +533,7 @@ export type OrdreDuJour = {
   objet?: string;
   points: string[];
   formations?: string[];
+  alerte?: string;
 };
 
 const momentDe = (heure: number): Moment =>
@@ -384,5 +562,11 @@ export function ordreDuJourDe(titre: string, jour: number, heure: number): Ordre
         ? [...points.slice(0, apres + 1), ...duJour, ...points.slice(apres + 1)]
         : [...points, ...duJour];
   }
-  return { nature: fiche.nature, objet: fiche.objet, points, formations: fiche.formations };
+  return {
+    nature: fiche.nature,
+    objet: fiche.objet,
+    points,
+    formations: fiche.formations,
+    alerte: fiche.alerte,
+  };
 }
