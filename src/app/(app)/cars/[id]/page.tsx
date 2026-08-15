@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
-import { roleAuMoins } from "@/lib/roles";
+import { roleAuMoins, voitToutesLesAlertes } from "@/lib/roles";
 import { ETAPES_CAR } from "@/lib/etapes-car";
 import { ValidationCar } from "@/components/ValidationCar";
 import { RafraichirAuto } from "@/components/RafraichirAuto";
@@ -46,6 +46,8 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const peutAffecter = roleAuMoins(user.role, "COORDINATEUR");
+  const voitAlertes =
+    voitToutesLesAlertes(user) || car.affectations.some((a) => a.userId === user.id);
 
   // Personnes affectables au pointage : conseillers, adjoints et coordinateurs
   const encadrants = peutAffecter
@@ -112,8 +114,12 @@ export default async function CarDetailPage({ params }: { params: Promise<{ id: 
         groupe: j.groupe?.nom ?? null,
         statut: dernierStatut.get(j.id) ?? null,
         etapes: etapesValidees.get(j.id) ?? [],
-        medical: j.medical,
-        alimentaire: j.alimentaire,
+        // Les alertes médicales et alimentaires accompagnent le transport,
+        // mais restent dans leur périmètre : le pointeur affecté à ce car en a
+        // besoin en route, l'encadrement qui voit tout les a déjà — pas le
+        // simple visiteur de la page, qui n'a rien à en faire.
+        medical: voitAlertes ? j.medical : null,
+        alimentaire: voitAlertes ? j.alimentaire : null,
       }))}
       historique={
         roleAuMoins(user.role, "ADJOINT")

@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { exigerUtilisateur } from "@/lib/auth";
 import { Avatar } from "@/components/Avatar";
 
 export default async function OrganigrammePage() {
+  // Le gabarit redirige déjà les visiteurs sans session, mais chaque page
+  // l'affirme elle-même : les deux rendus étant simultanés, une page qui
+  // suppose la session peut partir avant que la redirection n'aboutisse.
+  await exigerUtilisateur();
   const [dirigeants, coordinateurs, compagnies, groupesSansCompagnie] = await Promise.all([
     prisma.user.findMany({ where: { role: "DIRIGEANT", actif: true }, orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { role: "COORDINATEUR", actif: true }, orderBy: { nom: "asc" } }),
