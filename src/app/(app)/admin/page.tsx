@@ -7,6 +7,7 @@ import {
   basculerDroit,
   basculerActif,
   affecterCompagnie,
+  demarrerApercu,
 } from "@/lib/actions";
 import { DROITS, lireDroits } from "@/lib/roles";
 import { CHOSES_A_EFFACER } from "@/lib/remise-a-zero";
@@ -314,6 +315,38 @@ export default async function AdminPage() {
 
         <EssaiEmail actif={EMAIL_ACTIF} monEmail={user.email} />
       </section>
+
+      {estDirigeant && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold">👁 Voir l&apos;application comme…</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Vous naviguez alors avec l&apos;appel choisi — mêmes pages, mêmes menus, mêmes
+            limites — en lecture seule : rien ne peut être enregistré pendant l&apos;aperçu. Le
+            bandeau violet en tête de page permet d&apos;en sortir à tout moment.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {(
+              [
+                ["COORDINATEUR", "Un coordinateur principal"],
+                ["ADJOINT", "Un coordinateur adjoint"],
+                ["CONSEILLER", "Un conseiller"],
+              ] as const
+            ).map(([role, label]) => (
+              <form
+                key={role}
+                action={async () => {
+                  "use server";
+                  await demarrerApercu(role);
+                }}
+              >
+                <button className="text-sm bg-white border border-slate-300 text-slate-700 rounded-lg px-3.5 py-2 hover:border-fsy hover:text-fsy transition-colors">
+                  {label}
+                </button>
+              </form>
+            ))}
+          </div>
+        </section>
+      )}
 
       {estDirigeant && <RemiseAZero choses={CHOSES_A_EFFACER} />}
 

@@ -11,6 +11,7 @@ import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { SITE_AFFICHE } from "@/lib/site";
 import { A_ANNONCER } from "@/lib/report";
 import { BarreReport } from "@/components/BandeauReport";
+import { quitterApercu } from "@/lib/actions";
 
 export default async function AppLayout({
   children,
@@ -105,6 +106,27 @@ export default async function AppLayout({
           aller le chercher : la conférence n'a plus de date, et rien de ce qui
           est affiché en dessous ne doit se lire sans le savoir. */}
       {A_ANNONCER && <BarreReport />}
+
+      {/* Mode aperçu : le dirigeant regarde avec les yeux d'un autre appel.
+          Le bandeau est sur chaque page — on ne doit jamais confondre ce que
+          l'on voit avec ce que l'on est — et porte la sortie, car les pages
+          d'administration ne sont plus accessibles pendant l'aperçu. */}
+      {user.apercu && (
+        <div className="bg-violet-700 text-white text-sm" role="status">
+          <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
+            <span>
+              👁 Vous voyez l&apos;application comme la voit un{" "}
+              <strong>{ROLE_LABELS[user.apercu as Role].toLowerCase()}</strong> — lecture
+              seule, rien ne peut être enregistré.
+            </span>
+            <form action={quitterApercu}>
+              <button className="underline font-semibold whitespace-nowrap">
+                Quitter l&apos;aperçu
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 pb-24 sm:pb-4">{children}</main>
 

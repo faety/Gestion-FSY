@@ -5,7 +5,15 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "./db";
-import { creerSession, detruireSession, getUtilisateur } from "./auth";
+import {
+  creerSession,
+  detruireSession,
+  getUtilisateur,
+  poserApercu,
+  retirerApercu,
+  ROLES_APERCU,
+  type RoleApercu,
+} from "./auth";
 import { journaliser } from "./audit";
 import {
   DROITS,
@@ -54,6 +62,12 @@ import {
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
   if (!user) redirect("/login");
+  // En mode aperçu, on regarde — on n'agit pas : une action passée pendant
+  // l'aperçu serait attribuée au dirigeant en train d'observer, pas au rôle
+  // qu'il incarne, et fausserait rapports et journaux.
+  if (user.apercu) {
+    throw new Error("Mode aperçu : l'application est en lecture seule.");
+  }
   if (!roleAuMoins(user.role, minimum)) {
     throw new Error("Vous n'avez pas la permission d'effectuer cette action.");
   }
@@ -2154,4 +2168,34 @@ export async function basculerActif(userId: string) {
   );
   revalidatePath("/admin");
   revalidatePath("/groupes");
+}
+
+// ---------- Mode aperçu : voir l'application comme un autre appel ----------
+
+/**
+ * Le couple dirigeant regarde l'application avec les yeux d'un coordinateur,
+ * d'un adjoint ou d'un conseiller. Personne n'est incarné : l'appel est
+ * simplement abaissé, sans droits ni affectations, et tout est en lecture
+ * seule le temps de l'aperçu.
+ */
+export async function demarrerApercu(role: string) {
+  const user = await getUtilisateur();
+  // Le vrai appel seul compte : déjà en aperçu, il reste DIRIGEANT dessous —
+  // on peut donc passer d'un aperçu à l'autre sans repasser par la sortie.
+  if (!user || (!user.apercu && user.role !== "DIRIGEANT")) redirect("/accueil");
+  if (!(ROLES_APERCU as readonly string[]).includes(role)) {
+    throw new Error("Appel inconnu pour l'aperçu.");
+  }
+  await poserApercu(role as RoleApercu);
+  await journaliser(user.id, "APERCU_DEMARRE", `Voit l'application comme ${role}`);
+  redirect("/accueil");
+}
+
+export async function quitterApercu() {
+  const user = await getUtilisateur();
+  await retirerApercu();
+  if (user?.apercu) {
+    await journaliser(user.id, "APERCU_TERMINE", `Fin de l'aperçu ${user.apercu}`);
+  }
+  redirect("/admin");
 }

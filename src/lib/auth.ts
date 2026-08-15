@@ -59,6 +59,39 @@ export async function detruireSession() {
   store.delete(COOKIE_NAME);
 }
 
+// ---------- Mode aperçu ----------
+//
+// Le couple dirigeant peut voir l'application comme la voit un coordinateur
+// principal, un adjoint ou un conseiller : un cookie porte l'appel choisi, et
+// getUtilisateur — l'unique point de passage des pages comme des actions —
+// présente alors un profil rétrogradé : appel abaissé, aucun droit nominatif,
+// aucune affectation. L'identité reste la vraie : le journal d'audit dit
+// toujours qui a réellement agi.
+//
+// Le cookie n'a d'effet que si le compte est réellement DIRIGEANT : posé sur
+// une autre session, il ne fait rien. Et l'aperçu ne peut qu'abaisser, jamais
+// élever. Pendant l'aperçu, toute écriture est refusée (voir exiger, dans
+// actions.ts) : voir comme un conseiller, oui ; agir en son nom, non.
+
+const COOKIE_APERCU = "fsy_apercu";
+export const ROLES_APERCU = ["COORDINATEUR", "ADJOINT", "CONSEILLER"] as const;
+export type RoleApercu = (typeof ROLES_APERCU)[number];
+
+export async function poserApercu(role: RoleApercu) {
+  const store = await cookies();
+  store.set(COOKIE_APERCU, role, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+}
+
+export async function retirerApercu() {
+  const store = await cookies();
+  store.delete(COOKIE_APERCU);
+}
+
 // Utilisateur courant, mis en cache par requête
 export const getUtilisateur = cache(async () => {
   const store = await cookies();
@@ -71,7 +104,25 @@ export const getUtilisateur = cache(async () => {
       where: { id: payload.sub },
       include: { pieu: true, compagnie: true, groupesDiriges: true },
     });
-    return user && user.actif ? user : null;
+    if (!user || !user.actif) return null;
+
+    const demande = store.get(COOKIE_APERCU)?.value;
+    if (
+      user.role === "DIRIGEANT" &&
+      demande &&
+      (ROLES_APERCU as readonly string[]).includes(demande)
+    ) {
+      return {
+        ...user,
+        role: demande,
+        droitsSupplementaires: "[]",
+        groupesDiriges: [],
+        compagnie: null,
+        compagnieId: null,
+        apercu: demande as RoleApercu,
+      };
+    }
+    return { ...user, apercu: null as RoleApercu | null };
   } catch {
     return null;
   }
