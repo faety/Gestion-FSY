@@ -129,7 +129,7 @@ const PRATIQUE = [
   {
     titre: "À apporter",
     texte:
-      "Vêtements du dimanche, tenues décontractées, tee-shirt FSY, draps et affaires de toilette, Écritures, carnet et stylo, gourde. Les téléphones restent rangés pendant les activités.",
+      "Vêtements du dimanche, tenues décontractées, tee-shirt FSY, draps et affaires de toilette, Écritures, carnet et stylo, gourde. Les téléphones sont interdits aux jeunes pour cette conférence : ils restent à la maison — seuls les encadrants gardent le leur.",
   },
   {
     titre: "Santé",

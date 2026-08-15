@@ -164,7 +164,7 @@ export const SECTIONS: Section[] = [
           "Conflit entre jeunes",
           "Mal du pays, tristesse",
           "Règles non respectées",
-          "Téléphone ou objet interdit",
+          "Téléphone trouvé chez un jeune, objet interdit",
           "Blessure ou accident",
           "Sortie du site sans autorisation",
           "Retards répétés",

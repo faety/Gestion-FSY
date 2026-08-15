@@ -340,7 +340,8 @@ const FICHES: Fiche[] = [
     titres: ["Rencontre ton conseiller"],
     objet: "Conseillers : votre première heure avec vos jeunes — liens, attentes, règles. Un ton aimant et gentil pour favoriser la présence de l'Esprit.",
     nature: "reperes",
-    alerte: "Chaque jeune signe et date son engagement en bas de la page « Rencontre ton conseiller » de son manuel.",
+    alerte:
+      "Règle propre à notre conférence — le fascicule dit autre chose : les téléphones sont interdits aux jeunes, seuls les encadrants gardent le leur. Et chaque jeune signe et date son engagement dans son manuel.",
     points: [
       "Présentez-vous avec joie ; chaque jeune se présente et dit quelque chose d'amusant ou d'unique",
       "But de la conférence : fortifier la foi en Jésus-Christ, appartenir, continuer chez soi",
@@ -348,7 +349,7 @@ const FICHES: Fiche[] = [
       "Bracelet porté en tout temps ; manuel et guide « Jeunes, soyez forts » toujours à portée de main (nom du jeune et du conseiller inscrits)",
       "Respect : envers soi, les autres, les encadrants, les lieux — le harcèlement n'est pas toléré",
       "Santé et sécurité : pour les toilettes ou l'eau, le jeune prévient son conseiller et signale son retour ; au-delà des environs immédiats, deux encadrants l'accompagnent, ou un encadrant avec deux à quatre jeunes — jamais un encadrant seul avec un jeune",
-      "Téléphones : usage approprié, moments opportuns ; le vôtre reste allumé en vibreur pour être joignable",
+      "Téléphones : interdits aux jeunes pour cette conférence (règle locale, différente du fascicule international) ; le vôtre reste allumé en vibreur pour être joignable par les encadrants",
       "Attribuer aux jeunes les réunions spirituelles matinales des jours 2 à 5 (enseigner en binômes, préparation pendant les temps libres)",
     ],
   },
