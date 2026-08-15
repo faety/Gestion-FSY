@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/Avatar";
 
@@ -46,17 +47,22 @@ export default async function OrganigrammePage() {
           // Deux comptes homonymes existaient : la clé doit rester distincte,
           // sinon React n'en affiche qu'un et le doublon devient invisible.
           <div key={p.id} className="mt-2 first:mt-0 flex items-center justify-center gap-2.5">
-            <Avatar
-              prenom={p.prenom}
-              nom={p.nom}
-              photoPublicId={p.photoPublicId}
-              taille={38}
-              className="ring-2 ring-white/40"
-            />
+            <Link href={`/organigramme/${p.id}`} className="shrink-0">
+              <Avatar
+                prenom={p.prenom}
+                nom={p.nom}
+                photoPublicId={p.photoPublicId}
+                taille={38}
+                className="ring-2 ring-white/40"
+              />
+            </Link>
             <div className="text-left min-w-0">
-              <div className="font-medium leading-tight">
+              <Link
+                href={`/organigramme/${p.id}`}
+                className="font-medium leading-tight block hover:underline"
+              >
                 {p.prenom} {p.nom}
-              </div>
+              </Link>
               {p.telephone && (
                 <a
                   href={`tel:${p.telephone.replace(/\s/g, "")}`}
@@ -107,28 +113,64 @@ export default async function OrganigrammePage() {
           <div key={c.id} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
             <div>
               <div className="font-bold text-lg">{c.nom}</div>
-              <div className="text-sm text-slate-500">
-                Adjoints :{" "}
-                {c.dirigeants.length > 0
-                  ? c.dirigeants.map((d) => `${d.prenom} ${d.nom}`).join(" & ")
-                  : "non assignés"}
-              </div>
+              {/* L'adjoint est le nœud suivant de l'arbre : sa photo et un
+                  appui ouvrent son arbre détaillé, groupes et jeunes compris. */}
+              {c.dirigeants.length > 0 ? (
+                <div className="mt-1.5 space-y-1">
+                  {c.dirigeants.map((d) => (
+                    <Link
+                      key={d.id}
+                      href={`/organigramme/${d.id}`}
+                      className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-50"
+                    >
+                      <Avatar
+                        prenom={d.prenom}
+                        nom={d.nom}
+                        photoPublicId={d.photoPublicId}
+                        taille={32}
+                      />
+                      <span className="text-sm min-w-0">
+                        <span className="font-medium">
+                          {d.prenom} {d.nom}
+                        </span>
+                        <span className="text-slate-400"> — adjoint</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-slate-500">Adjoints : non assignés</div>
+              )}
             </div>
             <ul className="space-y-2">
               {c.groupes.map((g) => (
-                <li key={g.id} className="bg-slate-50 rounded-lg p-2 text-sm flex justify-between">
-                  <div>
-                    <span className="font-medium">{g.nom}</span>
-                    <span className="text-slate-400 ml-1">
-                      ({g.sexe === "M" ? "G" : "F"})
+                <li key={g.id} className="bg-slate-50 rounded-lg p-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>
+                      <span className="font-medium">{g.nom}</span>
+                      <span className="text-slate-400 ml-1">({g.sexe === "M" ? "G" : "F"})</span>
                     </span>
-                    <div className="text-slate-500">
-                      {g.conseiller
-                        ? `${g.conseiller.prenom} ${g.conseiller.nom}${!g.conseiller.actif ? " (absent)" : ""}`
-                        : "Sans conseiller"}
-                    </div>
+                    <span className="text-slate-400">{g._count.jeunes} jeunes</span>
                   </div>
-                  <span className="text-slate-400">{g._count.jeunes} jeunes</span>
+                  {g.conseiller ? (
+                    <Link
+                      href={`/organigramme/${g.conseiller.id}`}
+                      className="mt-1 flex items-center gap-2 rounded -mx-0.5 px-0.5 hover:bg-white"
+                    >
+                      <Avatar
+                        prenom={g.conseiller.prenom}
+                        nom={g.conseiller.nom}
+                        photoPublicId={g.conseiller.photoPublicId}
+                        taille={26}
+                      />
+                      <span className="text-slate-600 min-w-0 truncate">
+                        {g.conseiller.prenom} {g.conseiller.nom}
+                        {!g.conseiller.actif && <span className="text-red-600"> (absent)</span>}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="text-slate-500 mt-1">Sans conseiller</div>
+                  )}
                 </li>
               ))}
             </ul>

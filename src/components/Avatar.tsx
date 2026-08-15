@@ -50,6 +50,10 @@ export function Avatar({
         alt={`${prenom} ${nom}`}
         width={taille}
         height={taille}
+        // Chargées à la demande : soixante-dix vignettes d'un coup pèseraient
+        // sur un téléphone, alors que seules celles à l'écran comptent.
+        loading="lazy"
+        decoding="async"
         className={`rounded-full object-cover shrink-0 bg-slate-100 ${className}`}
         style={{ width: taille, height: taille }}
       />
