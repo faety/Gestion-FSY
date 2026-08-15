@@ -32,8 +32,12 @@ export const REPORTEE = false;
  * On ne se contente pas de retirer le report : ceux qui ont lu « reportée »
  * doivent lire la suite au même endroit. Une annonce qui disparaît sans être
  * remplacée laisse chacun croire ce qu'il veut.
+ *
+ * Éteinte mi-août 2026, l'annonce ayant tourné deux semaines : les dates du
+ * 24-29 août sont actées et affichées partout dans le contenu ordinaire —
+ * les bannières ne faisaient plus que prendre de la place.
  */
-export const NOUVELLE_PERIODE = true;
+export const NOUVELLE_PERIODE = false;
 
 /** Date de l'annonce, telle qu'elle est donnée. */
 export const ANNONCE_LE = "1er août 2026";
