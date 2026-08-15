@@ -622,6 +622,39 @@ async function main() {
     });
   }
 
+  // ---------- Communiqué du 15 août 2026 : départ des conseillers désignés ----------
+  //
+  // Validé par le couple dirigeant, diffusé aussi en PDF (WhatsApp, e-mail).
+  // Le jalon d'audit garantit qu'il n'est semé qu'une seule fois : supprimé
+  // depuis l'application, il ne renaîtra pas au déploiement suivant.
+  const jalonCommunique = "communique-depart-conseillers-23-aout";
+  if (
+    dirigeant &&
+    !(await prisma.auditLog.findFirst({
+      where: { action: "ANNONCE_SEMEE", details: jalonCommunique },
+    }))
+  ) {
+    await prisma.annonce.create({
+      data: {
+        titre: "Départ des conseillers désignés — dimanche 23 août à 14 h 00",
+        contenu:
+          "Chers conseillers,\n\n" +
+          "Vous avez été désignés pour rejoindre le lieu de la conférence avant l'arrivée des jeunes, afin d'en préparer l'accueil. Le départ aura lieu le dimanche 23 août 2026 à 14 h 00 précises.\n\n" +
+          "Merci de prendre contact sans attendre avec vos coordonnateurs principaux pour les détails pratiques : lieu de rendez-vous, transport et consignes particulières.\n\n" +
+          "Préparez-vous pour une semaine entière sur place, du dimanche 23 au samedi 29 août, au Foyer des Jeunes de Jacqueville. La veille de la conférence est consacrée à la visite des lieux, à votre formation et à la planification avec vos coordinateurs.\n\n" +
+          "Merci pour votre service et votre dévouement auprès des jeunes. Nous nous réjouissons de vivre cette conférence à vos côtés.\n\n" +
+          "Armande et Bérenger Dahakpoin — Couple dirigeant la conférence",
+        cible: "CONSEILLERS",
+        datePublication: new Date(2026, 7, 15, 8, 0),
+        creeParId: dirigeant.id,
+      },
+    });
+    await prisma.auditLog.create({
+      data: { userId: dirigeant.id, action: "ANNONCE_SEMEE", details: jalonCommunique },
+    });
+    console.log("   📣 Communiqué du départ des conseillers publié (cible : conseillers).");
+  }
+
   console.log("✅ Base initialisée.");
   console.log("Comptes (mot de passe : fsy2026) :");
   console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
