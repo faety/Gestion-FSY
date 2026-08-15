@@ -45,6 +45,7 @@ type Proposition = {
   proposePar: string;
   nouveauTitre: string | null;
   nouveauDebut: string | null;
+  nouvelleFin: string | null;
   nouveauLieu: string | null;
   nouveauStatut: string | null;
   motif: string | null;
@@ -199,6 +200,14 @@ export function Programme({
                       dateStyle: "short",
                       timeStyle: "short",
                     }).format(new Date(p.nouveauDebut))}
+                  </li>
+                )}
+                {p.nouvelleFin && (
+                  <li>
+                    Fin →{" "}
+                    {new Intl.DateTimeFormat("fr-FR", { timeStyle: "short" }).format(
+                      new Date(p.nouvelleFin)
+                    )}
                   </li>
                 )}
                 {p.nouveauLieu && <li>Lieu → {p.nouveauLieu}</li>}
@@ -412,36 +421,12 @@ export function Programme({
                   </div>
 
                   {editionId === a.id && (
-                    <form
-                      action={(fd) => {
-                        startTransition(async () => {
-                          await modifierActivite(a.id, fd);
-                          setEditionId(null);
-                        });
-                      }}
-                      className="mt-3 border-t border-slate-100 pt-3 grid sm:grid-cols-2 gap-2 text-sm"
-                    >
-                      <input name="titre" placeholder={`Titre (actuel : ${a.titre})`} className="rounded-lg border border-slate-300 px-3 py-2.5" />
-                      <input name="debut" type="datetime-local" className="rounded-lg border border-slate-300 px-3 py-2.5" />
-                      <input name="lieu" placeholder={`Lieu (actuel : ${a.lieu ?? "—"})`} className="rounded-lg border border-slate-300 px-3 py-2.5" />
-                      {!peutModifierDirect && (
-                        <input name="motif" placeholder="Motif de la proposition" className="rounded-lg border border-slate-300 px-3 py-2.5" />
-                      )}
-                      <label className="flex items-center gap-2 text-red-600 py-2">
-                        <input type="checkbox" name="annuler" className="w-4 h-4" /> Annuler cette activité
-                      </label>
-                      <button
-                        disabled={pending}
-                        className="bg-fsy text-white rounded-lg px-4 py-2.5 font-medium hover:bg-fsy-dark disabled:opacity-50"
-                      >
-                        {peutModifierDirect ? "Enregistrer" : "Soumettre la proposition"}
-                      </button>
-                      <p className="sm:col-span-2 text-xs text-slate-500">
-                        {peutModifierDirect
-                          ? "Laissez un champ vide pour ne pas le changer. Renseigner le lieu d'une activité « À confirmer » la rend définitive."
-                          : "Votre proposition sera soumise à la validation des coordinateurs principaux."}
-                      </p>
-                    </form>
+                    <FormulaireActivite
+                      activite={a}
+                      duJour={liste}
+                      peutModifierDirect={peutModifierDirect}
+                      fermer={() => setEditionId(null)}
+                    />
                   )}
                 </li>
               ))}
@@ -453,5 +438,179 @@ export function Programme({
         <p className="text-slate-500">Aucune activité au programme.</p>
       )}
     </div>
+  );
+}
+
+// ---------- Formulaire de modification d'une activité ----------
+//
+// Trois exigences du terrain, sur téléphone : les heures se modifient (début
+// et fin — le jour, lui, ne change pas d'ici) ; le chevauchement avec le reste
+// de la journée se voit pendant la saisie, avant d'enregistrer ; et l'on peut
+// toujours ressortir sans rien toucher — croix, bouton Annuler, et un
+// enregistrement sans changement est refusé avec le mot pour le dire.
+const enHeure = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+const enMinutes = (heure: string): number | null => {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(heure);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+
+function FormulaireActivite({
+  activite,
+  duJour,
+  peutModifierDirect,
+  fermer,
+}: {
+  activite: ActiviteVue;
+  duJour: ActiviteVue[];
+  peutModifierDirect: boolean;
+  fermer: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [heureDebut, setHeureDebut] = useState(enHeure(activite.debut));
+  const [heureFin, setHeureFin] = useState(activite.fin ? enHeure(activite.fin) : "");
+  const [message, setMessage] = useState<string | null>(null);
+
+  // Chevauchements avec le reste de la journée, calculés pendant la saisie.
+  // Une information, pas un interdit : bien des activités se tiennent en
+  // parallèle (répétitions, réunions par niveau) — mais qu'on le sache.
+  const debutMin = enMinutes(heureDebut);
+  const finMin = heureFin ? enMinutes(heureFin) : null;
+  const chevauchements =
+    debutMin === null
+      ? []
+      : duJour.filter((autre) => {
+          if (autre.id === activite.id || autre.statut === "ANNULE") return false;
+          const d = enMinutes(enHeure(autre.debut))!;
+          const f = autre.fin ? enMinutes(enHeure(autre.fin))! : d + 1;
+          const fin = finMin ?? debutMin + 1;
+          return debutMin < f && d < fin;
+        });
+
+  return (
+    <form
+      action={(fd) => {
+        setMessage(null);
+        startTransition(async () => {
+          const res = await modifierActivite(activite.id, fd);
+          if (res.ok) fermer();
+          else setMessage(res.motif);
+        });
+      }}
+      className="mt-3 border-t border-slate-100 pt-3 space-y-2 text-sm"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-slate-700">
+          {peutModifierDirect ? "Modifier" : "Proposer une modification"}
+        </span>
+        <button
+          type="button"
+          onClick={fermer}
+          aria-label="Fermer sans modifier"
+          className="text-slate-400 hover:text-slate-600 text-lg leading-none px-2 py-1"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-2">
+        <input
+          name="titre"
+          defaultValue={activite.titre}
+          className="rounded-lg border border-slate-300 px-3 py-2.5"
+        />
+        <input
+          name="lieu"
+          defaultValue={activite.lieu ?? ""}
+          placeholder="Lieu"
+          className="rounded-lg border border-slate-300 px-3 py-2.5"
+        />
+        <label className="flex items-center gap-2">
+          <span className="text-slate-500 w-14 shrink-0">Début</span>
+          <input
+            name="heureDebut"
+            type="time"
+            value={heureDebut}
+            onChange={(e) => {
+              setHeureDebut(e.target.value);
+              setMessage(null);
+            }}
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5"
+          />
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-slate-500 w-14 shrink-0">Fin</span>
+          <input
+            name="heureFin"
+            type="time"
+            value={heureFin}
+            onChange={(e) => {
+              setHeureFin(e.target.value);
+              setMessage(null);
+            }}
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5"
+          />
+        </label>
+        {!peutModifierDirect && (
+          <input
+            name="motif"
+            placeholder="Motif de la proposition"
+            className="rounded-lg border border-slate-300 px-3 py-2.5 sm:col-span-2"
+          />
+        )}
+        <label className="flex items-center gap-2 text-red-600 py-1 sm:col-span-2">
+          <input type="checkbox" name="annuler" className="w-4 h-4" /> Annuler cette activité
+        </label>
+      </div>
+
+      {debutMin !== null && finMin !== null && finMin <= debutMin && (
+        <p className="text-xs text-red-700 bg-red-50 rounded-lg p-2">
+          L'heure de fin doit venir après l'heure de début.
+        </p>
+      )}
+
+      {chevauchements.length > 0 && (
+        <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+          <span className="font-medium">Sur ce créneau se tiennent aussi :</span>{" "}
+          {chevauchements
+            .slice(0, 4)
+            .map(
+              (autre) =>
+                `${autre.titre} (${enHeure(autre.debut)}${autre.fin ? `–${enHeure(autre.fin)}` : ""})`
+            )
+            .join(" · ")}
+          {chevauchements.length > 4 && ` · et ${chevauchements.length - 4} autre(s)`}
+        </div>
+      )}
+
+      {message && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+          {message}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={fermer}
+          className="flex-1 bg-slate-100 text-slate-600 rounded-lg px-4 py-2.5 font-medium hover:bg-slate-200"
+        >
+          Annuler
+        </button>
+        <button
+          disabled={pending}
+          className="flex-1 bg-fsy text-white rounded-lg px-4 py-2.5 font-medium hover:bg-fsy-dark disabled:opacity-50"
+        >
+          {pending ? "…" : peutModifierDirect ? "Enregistrer" : "Soumettre"}
+        </button>
+      </div>
+      <p className="text-xs text-slate-500">
+        {peutModifierDirect
+          ? "Seul ce qui diffère de l'existant sera changé — le jour de l'activité ne bouge pas d'ici."
+          : "Votre proposition sera soumise à la validation des coordinateurs principaux."}
+      </p>
+    </form>
   );
 }

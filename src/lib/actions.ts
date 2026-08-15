@@ -1579,20 +1579,59 @@ export async function creerActivite(formData: FormData) {
   revalidatePath("/programme");
 }
 
-export async function modifierActivite(activiteId: string, formData: FormData) {
+export type ResultatModification = { ok: true } | { ok: false; motif: string };
+
+// Pose une heure « HH:MM » sur le jour d'une date existante : le formulaire ne
+// modifie que les heures, jamais le jour — déplacer une activité de journée est
+// un autre geste, plus rare, qui mérite d'être fait en pleine conscience.
+function heureSurJour(reference: Date, heure: string): Date | null {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(heure.trim());
+  if (!m) return null;
+  const d = new Date(reference);
+  d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+  return d;
+}
+
+export async function modifierActivite(
+  activiteId: string,
+  formData: FormData
+): Promise<ResultatModification> {
   const user = await exiger("CONSEILLER");
   const activite = await prisma.activite.findUniqueOrThrow({ where: { id: activiteId } });
 
-  const nouveauTitre = String(formData.get("titre") ?? "").trim() || null;
-  const debutStr = String(formData.get("debut") ?? "");
-  const nouveauDebut = debutStr ? new Date(debutStr) : null;
-  const nouveauLieu = String(formData.get("lieu") ?? "").trim() || null;
+  const brutTitre = String(formData.get("titre") ?? "").trim();
+  const brutLieu = String(formData.get("lieu") ?? "").trim();
+  const brutDebut = String(formData.get("heureDebut") ?? "").trim();
+  const brutFin = String(formData.get("heureFin") ?? "").trim();
   const annuler = formData.get("annuler") === "on";
   const motif = String(formData.get("motif") ?? "").trim() || null;
 
+  // Les champs arrivent préremplis : n'est un changement que ce qui diffère
+  // de l'existant. Ainsi « Enregistrer » sans avoir rien touché ne marque pas
+  // l'activité « Modifiée » pour rien.
+  const nouveauDebut = brutDebut ? heureSurJour(activite.debut, brutDebut) : null;
+  if (brutDebut && !nouveauDebut) return { ok: false, motif: "Heure de début illisible." };
+  const nouvelleFin = brutFin ? heureSurJour(activite.debut, brutFin) : null;
+  if (brutFin && !nouvelleFin) return { ok: false, motif: "Heure de fin illisible." };
+
+  const changeTitre = brutTitre && brutTitre !== activite.titre ? brutTitre : null;
+  const changeLieu = brutLieu && brutLieu !== (activite.lieu ?? "") ? brutLieu : null;
+  const changeDebut =
+    nouveauDebut && nouveauDebut.getTime() !== activite.debut.getTime() ? nouveauDebut : null;
+  const changeFin =
+    nouvelleFin && nouvelleFin.getTime() !== (activite.fin?.getTime() ?? -1) ? nouvelleFin : null;
+
+  const debutFinal = changeDebut ?? activite.debut;
+  const finFinale = changeFin ?? activite.fin;
+  if (finFinale && finFinale.getTime() <= debutFinal.getTime()) {
+    return { ok: false, motif: "L'heure de fin doit venir après l'heure de début." };
+  }
+
+  if (!changeTitre && !changeLieu && !changeDebut && !changeFin && !annuler) {
+    return { ok: false, motif: "Rien n'a été changé — fermez simplement le formulaire." };
+  }
+
   if (peutModifierDirectement(user)) {
-    // Modification directe (coordinateurs principaux, couple dirigeant,
-    // ou adjoint ayant reçu le droit).
     // Corriger un horaire encore provisoire équivaut à le confirmer : on passe
     // à PLANIFIE plutôt qu'à MODIFIE (qui signale un changement du programme
     // déjà publié).
@@ -1604,21 +1643,23 @@ export async function modifierActivite(activiteId: string, formData: FormData) {
     await prisma.activite.update({
       where: { id: activiteId },
       data: {
-        titre: nouveauTitre ?? activite.titre,
-        debut: nouveauDebut ?? activite.debut,
-        lieu: nouveauLieu ?? activite.lieu,
+        titre: changeTitre ?? activite.titre,
+        debut: debutFinal,
+        fin: finFinale,
+        lieu: changeLieu ?? activite.lieu,
         statut: nouveauStatut,
       },
     });
     await journaliser(user.id, "ACTIVITE_MODIFIEE", `${activite.titre}${annuler ? " (annulée)" : ""}`);
   } else if (user.role === "ADJOINT") {
-    // Proposition soumise à validation
+    // Proposition soumise à validation — seuls les champs réellement changés.
     await prisma.modificationProgramme.create({
       data: {
         activiteId,
-        nouveauTitre,
-        nouveauDebut,
-        nouveauLieu,
+        nouveauTitre: changeTitre,
+        nouveauDebut: changeDebut,
+        nouvelleFin: changeFin,
+        nouveauLieu: changeLieu,
         nouveauStatut: annuler ? "ANNULE" : null,
         motif,
         proposeParId: user.id,
@@ -1626,9 +1667,10 @@ export async function modifierActivite(activiteId: string, formData: FormData) {
     });
     await journaliser(user.id, "MODIFICATION_PROPOSEE", activite.titre);
   } else {
-    throw new Error("Les conseillers ne peuvent pas modifier le programme.");
+    return { ok: false, motif: "Les conseillers ne peuvent pas modifier le programme." };
   }
   revalidatePath("/programme");
+  return { ok: true };
 }
 
 // Confirme un horaire provisoire (A_CONFIRMER → PLANIFIE), ou l'inverse.
@@ -1688,6 +1730,7 @@ export async function deciderModification(modifId: string, decision: "VALIDE" | 
       data: {
         titre: modif.nouveauTitre ?? modif.activite.titre,
         debut: modif.nouveauDebut ?? modif.activite.debut,
+        fin: modif.nouvelleFin ?? modif.activite.fin,
         lieu: modif.nouveauLieu ?? modif.activite.lieu,
         statut: modif.nouveauStatut ?? "MODIFIE",
       },

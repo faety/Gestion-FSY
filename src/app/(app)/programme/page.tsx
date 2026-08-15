@@ -78,6 +78,7 @@ export default async function ProgrammePage() {
         proposePar: `${p.proposePar.prenom} ${p.proposePar.nom}`,
         nouveauTitre: p.nouveauTitre,
         nouveauDebut: p.nouveauDebut?.toISOString() ?? null,
+        nouvelleFin: p.nouvelleFin?.toISOString() ?? null,
         nouveauLieu: p.nouveauLieu,
         nouveauStatut: p.nouveauStatut,
         motif: p.motif,

@@ -286,6 +286,7 @@ model ModificationProgramme {
   // Champs proposés (null = inchangé)
   nouveauTitre String?
   nouveauDebut DateTime?
+  nouvelleFin  DateTime?
   nouveauLieu  String?
   nouveauStatut String? // ex: ANNULE
   motif        String?
