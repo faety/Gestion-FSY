@@ -22,6 +22,16 @@ const GRIS_CLAIR = rgb(0.88, 0.91, 0.95);
 const ROUGE = rgb(0.72, 0.11, 0.11);
 const AMBRE = rgb(0.7, 0.4, 0);
 
+
+// Instructeurs des cours de Séminaires & Instituts (Abidjan West), tels que
+// transmis par le couple dirigeant pour diffusion aux dirigeants de pieux.
+const INSTRUCTEURS_SI = [
+  "KOFFI RICHARD JEAN",
+  "FERDINAND BLA KOUASSI — 05 46 67 43 21",
+  "FAE G. DAHAKPOIN — 05 86 98 75 74",
+  "SEHI REGINA — 07 87 24 06 45",
+];
+
 // Le rôle attendu par niveau, au neutre — le document n'est pas personnalisé.
 const ROLE_NEUTRE: Record<string, string> = {
   DIRIGER: "dirige",
@@ -509,4 +519,122 @@ export async function genererProgrammePdf(
         )}`)}.pdf`;
 
   return { octets: await c.doc.save(), nomFichier };
+}
+
+/**
+ * Version condensée du programme — pour les dirigeants de pieux et les
+ * partenaires : une ligne par activité, l'essentiel des heures et des jours,
+ * les instructeurs S&I en tête, et les mentions « modifiée », « à confirmer »
+ * ou « ANNULÉE » pour que les ajustements se voient. Composée depuis la base
+ * au moment du téléchargement, comme la version détaillée.
+ */
+export async function genererProgrammeCondensePdf(editeur: {
+  prenom: string;
+  nom: string;
+}): Promise<{ octets: Uint8Array; nomFichier: string }> {
+  const [toutes, journees] = await Promise.all([
+    prisma.activite.findMany({ orderBy: { debut: "asc" } }),
+    prisma.journeeConference.findMany({ orderBy: { numero: "asc" } }),
+  ]);
+
+  const numeroDuJour = (d: Date) =>
+    Math.floor(
+      (Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
+        Date.UTC(DATE_VEILLE.getFullYear(), DATE_VEILLE.getMonth(), DATE_VEILLE.getDate())) /
+        86_400_000
+    );
+
+  const c = new Composeur();
+  await c.initialiser();
+  const BLANC = rgb(1, 1, 1);
+  const CLAIR = rgb(0.9, 0.93, 0.97);
+
+  let logo: PDFImage | null = null;
+  try {
+    logo = await c.doc.embedPng(await readFile(path.join(process.cwd(), "public", "logo-fsy-2026.png")));
+  } catch {
+    // Sans logo, l'en-tête reste textuel.
+  }
+  if (logo) {
+    const h = 44;
+    c.page.drawImage(logo, { x: MARGE, y: c.y - h + 10, width: (logo.width / logo.height) * h, height: h });
+  }
+  const xTitre = logo ? MARGE + 56 : MARGE;
+  c.page.drawText("Programme complet de la conférence", { x: xTitre, y: c.y - 14, size: 16, font: c.grasse, color: FSY_SOMBRE });
+  c.page.drawText(surWinAnsi(`FSY 2026 — Abidjan Ouest · « Marche avec moi » (Moïse 6:34)`), { x: xTitre, y: c.y - 30, size: 10, font: c.normale, color: GRIS });
+  c.page.drawText(surWinAnsi(`${majuscule(CONFERENCE.duAuComplet)} (veille des encadrants le ${CONFERENCE.duAuAvecVeille.replace(/^du /, "").split(" au ")[0]}) · ${LIEU.nom}, ${LIEU.ville}`), { x: xTitre, y: c.y - 43, size: 9, font: c.normale, color: GRIS });
+  c.espace(56);
+  c.page.drawLine({ start: { x: MARGE, y: c.y }, end: { x: A4.largeur - MARGE, y: c.y }, thickness: 1.1, color: FSY });
+  c.espace(6);
+
+  const maintenant = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Abidjan" }).format(new Date());
+  c.paragraphe(
+    `Édité le ${maintenant} par ${editeur.prenom} ${editeur.nom} — état vivant du programme, tous les ajustements de l'équipe compris. Les activités « Encadrants » ne concernent pas les jeunes ; JF/JG : Jeunes Filles / Jeunes Gens.`,
+    { police: c.oblique, taille: 8.5, couleur: GRIS }
+  );
+  c.espace(8);
+
+  // Encadré des instructeurs S&I
+  const hautBoite = c.y;
+  c.espace(4);
+  c.paragraphe("Cours de Séminaires & Instituts — Instructeurs (Abidjan West)", { police: c.grasse, taille: 10.5, couleur: FSY_SOMBRE, x: MARGE + 10 });
+  for (const i of INSTRUCTEURS_SI) {
+    c.paragraphe(`•  ${i}`, { taille: 9.5, x: MARGE + 14 });
+  }
+  c.espace(6);
+  c.page.drawRectangle({ x: MARGE, y: c.y, width: A4.largeur - 2 * MARGE, height: hautBoite - c.y, borderColor: FSY, borderWidth: 0.9 });
+  c.espace(10);
+
+  for (let n = 0; n <= NB_JOURS; n++) {
+    const duJour = toutes.filter((a) => numeroDuJour(a.debut) === n);
+    if (duJour.length === 0) continue;
+    const j = journees.find((x) => x.numero === n);
+    const date = j?.date ?? new Date(Date.UTC(DATE_VEILLE.getFullYear(), DATE_VEILLE.getMonth(), DATE_VEILLE.getDate() + n));
+    c.reserver(50);
+    c.espace(8);
+    c.page.drawRectangle({ x: MARGE, y: c.y - 18, width: A4.largeur - 2 * MARGE, height: 20, color: FSY });
+    c.page.drawText(surWinAnsi(`${nomJour(n)} — ${majuscule(dateLongueFmt.format(date))}`), { x: MARGE + 8, y: c.y - 13, size: 10.5, font: c.grasse, color: BLANC });
+    c.espace(26);
+    if (j?.tenue || j?.tenueEncadrants) {
+      const tenues = [j?.tenue ? `Tenue des jeunes : ${j.tenue}` : null, j?.tenueEncadrants ? `Encadrants : ${j.tenueEncadrants}` : null].filter(Boolean).join("  ·  ");
+      c.paragraphe(tenues!, { police: c.oblique, taille: 8, couleur: GRIS });
+      c.espace(2);
+    }
+    let raye = false;
+    for (const a of duJour) {
+      const heure = a.fin ? `${heureFmt.format(a.debut)} - ${heureFmt.format(a.fin)}` : heureFmt.format(a.debut);
+      const tags = [
+        a.pourEncadrants ? "Encadrants" : null,
+        a.publicCible === "FILLES" ? "JF" : a.publicCible === "GARCONS" ? "JG" : null,
+        a.statut === "A_CONFIRMER" ? "à confirmer" : a.statut === "MODIFIE" ? "modifiée" : a.statut === "ANNULE" ? "ANNULÉE" : null,
+        !a.officielle ? "ajoutée" : null,
+      ].filter(Boolean);
+      const annulee = a.statut === "ANNULE";
+      c.reserver(13);
+      c.y -= 12.5;
+      if (raye) {
+        c.page.drawRectangle({ x: MARGE, y: c.y - 3, width: A4.largeur - 2 * MARGE, height: 12.4, color: CLAIR, opacity: 0.55 });
+      }
+      raye = !raye;
+      c.page.drawText(surWinAnsi(heure), { x: MARGE + 4, y: c.y, size: 8.4, font: c.grasse, color: annulee ? GRIS : FSY_SOMBRE });
+      let ligne = surWinAnsi(a.titre + (tags.length ? `   [${tags.join(" · ")}]` : ""));
+      const largeurLigne = A4.largeur - 2 * MARGE - 92;
+      while (c.normale.widthOfTextAtSize(ligne, 8.6) > largeurLigne) ligne = ligne.slice(0, -2);
+      const couleur = annulee ? GRIS : a.statut === "MODIFIE" ? AMBRE : ENCRE;
+      c.page.drawText(ligne, { x: MARGE + 88, y: c.y, size: 8.6, font: annulee ? c.oblique : c.normale, color: couleur });
+      if (annulee) {
+        c.page.drawLine({ start: { x: MARGE + 88, y: c.y + 2.8 }, end: { x: MARGE + 88 + c.normale.widthOfTextAtSize(ligne, 8.6), y: c.y + 2.8 }, thickness: 0.7, color: GRIS });
+      }
+    }
+    c.espace(4);
+  }
+
+  const pages = c.doc.getPages();
+  pages.forEach((page, i) => {
+    page.drawText(surWinAnsi("FSY 2026 Abidjan Ouest — Programme complet (version condensée) · fsy.ci"), { x: MARGE, y: 30, size: 7.5, font: c.normale, color: GRIS });
+    const numerotation = `Page ${i + 1} / ${pages.length}`;
+    page.drawText(numerotation, { x: A4.largeur - MARGE - c.normale.widthOfTextAtSize(numerotation, 7.5), y: 30, size: 7.5, font: c.normale, color: GRIS });
+  });
+
+  return { octets: await c.doc.save(), nomFichier: "FSY2026-programme-complet-condense.pdf" };
 }

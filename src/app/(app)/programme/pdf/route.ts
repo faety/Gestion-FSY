@@ -5,7 +5,7 @@
 import { getUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { NB_JOURS } from "@/lib/theme";
-import { genererProgrammePdf } from "@/lib/programme-pdf";
+import { genererProgrammeCondensePdf, genererProgrammePdf } from "@/lib/programme-pdf";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,19 @@ export async function GET(req: Request) {
   if (!roleAuMoins(user.role, "COORDINATEUR")) {
     return new Response("Réservé au couple dirigeant et aux coordinateurs principaux.", {
       status: 403,
+    });
+  }
+
+  // Version condensée : une ligne par activité, instructeurs S&I en tête —
+  // pour les dirigeants de pieux et les partenaires.
+  if (new URL(req.url).searchParams.get("format") === "condense") {
+    const { octets, nomFichier } = await genererProgrammeCondensePdf(user);
+    return new Response(Buffer.from(octets), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${nomFichier}"`,
+        "Cache-Control": "no-store",
+      },
     });
   }
 

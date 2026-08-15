@@ -21,6 +21,13 @@ export function TelechargerProgramme() {
         >
           Conférence entière
         </a>
+        <a
+          href="/programme/pdf?format=condense"
+          title="Une ligne par activité, instructeurs S&I en tête — à envoyer aux dirigeants de pieux"
+          className="text-sm font-medium bg-white border-2 border-fsy text-fsy rounded-lg px-3.5 py-2 hover:bg-fsy-light transition-colors"
+        >
+          Version condensée (dirigeants)
+        </a>
         {jours.map((n) => (
           <a
             key={n}
