@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { lireFaits, mention, phraseCV, RAPPORTS_POSSIBLES, SEUIL_RIGUEUR } from "@/lib/attestations";
-import { Attestation, DetailAttestation } from "@/components/Attestation";
+import { DetailAttestation } from "@/components/Attestation";
+import { AttestationSelonModele, apercuDuModele } from "@/components/AttestationSelonModele";
+import { ChoixModeleAttestation } from "@/components/ChoixModeleAttestation";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
 import { CopierTexte, ImprimerAttestation } from "@/components/OutilsAttestation";
 
@@ -63,6 +65,8 @@ export default async function MonAttestationPage() {
             distinguent la régularité du suivi quotidien, elles ne conditionnent pas le document.
           </p>
         </section>
+
+        <ChoixModeleAttestation modeleActuel={user.modeleAttestation} />
       </div>
     );
   }
@@ -121,10 +125,13 @@ export default async function MonAttestationPage() {
         <CopierTexte texte={phraseCV(attestation.role, user.sexe, faits)} />
       </section>
 
-      {/* Le document lui-même : deux feuilles A4 paysage, recto français et
-          verso anglais. À l'écran il est réduit ; à l'impression il est à taille. */}
-      <Apercu>
-        <Attestation
+      <ChoixModeleAttestation modeleActuel={user.modeleAttestation} />
+
+      {/* Le document lui-même, dans le design choisi. À l'écran il est
+          réduit ; à l'impression il est à taille réelle. */}
+      <Apercu {...apercuDuModele(user.modeleAttestation)}>
+        <AttestationSelonModele
+          modele={user.modeleAttestation}
           donnees={{
             code: attestation.code,
             role: attestation.role,

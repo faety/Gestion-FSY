@@ -20,6 +20,9 @@ export const CONFERENCE = {
   auEn: CONFERENCE_DATES.auEn,
   lieu: `${LIEU.nom}, ${LIEU.villePays}`,
   lieuEn: `${LIEU.nom}, ${LIEU.villePaysEn}`,
+  // Ville seule, pour la ligne « Fait à … » des modèles Prestige.
+  villePays: LIEU.villePays,
+  villePaysEn: LIEU.villePaysEn,
   jours: CONFERENCE_DATES.jours,
   // Valeurs de référence, utilisées tant que les chiffres n'ont pas été figés
   // sur une attestation. Les attestations délivrées portent les leurs.
@@ -27,6 +30,37 @@ export const CONFERENCE = {
   encadrants: 64,
   unites: 8,
 };
+
+// ---------- Modèles (designs) ----------
+//
+// Chaque encadrant choisit l'habillage de son attestation ; le contenu, le
+// code et le QR de vérification sont identiques dans les trois. C'est le choix
+// enregistré ici qui sort quand le couple imprime le lot de la clôture.
+export const MODELES = [
+  {
+    cle: "CLASSIQUE",
+    label: "Classique — bilingue",
+    description: "Portrait, deux pages : recto français, verso anglais. Sobre et complet (chiffres et compétences détaillés).",
+    pages: 2,
+  },
+  {
+    cle: "PRESTIGE_FR",
+    label: "Prestige — français",
+    description: "Paysage, une page : grand titre, bandeau de mention doré, signatures manuscrites.",
+    pages: 1,
+  },
+  {
+    cle: "PRESTIGE_EN",
+    label: "Prestige — English",
+    description: "Paysage, une page : la même composition, entièrement en anglais — pour un dossier international.",
+    pages: 1,
+  },
+] as const;
+
+export type CleModele = (typeof MODELES)[number]["cle"];
+
+export const modeleValide = (cle: string): cle is CleModele =>
+  MODELES.some((m) => m.cle === cle);
 
 // Le couple dirigeant signe seul.
 export const SIGNATAIRES = [

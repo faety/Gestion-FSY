@@ -57,6 +57,7 @@ import {
   RAPPORTS_POSSIBLES,
   calculerMention,
   codeDepuisOctets,
+  modeleValide,
 } from "./attestations";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
@@ -2060,6 +2061,16 @@ export async function delivrerAttestations() {
   revalidatePath("/attestations");
   revalidatePath("/attestation");
   return { delivrees, parMention };
+}
+
+// Chacun choisit l'habillage de son attestation — présentation pure : le code
+// et le QR authentifient quel que soit le modèle, et c'est ce choix qui sort
+// à l'impression du lot de la clôture.
+export async function choisirModeleAttestation(modele: string) {
+  const user = await exiger("CONSEILLER");
+  if (!modeleValide(modele)) throw new Error("Modèle d'attestation inconnu.");
+  await prisma.user.update({ where: { id: user.id }, data: { modeleAttestation: modele } });
+  revalidatePath("/attestation");
 }
 
 // Une attestation délivrée par erreur est révoquée, jamais effacée : la page de

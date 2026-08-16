@@ -1,29 +1,46 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { exigerUtilisateur } from "@/lib/auth";
-import { CODE_SPECIMEN, MENTIONS, ROLES_ATTESTABLES, faitsSpecimen } from "@/lib/attestations";
+import {
+  CODE_SPECIMEN,
+  MENTIONS,
+  MODELES,
+  ROLES_ATTESTABLES,
+  faitsSpecimen,
+  modeleValide,
+} from "@/lib/attestations";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
-import { Attestation } from "@/components/Attestation";
+import { AttestationSelonModele, apercuDuModele } from "@/components/AttestationSelonModele";
 import { SITE_AFFICHE } from "@/lib/site";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
 import { ImprimerAttestation } from "@/components/OutilsAttestation";
 
 export const metadata = { title: "Spécimen d'attestation" };
 
-// Le couple dirigeant délivre les attestations mais n'en reçoit pas : sans cette
-// page, il signerait un document qu'il n'aurait jamais vu.
+// Ouvert à tous les encadrants : chacun choisit le design de son attestation,
+// il faut donc pouvoir les regarder en vrai. Les données sont fictives et le
+// document est barré SPÉCIMEN — il n'atteste rien.
 export default async function SpecimenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; modele?: string }>;
 }) {
   const user = await exigerUtilisateur();
-  if (user.role !== "DIRIGEANT") redirect("/accueil");
 
-  const { role: demande } = await searchParams;
-  const role = ROLES_ATTESTABLES.includes(demande as Role)
-    ? (demande as string)
-    : "CONSEILLER";
+  const { role: roleDemande, modele: modeleDemande } = await searchParams;
+  const estDirigeant = user.role === "DIRIGEANT";
+  // Le couple prévisualise le document de n'importe quelle fonction ; un
+  // encadrant voit le sien, c'est celui qu'il choisit.
+  const role = estDirigeant
+    ? ROLES_ATTESTABLES.includes(roleDemande as Role)
+      ? (roleDemande as string)
+      : "CONSEILLER"
+    : user.role;
+  const modele = modeleDemande && modeleValide(modeleDemande) ? modeleDemande : "CLASSIQUE";
+
+  const lienAvec = (params: Record<string, string>) => {
+    const q = new URLSearchParams({ role, modele, ...params });
+    return `/attestations/specimen?${q}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -40,23 +57,51 @@ export default async function SpecimenPage({
 
       <section className="bg-white rounded-xl shadow-sm p-4 print:hidden space-y-3">
         <div>
-          <div className="text-sm font-bold mb-2">Voir le spécimen pour</div>
+          <div className="text-sm font-bold mb-2">Design</div>
           <div className="flex flex-wrap gap-2">
-            {ROLES_ATTESTABLES.map((r) => (
+            {MODELES.map((m) => (
               <Link
-                key={r}
-                href={`/attestations/specimen?role=${r}`}
+                key={m.cle}
+                href={lienAvec({ modele: m.cle })}
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                  r === role
+                  m.cle === modele
                     ? "bg-fsy text-white"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
-                {ROLE_LABELS[r]}
+                {m.label}
               </Link>
             ))}
           </div>
+          <p className="text-xs text-slate-500 mt-2">
+            Le choix se fait depuis la page{" "}
+            <Link href="/attestation" className="underline">
+              Mon attestation
+            </Link>{" "}
+            — c'est lui qui sera imprimé à la clôture.
+          </p>
         </div>
+
+        {estDirigeant && (
+          <div>
+            <div className="text-sm font-bold mb-2">Voir le spécimen pour</div>
+            <div className="flex flex-wrap gap-2">
+              {ROLES_ATTESTABLES.map((r) => (
+                <Link
+                  key={r}
+                  href={lienAvec({ role: r })}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                    r === role
+                      ? "bg-fsy text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  {ROLE_LABELS[r]}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
           Le QR mène à <span className="font-mono">{SITE_AFFICHE}/verification/{CODE_SPECIMEN}</span>,
@@ -67,8 +112,9 @@ export default async function SpecimenPage({
         <ImprimerAttestation />
       </section>
 
-      <Apercu>
-        <Attestation
+      <Apercu {...apercuDuModele(modele)}>
+        <AttestationSelonModele
+          modele={modele}
           donnees={{
             code: CODE_SPECIMEN,
             role,

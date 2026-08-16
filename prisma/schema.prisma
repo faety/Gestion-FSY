@@ -44,6 +44,11 @@ model User {
   // tous se repèrent plus vite avec un visage qu'avec un nom.
   photoPublicId String?
 
+  // Design d'attestation choisi par la personne (CLASSIQUE | PRESTIGE_FR |
+  // PRESTIGE_EN). Purement présentationnel : le code et le QR authentifient,
+  // quel que soit l'habillage. C'est ce choix qui sort à l'impression du lot.
+  modeleAttestation String @default("CLASSIQUE")
+
   pieu      Pieu?   @relation(fields: [pieuId], references: [id])
   pieuId    String?
   // Compagnie dirigée (pour les coordinateurs adjoints, par paire H/F)
