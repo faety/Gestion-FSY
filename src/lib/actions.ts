@@ -1522,6 +1522,15 @@ export async function basculerPresenceEncadrant(cibleId: string) {
   if (cible.id === user.id) {
     return { ok: false as const, motif: "On ne se marque pas soi-même absent." };
   }
+  // Un coordinateur principal marque la présence de ceux qu'il encadre —
+  // conseillers et adjoints. La présence d'un collègue coordinateur relève du
+  // couple dirigeant.
+  if (user.role !== "DIRIGEANT" && cible.role === "COORDINATEUR") {
+    return {
+      ok: false as const,
+      motif: "La présence d'un coordinateur principal est réservée au couple dirigeant.",
+    };
+  }
   const actif = !cible.actif;
   await prisma.user.update({ where: { id: cibleId }, data: { actif } });
   await journaliser(

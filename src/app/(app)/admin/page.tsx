@@ -6,6 +6,7 @@ import {
   creerUtilisateur,
   basculerDroit,
   basculerActif,
+  basculerPresenceEncadrant,
   affecterCompagnie,
   demarrerApercu,
 } from "@/lib/actions";
@@ -32,6 +33,13 @@ export default async function AdminPage() {
   const user = await exigerUtilisateur();
   if (!roleAuMoins(user.role, "COORDINATEUR")) redirect("/accueil");
   const estDirigeant = user.role === "DIRIGEANT";
+  // Qui peut marquer qui présent ou absent : le couple dirigeant, tout le
+  // monde sauf lui-même ; un coordinateur principal, les conseillers et les
+  // adjoints qu'il encadre. La règle est aussi tenue côté serveur.
+  const peutBasculerPresence = (role: string, id: string) =>
+    id !== user.id &&
+    role !== "DIRIGEANT" &&
+    (estDirigeant || role === "CONSEILLER" || role === "ADJOINT");
 
   const [utilisateurs, compagnies, audit, responsabilites] = await Promise.all([
     prisma.user.findMany({
@@ -392,7 +400,7 @@ export default async function AdminPage() {
               <th className="p-3">Affectation</th>
               <th className="p-3">Accès</th>
               {estDirigeant && <th className="p-3">Droits accordés</th>}
-              {estDirigeant && <th className="p-3">Présence</th>}
+              <th className="p-3">Présence</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -508,12 +516,13 @@ export default async function AdminPage() {
                       )}
                     </td>
                   )}
-                  {estDirigeant && (
-                    <td className="p-3">
+                  <td className="p-3">
+                    {peutBasculerPresence(u.role, u.id) ? (
                       <form
                         action={async () => {
                           "use server";
-                          await basculerActif(u.id);
+                          if (estDirigeant) await basculerActif(u.id);
+                          else await basculerPresenceEncadrant(u.id);
                         }}
                       >
                         <button
@@ -526,8 +535,21 @@ export default async function AdminPage() {
                           {u.actif ? "Présent" : "Absent"}
                         </button>
                       </form>
-                    </td>
-                  )}
+                    ) : (
+                      <span
+                        className={`text-xs rounded-full px-3 py-1 ${
+                          u.actif ? "bg-slate-100 text-slate-500" : "bg-red-50 text-red-400"
+                        }`}
+                        title={
+                          u.id === user.id
+                            ? "On ne se marque pas soi-même absent."
+                            : "Réservé au couple dirigeant."
+                        }
+                      >
+                        {u.actif ? "Présent" : "Absent"}
+                      </span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
