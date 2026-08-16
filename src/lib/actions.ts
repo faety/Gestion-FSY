@@ -52,6 +52,7 @@ import {
   estAdresseDAttente,
 } from "./email";
 import { transfererReferences } from "./fusion";
+import { calculerPlan, type ParametresReorganisation } from "./reorganisation";
 import {
   ROLES_ATTESTABLES,
   RAPPORTS_POSSIBLES,
@@ -1497,6 +1498,291 @@ export async function retirerPointageCar(carId: string, etape: string, userId: s
   );
   revalidatePath(`/cars/${carId}`);
   revalidatePath("/cars");
+}
+
+// ---------- Réorganisation du jour 1 ----------
+//
+// La réalité du premier jour ne colle jamais au plan : moins de jeunes que
+// prévu, des conseillers absents. Ces actions permettent au couple dirigeant
+// et aux coordinateurs principaux de constater qui est là, puis de recomposer
+// groupes et compagnies automatiquement (calcul dans lib/reorganisation.ts,
+// stabilité d'abord), avec un instantané pris avant toute application pour
+// pouvoir revenir en arrière.
+
+// Présence d'un encadrant : l'interrupteur « présent / absent ». Jamais de
+// suppression — un absent est masqué partout et ne peut plus se connecter,
+// mais tout revient s'il arrive finalement.
+export async function basculerPresenceEncadrant(cibleId: string) {
+  const user = await exiger("COORDINATEUR");
+  const cible = await prisma.user.findUnique({ where: { id: cibleId } });
+  if (!cible) return { ok: false as const, motif: "Compte introuvable." };
+  if (cible.role === "DIRIGEANT") {
+    return { ok: false as const, motif: "Le compte du couple dirigeant ne se désactive pas ici." };
+  }
+  if (cible.id === user.id) {
+    return { ok: false as const, motif: "On ne se marque pas soi-même absent." };
+  }
+  const actif = !cible.actif;
+  await prisma.user.update({ where: { id: cibleId }, data: { actif } });
+  await journaliser(
+    user.id,
+    actif ? "ENCADRANT_PRESENT" : "ENCADRANT_ABSENT",
+    `${cible.prenom} ${cible.nom} (${cible.role})`
+  );
+  for (const p of ["/reorganisation", "/organigramme", "/groupes", "/admin", "/attestations"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const, actif };
+}
+
+// Présence d'un jeune constatée à la main — pour ceux arrivés par leurs
+// propres moyens, sans pointage de car.
+export async function marquerPresenceJeune(jeuneId: string, present: boolean) {
+  const user = await exiger("COORDINATEUR");
+  const jeune = await prisma.jeune.findUnique({ where: { id: jeuneId } });
+  if (!jeune) return { ok: false as const, motif: "Jeune introuvable." };
+  await prisma.jeune.update({ where: { id: jeuneId }, data: { presenceManuelle: present } });
+  await journaliser(
+    user.id,
+    present ? "PRESENCE_MANUELLE" : "PRESENCE_MANUELLE_RETIREE",
+    `${jeune.prenom} ${jeune.nom}`
+  );
+  revalidatePath("/reorganisation");
+  return { ok: true as const };
+}
+
+// L'état réel, assemblé pour l'algorithme : présent = pointé à l'arrivée d'un
+// car OU marqué présent à la main.
+async function chargerDonneesReorganisation() {
+  const [jeunes, arrives, groupes, conseillers, adjoints, compagnies] = await Promise.all([
+    prisma.jeune.findMany({
+      where: { statutInscription: { not: STATUT_ANNULE } },
+      select: { id: true, sexe: true, groupeId: true, presenceManuelle: true },
+    }),
+    prisma.mouvement.findMany({
+      where: { type: "ARRIVEE" },
+      select: { jeuneId: true },
+      distinct: ["jeuneId"],
+    }),
+    prisma.groupe.findMany({
+      select: { id: true, nom: true, sexe: true, conseillerId: true, compagnieId: true },
+    }),
+    prisma.user.findMany({
+      where: { role: "CONSEILLER", actif: true, valide: true },
+      select: { id: true, prenom: true, nom: true, sexe: true },
+    }),
+    prisma.user.findMany({
+      where: { role: "ADJOINT", actif: true, valide: true },
+      select: { id: true, prenom: true, nom: true, sexe: true, compagnieId: true },
+    }),
+    prisma.compagnie.findMany({ select: { id: true, nom: true, numero: true } }),
+  ]);
+  const pointes = new Set(arrives.map((a) => a.jeuneId));
+  return {
+    donnees: {
+      jeunesPresents: jeunes
+        .filter((j) => pointes.has(j.id) || j.presenceManuelle)
+        .map((j) => ({ id: j.id, sexe: j.sexe, groupeId: j.groupeId })),
+      groupes,
+      conseillersPresents: conseillers.map((c) => ({
+        id: c.id,
+        nom: `${c.prenom} ${c.nom}`,
+        sexe: c.sexe,
+      })),
+      adjointsPresents: adjoints.map((a) => ({
+        id: a.id,
+        nom: `${a.prenom} ${a.nom}`,
+        sexe: a.sexe,
+        compagnieId: a.compagnieId,
+      })),
+      compagnies,
+    },
+    nbPointes: pointes.size,
+    nbManuels: jeunes.filter((j) => j.presenceManuelle && !pointes.has(j.id)).length,
+  };
+}
+
+export async function simulerReorganisation(params: ParametresReorganisation) {
+  await exiger("COORDINATEUR");
+  const { donnees } = await chargerDonneesReorganisation();
+  const plan = calculerPlan(donnees, params);
+  // Les noms, pour que l'écran de proposition soit lisible sans re-requête.
+  const noms: Record<string, string> = {};
+  for (const c of donnees.conseillersPresents) noms[c.id] = c.nom;
+  for (const a of donnees.adjointsPresents) noms[a.id] = a.nom;
+  return { ok: true as const, plan, noms };
+}
+
+// Application : on RECALCULE côté serveur avec les mêmes paramètres plutôt que
+// de faire confiance à un plan envoyé par le navigateur — même résultat si
+// rien n'a bougé, résultat plus juste si quelque chose a bougé entre-temps.
+export async function appliquerReorganisation(params: ParametresReorganisation) {
+  const user = await exiger("COORDINATEUR");
+  const { donnees } = await chargerDonneesReorganisation();
+  const plan = calculerPlan(donnees, params);
+  if (plan.groupes.length === 0) {
+    return { ok: false as const, motif: "Aucun groupe à composer : vérifiez les présences." };
+  }
+
+  const [jeunesTous, groupesTous, compagniesToutes, adjointsTous] = await Promise.all([
+    prisma.jeune.findMany({
+      where: { statutInscription: { not: STATUT_ANNULE } },
+      select: { id: true, groupeId: true },
+    }),
+    prisma.groupe.findMany({
+      select: { id: true, nom: true, sexe: true, conseillerId: true, compagnieId: true },
+    }),
+    prisma.compagnie.findMany({ select: { id: true, nom: true, numero: true } }),
+    prisma.user.findMany({ where: { role: "ADJOINT" }, select: { id: true, compagnieId: true } }),
+  ]);
+
+  // L'instantané d'abord : c'est lui qui rend le bouton « revenir en arrière »
+  // possible. Autoportant, sans clé étrangère.
+  const instantane = await prisma.instantaneOrganisation.create({
+    data: {
+      motif: `Avant réorganisation (${plan.stats.presents} présents, ${plan.groupes.length} groupes)`,
+      creeParId: user.id,
+      donnees: JSON.stringify({
+        jeunes: jeunesTous,
+        groupes: groupesTous,
+        compagnies: compagniesToutes,
+        adjoints: adjointsTous,
+      }),
+    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Les lignes de groupe : celles conservées gardent tout ; les plans
+    //    « nouveaux » logent dans les lignes libérées du même sexe (elles
+    //    gardent leur nom réel) ; à défaut, une ligne est créée.
+    const prises = new Set(plan.groupes.filter((g) => g.groupeId).map((g) => g.groupeId!));
+    const coquilles = new Map<string, string[]>();
+    for (const g of groupesTous) {
+      if (prises.has(g.id)) continue;
+      coquilles.set(g.sexe, [...(coquilles.get(g.sexe) ?? []), g.id]);
+    }
+    const idsFinaux: string[] = [];
+    for (const g of plan.groupes) {
+      if (g.groupeId) {
+        idsFinaux.push(g.groupeId);
+        await tx.groupe.update({ where: { id: g.groupeId }, data: { conseillerId: g.conseillerId } });
+        continue;
+      }
+      const coquille = coquilles.get(g.sexe)?.shift();
+      if (coquille) {
+        idsFinaux.push(coquille);
+        await tx.groupe.update({ where: { id: coquille }, data: { conseillerId: g.conseillerId } });
+        continue;
+      }
+      let nom = g.nom;
+      for (let n = 2; await tx.groupe.findUnique({ where: { nom } }); n++) nom = `${g.nom} (${n})`;
+      const cree = await tx.groupe.create({
+        data: { nom, sexe: g.sexe, conseillerId: g.conseillerId },
+      });
+      idsFinaux.push(cree.id);
+    }
+
+    // 2. Les lignes non utilisées deviennent des coquilles vides.
+    const restantes = [...coquilles.values()].flat();
+    if (restantes.length > 0) {
+      await tx.groupe.updateMany({
+        where: { id: { in: restantes } },
+        data: { conseillerId: null, compagnieId: null },
+      });
+      // Leurs jeunes non arrivés retournent au vivier.
+      await tx.jeune.updateMany({
+        where: { groupeId: { in: restantes } },
+        data: { groupeId: null },
+      });
+    }
+
+    // 3. Les jeunes présents rejoignent leur groupe du plan.
+    for (let i = 0; i < plan.groupes.length; i++) {
+      await tx.jeune.updateMany({
+        where: { id: { in: plan.groupes[i].jeuneIds } },
+        data: { groupeId: idsFinaux[i] },
+      });
+    }
+
+    // 4. Les compagnies : conservées telles quelles, ou logées dans les lignes
+    //    libérées, ou créées. Les adjoints du plan y sont rattachés.
+    const compagniesPrises = new Set(
+      plan.compagnies.filter((c) => c.compagnieId).map((c) => c.compagnieId!)
+    );
+    const compagniesLibres = compagniesToutes
+      .filter((c) => !compagniesPrises.has(c.id))
+      .map((c) => c.id);
+    for (const c of plan.compagnies) {
+      let compagnieId = c.compagnieId ?? compagniesLibres.shift() ?? null;
+      if (!compagnieId) {
+        let nom = c.nom;
+        for (let n = 2; await tx.compagnie.findUnique({ where: { nom } }); n++) nom = `${c.nom} (${n})`;
+        compagnieId = (await tx.compagnie.create({ data: { nom } })).id;
+      }
+      await tx.groupe.updateMany({
+        where: { id: { in: c.groupesIdx.map((i) => idsFinaux[i]) } },
+        data: { compagnieId },
+      });
+      if (c.dirigeantIds.length > 0) {
+        await tx.user.updateMany({
+          where: { id: { in: c.dirigeantIds } },
+          data: { compagnieId },
+        });
+      }
+    }
+  });
+
+  await journaliser(
+    user.id,
+    "REORGANISATION_APPLIQUEE",
+    `${plan.stats.presents} présents · ${plan.groupes.length} groupes · ${plan.compagnies.length} compagnies · ` +
+      `${plan.stats.gardentConseiller} gardent leur conseiller · instantané ${instantane.id}`
+  );
+  for (const p of ["/reorganisation", "/groupes", "/organigramme", "/jeunes", "/accueil"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const, stats: plan.stats, instantaneId: instantane.id };
+}
+
+// Revenir à l'état photographié juste avant une application. Les lignes créées
+// depuis sont vidées, jamais supprimées — les activités qui les référencent ne
+// doivent pas casser.
+export async function restaurerOrganisation(instantaneId: string) {
+  const user = await exiger("COORDINATEUR");
+  const instantane = await prisma.instantaneOrganisation.findUnique({ where: { id: instantaneId } });
+  if (!instantane) return { ok: false as const, motif: "Instantané introuvable." };
+  const donnees = JSON.parse(instantane.donnees) as {
+    jeunes: { id: string; groupeId: string | null }[];
+    groupes: { id: string; nom: string; sexe: string; conseillerId: string | null; compagnieId: string | null }[];
+    compagnies: { id: string; nom: string; numero: number | null }[];
+    adjoints: { id: string; compagnieId: string | null }[];
+  };
+
+  await prisma.$transaction(async (tx) => {
+    const connus = new Set(donnees.groupes.map((g) => g.id));
+    await tx.groupe.updateMany({
+      where: { id: { notIn: [...connus] } },
+      data: { conseillerId: null, compagnieId: null },
+    });
+    for (const g of donnees.groupes) {
+      await tx.groupe.update({
+        where: { id: g.id },
+        data: { conseillerId: g.conseillerId, compagnieId: g.compagnieId },
+      }).catch(() => {});
+    }
+    for (const j of donnees.jeunes) {
+      await tx.jeune.update({ where: { id: j.id }, data: { groupeId: j.groupeId } }).catch(() => {});
+    }
+    for (const a of donnees.adjoints) {
+      await tx.user.update({ where: { id: a.id }, data: { compagnieId: a.compagnieId } }).catch(() => {});
+    }
+  });
+
+  await journaliser(user.id, "REORGANISATION_RESTAUREE", `instantané ${instantaneId}`);
+  for (const p of ["/reorganisation", "/groupes", "/organigramme", "/jeunes", "/accueil"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const };
 }
 
 // ---------- Réassignation dynamique ----------

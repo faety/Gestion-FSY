@@ -41,6 +41,9 @@ export default async function AppLayout({
   ];
   const secondaires = [
     { href: "/groupes", label: "Groupes", icone: "🧑‍🤝‍🧑" },
+    ...(roleAuMoins(user.role, "COORDINATEUR")
+      ? [{ href: "/reorganisation", label: "Réorganisation", icone: "🧩" }]
+      : []),
     ...(roleAuMoins(user.role, "ADJOINT")
       ? [{ href: "/pieux", label: "Pieux et districts", icone: "🏛️" }]
       : []),

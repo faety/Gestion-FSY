@@ -22,7 +22,18 @@ export default async function GroupesPage() {
   ]);
 
   return (
-    <GestionGroupes
+    <div className="space-y-4">
+      {roleAuMoins(user.role, "COORDINATEUR") && (
+        <a
+          href="/reorganisation"
+          className="block bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-fsy-dark hover:bg-blue-100 transition"
+        >
+          🧩 Le jour 1, les effectifs réels ne collent plus ?{" "}
+          <span className="font-semibold underline">Réorganiser automatiquement</span> — les
+          jeunes gardent leur conseiller quand c&apos;est possible, et tout peut se défaire.
+        </a>
+      )}
+      <GestionGroupes
       peutModifier={roleAuMoins(user.role, "COORDINATEUR")}
       groupes={groupes.map((g) => ({
         id: g.id,
@@ -41,6 +52,7 @@ export default async function GroupesPage() {
         sexe: c.sexe,
         actif: c.actif,
       }))}
-    />
+      />
+    </div>
   );
 }

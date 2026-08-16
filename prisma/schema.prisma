@@ -128,6 +128,10 @@ model Jeune {
   // Approuvée | En attente d'approbation | Annulé(e) — les annulés ne sont pas
   // affectés à un groupe et n'apparaissent pas dans les listes de car
   statutInscription String @default("Approuvée")
+  // Présence constatée à la main (arrivé par ses propres moyens, sans pointage
+  // car). La présence réelle = pointage ARRIVEE OU cette coche — c'est elle
+  // que lit la réorganisation du jour 1.
+  presenceManuelle Boolean @default(false)
   // Données sensibles, importées séparément (voir scripts/importer-sensibles.ts)
   telephone     String?
   email         String?
@@ -429,6 +433,19 @@ model TentativeConnexion {
   createdAt DateTime @default(now())
 
   @@index([email, createdAt])
+}
+
+// Photographie de l'organisation (groupes, compagnies, affectations) prise
+// juste avant qu'une réorganisation automatique ne s'applique : le bouton
+// « Revenir à l'état d'avant » restaure ce contenu tel quel. Les données sont
+// un JSON autoportant — aucune clé étrangère, pour que la restauration reste
+// possible quoi qu'il arrive entre-temps.
+model InstantaneOrganisation {
+  id        String   @id @default(cuid())
+  motif     String
+  donnees   String
+  creeLe    DateTime @default(now())
+  creeParId String
 }
 
 // Journal des vérifications d'attestations : chaque scan (ou saisie) sur la
