@@ -32,22 +32,29 @@ export function BottomNav({
           className="fixed inset-0 bg-black/30 z-30 sm:hidden"
           onClick={() => setMenuOuvert(false)}
         >
+          {/* Les rôles de direction ont beaucoup d'entrées : deux colonnes
+              compactes, et le panneau défile à l'intérieur de l'écran plutôt
+              que d'en déborder. */}
           <div
-            className="absolute bottom-20 left-4 right-4 bg-white rounded-2xl shadow-xl p-2"
+            className="absolute bottom-20 left-3 right-3 bg-white rounded-2xl shadow-xl p-2 overflow-y-auto overscroll-contain"
+            style={{ maxHeight: "calc(100dvh - 7.5rem)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {secondaires.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setMenuOuvert(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-base ${
-                  estActif(l.href) ? "bg-fsy-light text-fsy-dark font-semibold" : "text-slate-700"
-                }`}
-              >
-                <span className="text-xl">{l.icone}</span> {l.label}
-              </Link>
-            ))}
+            <div className="grid grid-cols-2 gap-1">
+              {secondaires.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setMenuOuvert(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm leading-tight ${
+                    estActif(l.href) ? "bg-fsy-light text-fsy-dark font-semibold" : "text-slate-700"
+                  }`}
+                >
+                  <span className="text-lg shrink-0">{l.icone}</span>
+                  <span className="min-w-0">{l.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       )}
