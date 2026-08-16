@@ -32,9 +32,16 @@ export function ExportSynthese({ texte, nomFichier }: { texte: string; nomFichie
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
+      <a
+        href="/rapports/final/pdf"
+        title="Document officiel prêt à envoyer au soixante-dix d'interrégion et au couple consultant"
+        className="flex-1 min-w-[8rem] bg-fsy hover:bg-fsy-dark text-white font-medium rounded-lg px-4 py-2.5 text-sm transition text-center"
+      >
+        📄 Télécharger le PDF officiel
+      </a>
       <button
         onClick={copier}
-        className="flex-1 min-w-[8rem] bg-fsy hover:bg-fsy-dark text-white font-medium rounded-lg px-4 py-2.5 text-sm transition"
+        className="flex-1 min-w-[8rem] bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg px-4 py-2.5 text-sm shadow-sm transition"
       >
         {copie ? "✓ Copié" : "Copier le rapport"}
       </button>

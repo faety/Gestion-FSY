@@ -302,6 +302,13 @@ export const SECTIONS: Section[] = [
         type: "TEXTE",
         roles: DIRECTION,
       },
+      {
+        id: "conseilsFuturs",
+        label: "Conseils pour les prochains comités FSY",
+        aide: "Ce que vous auriez aimé savoir avant. Le manuel demande ces conseils dans le rapport historique transmis au couple consultant de l'interrégion — notez-les pendant que c'est frais.",
+        type: "TEXTE",
+        roles: DIRECTION,
+      },
     ],
   },
 ];

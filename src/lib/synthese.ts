@@ -232,6 +232,17 @@ export function construireSynthese(
     .filter((d) => d.texte.trim())
     .sort((a, b) => a.jour - b.jour);
 
+  // Conseils aux prochains comités : le manuel les exige dans le rapport
+  // historique transmis au couple consultant de l'interrégion.
+  const conseils = rapports
+    .map((r) => ({
+      jour: r.jour,
+      auteur: nomComplet(r.auteur),
+      texte: enTexte(lireReponses(r.reponses).conseilsFuturs),
+    }))
+    .filter((c) => c.texte.trim())
+    .sort((a, b) => a.jour - b.jour);
+
   // Les URL d'affichage sont calculées par la page : la synthèse reste
   // indépendante du service de stockage.
   const photos = rapports.flatMap((r) =>
@@ -275,6 +286,7 @@ export function construireSynthese(
     verbatim,
     temoignages,
     decisions,
+    conseils,
     photos,
   };
 }
@@ -391,6 +403,11 @@ export function syntheseEnTexte(s: Synthese, titre: string): string {
     s.decisions.map((d) => `- ${libelleJour(d.jour)} — ${d.type} (${d.auteur}) : ${d.texte}`)
   );
 
+  bloc(
+    "Conseils pour les prochains comités",
+    s.conseils.map((c) => `- ${libelleJour(c.jour)} — ${c.auteur} : ${c.texte}`)
+  );
+
   if (s.photos.length > 0) {
     l.push(
       `_${s.photos.length} photo(s) jointes aux rapports, à consulter dans l'application._`,
@@ -423,6 +440,7 @@ export const QUESTIONS_AGREGEES = [
   "coordination",
   "decisions",
   "arbitrages",
+  "conseilsFuturs",
 ];
 
 export const questionsNonAgregees = () =>

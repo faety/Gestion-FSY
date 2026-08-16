@@ -7,20 +7,25 @@
 // avec la date d'édition. Un jour précis ou la conférence entière, au choix.
 import { readFile } from "fs/promises";
 import path from "path";
-import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { PDFImage, rgb } from "pdf-lib";
+import {
+  A4,
+  AMBRE,
+  Composeur,
+  ENCRE,
+  FSY,
+  FSY_SOMBRE,
+  GRIS,
+  GRIS_CLAIR,
+  MARGE,
+  ROUGE,
+  majuscule,
+  surWinAnsi,
+} from "./pdf";
 import { prisma } from "./db";
 import { CONFERENCE, LIEU, NB_JOURS, DATE_VEILLE } from "./theme";
 import { ordreDuJourDe } from "./ordres-du-jour";
 import { PUBLIC_LABELS, TYPE_LABELS } from "./roles";
-
-// Couleurs de la charte (globals.css)
-const FSY = rgb(0x1d / 255, 0x4e / 255, 0xd8 / 255);
-const FSY_SOMBRE = rgb(0x1e / 255, 0x3a / 255, 0x8a / 255);
-const ENCRE = rgb(0.12, 0.16, 0.23);
-const GRIS = rgb(0.42, 0.45, 0.5);
-const GRIS_CLAIR = rgb(0.88, 0.91, 0.95);
-const ROUGE = rgb(0.72, 0.11, 0.11);
-const AMBRE = rgb(0.7, 0.4, 0);
 
 
 // Instructeurs des cours de Séminaires & Instituts (Abidjan West), tels que
@@ -58,21 +63,6 @@ const dateLongueFmt = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "UTC",
 });
 
-// Les polices standard n'encodent que WinAnsi : on remplace ce qui n'y figure
-// pas plutôt que de laisser l'encodage échouer sur un caractère copié-collé.
-const surWinAnsi = (texte: string) =>
-  texte
-    .replace(/[\u00A0\u2000-\u200B\u202F]/g, " ")
-    .replace(/\u2192/g, "-")
-    .replace(/[\u2010-\u2012]/g, "-")
-    .replace(/[^\u0020-\u007E\u00A1-\u00FF\u0152\u0153\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u20AC]/gu, "");
-
-const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-const A4 = { largeur: 595.28, hauteur: 841.89 };
-const MARGE = 46;
-const BAS = 54;
-
 type Activite = {
   titre: string;
   description: string | null;
@@ -92,90 +82,6 @@ type Activite = {
 };
 
 type Journee = { numero: number; date: Date; tenue: string | null; tenueEncadrants: string | null; note: string | null };
-
-class Composeur {
-  doc!: PDFDocument;
-  page!: PDFPage;
-  y = 0;
-  normale!: PDFFont;
-  grasse!: PDFFont;
-  oblique!: PDFFont;
-
-  async initialiser() {
-    this.doc = await PDFDocument.create();
-    this.normale = await this.doc.embedFont(StandardFonts.Helvetica);
-    this.grasse = await this.doc.embedFont(StandardFonts.HelveticaBold);
-    this.oblique = await this.doc.embedFont(StandardFonts.HelveticaOblique);
-    this.nouvellePage();
-  }
-
-  nouvellePage() {
-    this.page = this.doc.addPage([A4.largeur, A4.hauteur]);
-    this.y = A4.hauteur - MARGE;
-  }
-
-  reserver(hauteur: number) {
-    if (this.y - hauteur < BAS) this.nouvellePage();
-  }
-
-  decouper(texte: string, police: PDFFont, taille: number, largeur: number): string[] {
-    const lignes: string[] = [];
-    for (const brut of texte.split("\n")) {
-      const mots = brut.split(/\s+/).filter(Boolean);
-      let ligne = "";
-      for (const mot of mots) {
-        const essai = ligne ? `${ligne} ${mot}` : mot;
-        if (police.widthOfTextAtSize(essai, taille) <= largeur || !ligne) ligne = essai;
-        else {
-          lignes.push(ligne);
-          ligne = mot;
-        }
-      }
-      lignes.push(ligne);
-    }
-    return lignes;
-  }
-
-  paragraphe(
-    texte: string,
-    {
-      police = this.normale,
-      taille = 9.5,
-      couleur = ENCRE,
-      x = MARGE,
-      largeur = A4.largeur - 2 * MARGE,
-      interligne = 1.35,
-      barre = false,
-    }: {
-      police?: PDFFont;
-      taille?: number;
-      couleur?: ReturnType<typeof rgb>;
-      x?: number;
-      largeur?: number;
-      interligne?: number;
-      barre?: boolean;
-    } = {}
-  ) {
-    const lignes = this.decouper(surWinAnsi(texte), police, taille, largeur);
-    for (const ligne of lignes) {
-      this.reserver(taille * interligne);
-      this.y -= taille * interligne;
-      this.page.drawText(ligne, { x, y: this.y, size: taille, font: police, color: couleur });
-      if (barre) {
-        this.page.drawLine({
-          start: { x, y: this.y + taille * 0.32 },
-          end: { x: x + police.widthOfTextAtSize(ligne, taille), y: this.y + taille * 0.32 },
-          thickness: 0.7,
-          color: couleur,
-        });
-      }
-    }
-  }
-
-  espace(h: number) {
-    this.y -= h;
-  }
-}
 
 const nomJour = (numero: number) => (numero === 0 ? "Veille" : `Jour ${numero}`);
 

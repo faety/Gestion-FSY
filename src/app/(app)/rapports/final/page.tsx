@@ -325,6 +325,26 @@ export default async function RapportFinalPage() {
         </section>
       )}
 
+      {s.conseils.length > 0 && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold mb-1">💡 Conseils pour les prochains comités</h2>
+          <p className="text-sm text-slate-500 mb-2">
+            Exigés par le rapport historique du manuel, transmis au couple consultant de
+            l&apos;interrégion.
+          </p>
+          <ul className="space-y-2 text-sm">
+            {s.conseils.map((c, i) => (
+              <li key={i} className="border-l-4 border-slate-300 pl-3">
+                {c.texte}
+                <span className="block text-xs text-slate-400">
+                  {libelleJour(c.jour)} · {c.auteur}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {s.photos.length > 0 && (
         <section className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="font-bold mb-3">📷 Photos des rapports ({s.photos.length})</h2>
