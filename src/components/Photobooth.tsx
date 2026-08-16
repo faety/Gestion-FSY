@@ -24,22 +24,36 @@ type Cadre = {
   hauteur?: number;
 };
 
+// La base des designs ; chaque entrée existe en portrait (3:4) et en
+// paysage (4:3) — le fichier paysage porte le suffixe « -paysage ».
+const DESIGNS = [
+  { cle: "marche", nom: "Marche avec moi", groupe: "Classiques" },
+  { cle: "souvenir", nom: "Souvenir", groupe: "Classiques" },
+  { cle: "grace", nom: "Tu as du prix", groupe: "Jeunes filles" },
+  { cle: "fleurs", nom: "Fleurs", groupe: "Jeunes filles" },
+  { cle: "etoiles", nom: "Lève-toi, brille", groupe: "Jeunes filles" },
+  { cle: "joie", nom: "La joie", groupe: "Jeunes filles" },
+  { cle: "courage", nom: "Courage", groupe: "Jeunes gens" },
+  { cle: "armure", nom: "Armure de Dieu", groupe: "Jeunes gens" },
+  { cle: "temple", nom: "Temple", groupe: "Jeunes gens" },
+  { cle: "force", nom: "Je peux tout", groupe: "Jeunes gens" },
+];
+
 const CADRES: Cadre[] = [
-  { cle: "marche", nom: "Marche avec moi", groupe: "Classiques", src: "/cadres/cadre-marche.png" },
-  { cle: "souvenir", nom: "Souvenir", groupe: "Classiques", src: "/cadres/cadre-souvenir.png" },
-  { cle: "grace", nom: "Tu as du prix", groupe: "Jeunes filles", src: "/cadres/cadre-grace.png" },
-  { cle: "fleurs", nom: "Fleurs", groupe: "Jeunes filles", src: "/cadres/cadre-fleurs.png" },
-  { cle: "etoiles", nom: "Lève-toi, brille", groupe: "Jeunes filles", src: "/cadres/cadre-etoiles.png" },
-  { cle: "joie", nom: "La joie", groupe: "Jeunes filles", src: "/cadres/cadre-joie.png" },
-  { cle: "courage", nom: "Courage", groupe: "Jeunes gens", src: "/cadres/cadre-courage.png" },
-  { cle: "armure", nom: "Armure de Dieu", groupe: "Jeunes gens", src: "/cadres/cadre-armure.png" },
-  { cle: "temple", nom: "Temple", groupe: "Jeunes gens", src: "/cadres/cadre-temple.png" },
-  { cle: "force", nom: "Je peux tout", groupe: "Jeunes gens", src: "/cadres/cadre-force.png" },
+  ...DESIGNS.map((d) => ({ ...d, src: `/cadres/cadre-${d.cle}.png` })),
+  ...DESIGNS.map((d) => ({
+    ...d,
+    cle: `${d.cle}-paysage`,
+    src: `/cadres/cadre-${d.cle}-paysage.png`,
+    largeur: 1600,
+    hauteur: 1200,
+  })),
 ];
 
 const LARGEUR = 1200;
 const HAUTEUR = 1600;
 const dimsDe = (c: Cadre) => ({ largeur: c.largeur ?? LARGEUR, hauteur: c.hauteur ?? HAUTEUR });
+const estPaysage = (c: Cadre) => dimsDe(c).largeur > dimsDe(c).hauteur;
 
 export function Photobooth() {
   const refVideo = useRef<HTMLVideoElement>(null);
@@ -55,6 +69,17 @@ export function Photobooth() {
   // photographie quelqu'un d'autre avec son téléphone.
   const [face, setFace] = useState<"user" | "environment">("user");
   const miroir = face === "user";
+
+  // Portrait ou paysage : chaque design existe dans les deux sens. La bascule
+  // garde le même design, en changeant simplement d'orientation.
+  const paysage = estPaysage(cadre);
+  function basculerOrientation() {
+    const base = cadre.cle.replace(/-paysage$/, "");
+    const cible = paysage ? base : `${base}-paysage`;
+    const equivalent = CADRES.find((c) => c.cle === cible);
+    if (equivalent) setCadre(equivalent);
+  }
+  const cadresVisibles = CADRES.filter((c) => estPaysage(c) === paysage);
 
   // Démarrer la caméra. Safari exige HTTPS et un geste utilisateur pour
   // certains réglages ; on tente au chargement, avec un bouton de reprise.
@@ -199,8 +224,13 @@ export function Photobooth() {
     <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center select-none">
       {/* Scène 3:4 */}
       <div
-        className="relative h-full max-h-full"
-        style={{ aspectRatio: `${dimsDe(cadre).largeur} / ${dimsDe(cadre).hauteur}`, maxWidth: "100vw" }}
+        className="relative"
+        style={{
+          // La scène prend la plus grande taille possible au ratio du cadre,
+          // dans les deux sens — écran portrait ou paysage.
+          aspectRatio: `${dimsDe(cadre).largeur} / ${dimsDe(cadre).hauteur}`,
+          width: `min(100vw, calc(100dvh * ${dimsDe(cadre).largeur / dimsDe(cadre).hauteur}))`,
+        }}
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
@@ -272,25 +302,31 @@ export function Photobooth() {
         {!cliche && (
           <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-2.5">
             {/* Les dix cadres, en vignettes défilantes */}
+            <button
+              onClick={basculerOrientation}
+              className="text-xs font-semibold rounded-full px-3.5 py-1.5 bg-white/85 text-slate-700 shadow"
+            >
+              {paysage ? "🖼️ Paysage — passer en portrait" : "📱 Portrait — passer en paysage"}
+            </button>
             <div className="w-full overflow-x-auto px-3" style={{ scrollbarWidth: "none" }}>
               <div className="flex gap-2 w-max mx-auto items-end">
-                {CADRES.map((c, i) => (
-                  <div key={c.cle} className="flex flex-col items-center gap-1">
-                    {(i === 0 || CADRES[i - 1].groupe !== c.groupe) && (
-                      <span className="sr-only">{c.groupe}</span>
-                    )}
-                    <button
-                      onClick={() => setCadre(c)}
-                      aria-label={`Cadre ${c.nom}`}
-                      className={`relative rounded-lg overflow-hidden shadow transition border-4 ${
-                        cadre.cle === c.cle ? "border-white scale-105" : "border-white/30"
-                      }`}
-                      style={{ width: 52, height: 69, background: "#64748b" }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.src} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    </button>
-                  </div>
+                {cadresVisibles.map((c) => (
+                  <button
+                    key={c.cle}
+                    onClick={() => setCadre(c)}
+                    aria-label={`Cadre ${c.nom}`}
+                    className={`relative rounded-lg overflow-hidden shadow transition border-4 ${
+                      cadre.cle === c.cle ? "border-white scale-105" : "border-white/30"
+                    }`}
+                    style={
+                      paysage
+                        ? { width: 69, height: 52, background: "#64748b" }
+                        : { width: 52, height: 69, background: "#64748b" }
+                    }
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.src} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
             </div>
