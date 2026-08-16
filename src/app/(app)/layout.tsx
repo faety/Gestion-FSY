@@ -42,11 +42,15 @@ export default async function AppLayout({
   const secondaires = [
     { href: "/groupes", label: "Groupes", icone: "🧑‍🤝‍🧑" },
     ...(roleAuMoins(user.role, "COORDINATEUR")
-      ? [
-          { href: "/reorganisation", label: "Réorganisation", icone: "🧩" },
-          { href: "/souvenir/galerie", label: "Photobooth souvenir", icone: "📸" },
-        ]
+      ? [{ href: "/reorganisation", label: "Réorganisation", icone: "🧩" }]
       : []),
+    // Le photobooth est ouvert à tous les encadrants : la direction y voit
+    // toutes les photos de l'événement, chacun les siennes.
+    {
+      href: "/souvenir/galerie",
+      label: roleAuMoins(user.role, "COORDINATEUR") ? "Photobooth souvenir" : "Photos souvenir",
+      icone: "📸",
+    },
     ...(roleAuMoins(user.role, "ADJOINT")
       ? [{ href: "/pieux", label: "Pieux et districts", icone: "🏛️" }]
       : []),

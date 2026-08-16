@@ -313,6 +313,7 @@ export function Photobooth() {
                   <button
                     onClick={garder}
                     disabled={envoi === "en-cours"}
+                    title="La photo rejoint la galerie de la conférence — et peut passer au diaporama du cinquième jour"
                     className="bg-fsy text-white text-lg font-bold rounded-2xl px-6 py-4 shadow-xl active:scale-95 transition disabled:opacity-60"
                   >
                     {envoi === "en-cours" ? "Envoi…" : envoi === "rate" ? "Réessayer 💾" : "💛 Galerie"}

@@ -9,8 +9,11 @@ import { supprimerPhotoSouvenir } from "@/lib/actions";
 // diaporama, retirer ce qui doit l'être.
 export function GaleriePhotosSouvenir({
   photos,
+  direction,
 }: {
   photos: { id: string; url: string | null; pleine: string | null; cadre: string; date: string }[];
+  /** Couple dirigeant et coordinateurs principaux : toutes les photos, et la suppression. */
+  direction: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -20,25 +23,60 @@ export function GaleriePhotosSouvenir({
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">📸 Galerie souvenir</h1>
+          <h1 className="text-2xl font-bold">
+            {direction ? "📸 Galerie souvenir" : "📸 Mes souvenirs"}
+          </h1>
           <p className="text-slate-500 text-sm">
-            {photos.length} photo(s) du photobooth. Des mineurs y figurent : elles restent ici,
-            et servent au diaporama du cinquième jour.
+            {direction ? (
+              <>
+                {photos.length} photo(s) du photobooth — iPad de l&apos;accueil et téléphones
+                des encadrants réunis. Des mineurs y figurent : elles restent ici, et servent au
+                diaporama du cinquième jour.
+              </>
+            ) : (
+              <>
+                {photos.length} photo(s) prise(s) par vous. Vous seul et la direction les voyez ;
+                téléchargez celles que vous voulez garder.
+              </>
+            )}
           </p>
         </div>
         <Link
           href="/souvenir"
           className="shrink-0 bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
         >
-          Ouvrir le photobooth
+          {direction ? "Ouvrir le photobooth" : "📷 Prendre une photo"}
         </Link>
       </div>
 
       {photos.length === 0 ? (
-        <p className="bg-white rounded-xl shadow-sm p-6 text-sm text-slate-500">
-          Aucune photo pour l&apos;instant. Ouvrez le photobooth sur l&apos;iPad, posez-le sur un
-          support, et laissez les jeunes faire le reste.
-        </p>
+        <div className="bg-white rounded-xl shadow-sm p-6 text-sm text-slate-600 space-y-2">
+          {direction ? (
+            <p>
+              Aucune photo pour l&apos;instant. Ouvrez le photobooth sur l&apos;iPad, posez-le sur
+              un support, et laissez les jeunes faire le reste.
+            </p>
+          ) : (
+            <>
+              <p className="font-medium text-slate-800">
+                Vous n&apos;avez encore aucune photo souvenir.
+              </p>
+              <p>
+                Le photobooth marche depuis votre téléphone : appuyez sur
+                <strong> 📷 Prendre une photo</strong>, choisissez un cadre FSY, et prenez
+                vos jeunes en photo — ou vous-même en selfie. Le bouton 🔄 bascule entre
+                la caméra avant et arrière, et <strong>Portrait / Paysage</strong> change le sens
+                du cadre.
+              </p>
+              <p>
+                Après la prise :{" "}
+                <strong>⬇️ Sur mon appareil</strong> enregistre la photo dans votre téléphone,{" "}
+                <strong>💛 Galerie</strong> l&apos;envoie à la direction — et vos plus
+                belles photos passeront dans le <strong>diaporama du cinquième jour</strong>.
+              </p>
+            </>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {photos.map((p) => (
@@ -85,6 +123,7 @@ export function GaleriePhotosSouvenir({
                 ⬇️ Télécharger
               </a>
             )}
+            {direction && (
             <button
               disabled={pending}
               onClick={() => {
@@ -99,6 +138,7 @@ export function GaleriePhotosSouvenir({
             >
               Supprimer
             </button>
+            )}
             <button
               onClick={() => setOuverte(null)}
               className="bg-white/20 text-white text-sm font-medium rounded-lg px-4 py-2"
