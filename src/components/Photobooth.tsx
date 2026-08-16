@@ -10,9 +10,20 @@ import { demanderSignatureSouvenir, enregistrerPhotoSouvenir } from "@/lib/actio
 //
 // Format 3:4 (1200×1600), celui de la caméra frontale de l'iPad.
 
+// Dix cadres : deux sobres, quatre pensés pour les jeunes filles, quatre pour
+// les jeunes gens — Écritures, temple, couleurs vives. Chacun choisit
+// librement, les catégories ne sont qu'un repère.
 const CADRES = [
-  { cle: "marche", nom: "« Marche avec moi »", src: "/cadres/cadre-marche.png" },
-  { cle: "souvenir", nom: "Souvenir FSY", src: "/cadres/cadre-souvenir.png" },
+  { cle: "marche", nom: "Marche avec moi", groupe: "Classiques", src: "/cadres/cadre-marche.png" },
+  { cle: "souvenir", nom: "Souvenir", groupe: "Classiques", src: "/cadres/cadre-souvenir.png" },
+  { cle: "grace", nom: "Tu as du prix", groupe: "Jeunes filles", src: "/cadres/cadre-grace.png" },
+  { cle: "fleurs", nom: "Fleurs", groupe: "Jeunes filles", src: "/cadres/cadre-fleurs.png" },
+  { cle: "etoiles", nom: "Lève-toi, brille", groupe: "Jeunes filles", src: "/cadres/cadre-etoiles.png" },
+  { cle: "joie", nom: "La joie", groupe: "Jeunes filles", src: "/cadres/cadre-joie.png" },
+  { cle: "courage", nom: "Courage", groupe: "Jeunes gens", src: "/cadres/cadre-courage.png" },
+  { cle: "armure", nom: "Armure de Dieu", groupe: "Jeunes gens", src: "/cadres/cadre-armure.png" },
+  { cle: "temple", nom: "Temple", groupe: "Jeunes gens", src: "/cadres/cadre-temple.png" },
+  { cle: "force", nom: "Je peux tout", groupe: "Jeunes gens", src: "/cadres/cadre-force.png" },
 ] as const;
 
 const LARGEUR = 1200;
@@ -28,14 +39,19 @@ export function Photobooth() {
   const [cliche, setCliche] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState<"repos" | "en-cours" | "fait" | "rate">("repos");
   const [nbPrises, setNbPrises] = useState(0);
+  // Frontale par défaut (selfie) ; l'arrière sert quand un encadrant
+  // photographie quelqu'un d'autre avec son téléphone.
+  const [face, setFace] = useState<"user" | "environment">("user");
+  const miroir = face === "user";
 
-  // Démarrer la caméra frontale. Safari exige HTTPS et un geste utilisateur
-  // pour certains réglages ; on tente au chargement, avec un bouton de reprise.
-  const demarrer = useCallback(async () => {
+  // Démarrer la caméra. Safari exige HTTPS et un geste utilisateur pour
+  // certains réglages ; on tente au chargement, avec un bouton de reprise.
+  const demarrer = useCallback(async (facingMode: "user" | "environment") => {
     setErreur(null);
+    refFlux.current?.getTracks().forEach((t) => t.stop());
     try {
       const flux = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1600 }, height: { ideal: 1200 } },
+        video: { facingMode, width: { ideal: 1600 }, height: { ideal: 1200 } },
         audio: false,
       });
       refFlux.current = flux;
@@ -46,16 +62,16 @@ export function Photobooth() {
       setPret(true);
     } catch {
       setErreur(
-        "Caméra inaccessible. Autorisez la caméra pour ce site (Réglages Safari), puis réessayez."
+        "Caméra inaccessible. Autorisez la caméra pour ce site dans les réglages du navigateur, puis réessayez."
       );
     }
   }, []);
 
   useEffect(() => {
-    demarrer();
+    demarrer(face);
     const flux = refFlux;
     return () => flux.current?.getTracks().forEach((t) => t.stop());
-  }, [demarrer]);
+  }, [demarrer, face]);
 
   // Compte à rebours puis capture : la vidéo est dessinée en miroir (comme la
   // prévisualisation — on se reconnaît), recadrée pour couvrir le 3:4, puis le
@@ -88,8 +104,10 @@ export function Photobooth() {
     const echelle = Math.max(LARGEUR / vw, HAUTEUR / vh);
     const dw = vw * echelle;
     const dh = vh * echelle;
-    ctx.translate(LARGEUR, 0);
-    ctx.scale(-1, 1); // miroir
+    if (miroir) {
+      ctx.translate(LARGEUR, 0);
+      ctx.scale(-1, 1); // en selfie, la photo garde le miroir de l'aperçu
+    }
     ctx.drawImage(video, (LARGEUR - dw) / 2, (HAUTEUR - dh) / 2, dw, dh);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const imageCadre = new Image();
@@ -101,6 +119,21 @@ export function Photobooth() {
     ctx.drawImage(imageCadre, 0, 0, LARGEUR, HAUTEUR);
     setCliche(canvas.toDataURL("image/jpeg", 0.88));
     setEnvoi("repos");
+  }
+
+  // Garder la photo sur SON appareil — le cas des encadrants qui utilisent le
+  // photobooth depuis leur téléphone. Un blob passe partout, y compris Safari.
+  function telecharger() {
+    if (!cliche) return;
+    const octets = atob(cliche.split(",")[1]);
+    const tampon = new Uint8Array(octets.length);
+    for (let i = 0; i < octets.length; i++) tampon[i] = octets.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([tampon], { type: "image/jpeg" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `souvenir-fsy-2026-${Date.now()}.jpg`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function garder() {
@@ -160,7 +193,7 @@ export function Photobooth() {
           ref={refVideo}
           playsInline
           muted
-          className="absolute inset-0 w-full h-full object-cover -scale-x-100"
+          className={`absolute inset-0 w-full h-full object-cover ${miroir ? "-scale-x-100" : ""}`}
         />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cadre.src} alt="" className="absolute inset-0 w-full h-full pointer-events-none" />
@@ -192,16 +225,23 @@ export function Photobooth() {
                   <button
                     onClick={() => setCliche(null)}
                     disabled={envoi === "en-cours"}
-                    className="bg-white/90 text-slate-800 text-xl font-bold rounded-2xl px-8 py-4 shadow-xl active:scale-95 transition"
+                    className="bg-white/90 text-slate-800 text-lg font-bold rounded-2xl px-6 py-4 shadow-xl active:scale-95 transition"
                   >
                     ↺ Reprendre
                   </button>
                   <button
+                    onClick={telecharger}
+                    disabled={envoi === "en-cours"}
+                    className="bg-white/90 text-slate-800 text-lg font-bold rounded-2xl px-6 py-4 shadow-xl active:scale-95 transition"
+                  >
+                    ⬇️ Sur mon appareil
+                  </button>
+                  <button
                     onClick={garder}
                     disabled={envoi === "en-cours"}
-                    className="bg-fsy text-white text-xl font-bold rounded-2xl px-8 py-4 shadow-xl active:scale-95 transition disabled:opacity-60"
+                    className="bg-fsy text-white text-lg font-bold rounded-2xl px-6 py-4 shadow-xl active:scale-95 transition disabled:opacity-60"
                   >
-                    {envoi === "en-cours" ? "Envoi…" : envoi === "rate" ? "Réessayer 💾" : "💛 Garder"}
+                    {envoi === "en-cours" ? "Envoi…" : envoi === "rate" ? "Réessayer 💾" : "💛 Galerie"}
                   </button>
                 </>
               )}
@@ -216,31 +256,50 @@ export function Photobooth() {
 
         {/* Commandes de prise */}
         {!cliche && (
-          <div className="absolute inset-x-0 bottom-5 flex flex-col items-center gap-3">
-            <div className="flex gap-2">
-              {CADRES.map((c) => (
-                <button
-                  key={c.cle}
-                  onClick={() => setCadre(c)}
-                  className={`text-sm font-semibold rounded-full px-4 py-2 shadow transition ${
-                    cadre.cle === c.cle ? "bg-fsy text-white" : "bg-white/85 text-slate-700"
-                  }`}
-                >
-                  {c.nom}
-                </button>
-              ))}
+          <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-2.5">
+            {/* Les dix cadres, en vignettes défilantes */}
+            <div className="w-full overflow-x-auto px-3" style={{ scrollbarWidth: "none" }}>
+              <div className="flex gap-2 w-max mx-auto items-end">
+                {CADRES.map((c, i) => (
+                  <div key={c.cle} className="flex flex-col items-center gap-1">
+                    {(i === 0 || CADRES[i - 1].groupe !== c.groupe) && (
+                      <span className="sr-only">{c.groupe}</span>
+                    )}
+                    <button
+                      onClick={() => setCadre(c)}
+                      aria-label={`Cadre ${c.nom}`}
+                      className={`relative rounded-lg overflow-hidden shadow transition border-4 ${
+                        cadre.cle === c.cle ? "border-white scale-105" : "border-white/30"
+                      }`}
+                      style={{ width: 52, height: 69, background: "#64748b" }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.src} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <button
-              onClick={lancerPrise}
-              disabled={!pret || compte !== null}
-              aria-label="Prendre la photo"
-              className="w-24 h-24 rounded-full bg-white shadow-2xl border-8 border-white/50 active:scale-90 transition disabled:opacity-40 text-4xl"
-            >
-              📸
-            </button>
-            {nbPrises > 0 && (
-              <div className="text-white/70 text-xs">{nbPrises} photo(s) gardée(s) — merci !</div>
-            )}
+            <div className="flex items-center gap-5">
+              <button
+                onClick={() => setFace(face === "user" ? "environment" : "user")}
+                aria-label="Changer de caméra"
+                className="w-14 h-14 rounded-full bg-white/25 text-white text-2xl shadow-lg active:scale-90 transition"
+              >
+                🔄
+              </button>
+              <button
+                onClick={lancerPrise}
+                disabled={!pret || compte !== null}
+                aria-label="Prendre la photo"
+                className="w-24 h-24 rounded-full bg-white shadow-2xl border-8 border-white/50 active:scale-90 transition disabled:opacity-40 text-4xl"
+              >
+                📸
+              </button>
+              <div className="w-14 h-14 flex items-center justify-center text-white/75 text-xs text-center leading-tight">
+                {nbPrises > 0 ? `${nbPrises} 💛` : ""}
+              </div>
+            </div>
           </div>
         )}
 
@@ -248,7 +307,7 @@ export function Photobooth() {
           <div className="absolute inset-x-4 top-1/3 bg-white/95 rounded-2xl p-5 text-center">
             <p className="text-slate-800 text-sm">{erreur}</p>
             <button
-              onClick={demarrer}
+              onClick={() => demarrer(face)}
               className="mt-3 bg-fsy text-white font-semibold rounded-xl px-5 py-2.5"
             >
               Réessayer la caméra
