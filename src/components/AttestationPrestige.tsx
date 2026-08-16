@@ -358,6 +358,11 @@ export async function AttestationPrestige({
             >
               {t.code} : <span style={{ color: OR_CLAIR }}>{code}</span>
             </div>
+            <div className="text-[6.3pt] italic text-white/80 mt-[1mm] max-w-[52mm] ml-auto leading-snug">
+              {langue === "fr"
+                ? "Saisissez l'adresse vous-même : elle seule fait foi."
+                : "Type the address yourself: only that exact address is authoritative."}
+            </div>
           </div>
           <div
             className="w-[24mm] h-[24mm] bg-white rounded-[1.5mm] p-[1.5mm]"

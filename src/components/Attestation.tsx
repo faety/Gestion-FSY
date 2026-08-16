@@ -358,8 +358,8 @@ export async function Attestation({
     >
       <div className="text-[7pt] text-slate-500 leading-snug max-w-[105mm]">
         {en
-          ? "This certificate is registered by the conference direction. Its authenticity, and the figures behind it, can be checked at any time at the address opposite."
-          : "Cette attestation est enregistrée par la direction de la conférence. Son authenticité et le détail des chiffres peuvent être vérifiés à tout moment à l'adresse ci-contre."}
+          ? "This certificate is registered by the conference direction. Its authenticity, and the figures behind it, can be checked at any time at the address opposite — type the address yourself in your browser: only that exact address is authoritative."
+          : "Cette attestation est enregistrée par la direction de la conférence. Son authenticité et le détail des chiffres peuvent être vérifiés à tout moment à l'adresse ci-contre — saisissez-la vous-même dans votre navigateur : elle seule fait foi."}
       </div>
       <div className="flex items-center gap-[3mm] shrink-0">
         <div className="text-right">

@@ -130,6 +130,9 @@ export type FaitsAttestation = {
   points: number;
   /** Présences validées au pointage des cars */
   pointagesValides: number;
+  /** Photo de profil au moment de la délivrance — montrée à la vérification,
+   * pour que le vérificateur compare le visage à la personne devant lui. */
+  photoPublicId?: string | null;
   /** Étapes de car dont il avait la charge, en clair */
   responsabilitesCars: string[];
   // Chiffres de la conférence, relevés eux aussi au moment de la délivrance :

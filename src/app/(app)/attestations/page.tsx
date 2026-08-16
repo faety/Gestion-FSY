@@ -24,6 +24,13 @@ export default async function AttestationsPage() {
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
   const signatures = await signaturesDuCouple();
+  // Journal des vérifications publiques : le couple voit qui scanne quoi, et
+  // repère un code inconnu répété — le signe d'un document trafiqué en
+  // circulation.
+  const [nbScans, derniersScans] = await Promise.all([
+    prisma.scanVerification.count(),
+    prisma.scanVerification.findMany({ orderBy: { createdAt: "desc" }, take: 12 }),
+  ]);
   const [encadrants, attestations] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
@@ -99,6 +106,40 @@ export default async function AttestationsPage() {
           ))}
         </div>
       </section>
+
+      {/* Qui vérifie quoi : chaque scan de la page publique est consigné. Un
+          code inconnu répété = un document trafiqué circule. */}
+      {nbScans > 0 && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold">🔎 Vérifications publiques ({nbScans})</h2>
+          <p className="text-sm text-slate-500 mt-0.5 mb-2">
+            Les derniers scans de la page de vérification. Un code inconnu qui revient
+            souvent mérite l&apos;attention : quelqu&apos;un présente peut-être un document
+            trafiqué.
+          </p>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {derniersScans.map((s) => (
+              <li key={s.id} className="py-1.5 flex items-center justify-between gap-3">
+                <span className="font-mono">{s.code}</span>
+                <span className="flex items-center gap-2 shrink-0">
+                  {!s.connu && (
+                    <span className="text-xs bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
+                      inconnu
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-400">
+                    {new Intl.DateTimeFormat("fr-FR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                      timeZone: "Africa/Abidjan",
+                    }).format(s.createdAt)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

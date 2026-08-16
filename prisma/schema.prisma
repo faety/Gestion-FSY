@@ -431,6 +431,20 @@ model TentativeConnexion {
   @@index([email, createdAt])
 }
 
+// Journal des vérifications d'attestations : chaque scan (ou saisie) sur la
+// page publique est consigné. Le public voit le compteur et la date de la
+// première vérification — un faux statique ne vit pas ; le couple dirigeant
+// voit le journal complet et repère les anomalies.
+model ScanVerification {
+  id        String   @id @default(cuid())
+  // Le code demandé, tel que saisi (normalisé), qu'il existe ou non.
+  code      String
+  connu     Boolean
+  createdAt DateTime @default(now())
+
+  @@index([code, createdAt])
+}
+
 // Signature manuscrite de chacun des deux membres du couple dirigeant, tracée
 // au doigt ou au stylet dans l'application, une seule fois. Elle s'appose sur
 // toutes les VRAIES attestations ; le spécimen garde sa signature de police.

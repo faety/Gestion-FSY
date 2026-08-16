@@ -2023,6 +2023,9 @@ export async function delivrerAttestations() {
       rapportsPossibles: RAPPORTS_POSSIBLES,
       points: c.rapports.reduce((n, r) => n + r.points, 0),
       pointagesValides: c._count.mouvementsValides,
+      // La photo est figée avec le reste : c'est elle que verra un recruteur
+      // sur la page de vérification, à comparer au visage devant lui.
+      photoPublicId: c.photoPublicId,
       responsabilitesCars: c.affectationsCars.map(
         (a) => `${a.car.nom} — ${etapeCar(a.etape)?.label ?? a.etape}`
       ),
