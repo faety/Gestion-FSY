@@ -10,10 +10,21 @@ import { demanderSignatureSouvenir, enregistrerPhotoSouvenir } from "@/lib/actio
 //
 // Format 3:4 (1200×1600), celui de la caméra frontale de l'iPad.
 
-// Dix cadres : deux sobres, quatre pensés pour les jeunes filles, quatre pour
-// les jeunes gens — Écritures, temple, couleurs vives. Chacun choisit
-// librement, les catégories ne sont qu'un repère.
-const CADRES = [
+// Les cadres, dans l'ordre d'affichage : d'abord les officiels fournis par le
+// couple dirigeant, puis les classiques, puis jeunes filles et jeunes gens.
+// Chacun choisit librement, les catégories ne sont qu'un repère. Un cadre
+// porte son propre format (3:4 par défaut, 9:16 pour les visuels « story ») —
+// la scène et la photo prennent le format du cadre choisi.
+type Cadre = {
+  cle: string;
+  nom: string;
+  groupe: string;
+  src: string;
+  largeur?: number;
+  hauteur?: number;
+};
+
+const CADRES: Cadre[] = [
   { cle: "marche", nom: "Marche avec moi", groupe: "Classiques", src: "/cadres/cadre-marche.png" },
   { cle: "souvenir", nom: "Souvenir", groupe: "Classiques", src: "/cadres/cadre-souvenir.png" },
   { cle: "grace", nom: "Tu as du prix", groupe: "Jeunes filles", src: "/cadres/cadre-grace.png" },
@@ -24,10 +35,11 @@ const CADRES = [
   { cle: "armure", nom: "Armure de Dieu", groupe: "Jeunes gens", src: "/cadres/cadre-armure.png" },
   { cle: "temple", nom: "Temple", groupe: "Jeunes gens", src: "/cadres/cadre-temple.png" },
   { cle: "force", nom: "Je peux tout", groupe: "Jeunes gens", src: "/cadres/cadre-force.png" },
-] as const;
+];
 
 const LARGEUR = 1200;
 const HAUTEUR = 1600;
+const dimsDe = (c: Cadre) => ({ largeur: c.largeur ?? LARGEUR, hauteur: c.hauteur ?? HAUTEUR });
 
 export function Photobooth() {
   const refVideo = useRef<HTMLVideoElement>(null);
@@ -94,21 +106,22 @@ export function Photobooth() {
   async function capturer() {
     const video = refVideo.current;
     if (!video) return;
+    const { largeur, hauteur } = dimsDe(cadre);
     const canvas = document.createElement("canvas");
-    canvas.width = LARGEUR;
-    canvas.height = HAUTEUR;
+    canvas.width = largeur;
+    canvas.height = hauteur;
     const ctx = canvas.getContext("2d")!;
-    const vw = video.videoWidth || LARGEUR;
-    const vh = video.videoHeight || HAUTEUR;
-    // Recadrage « cover » : la vidéo remplit le 3:4, centrée.
-    const echelle = Math.max(LARGEUR / vw, HAUTEUR / vh);
+    const vw = video.videoWidth || largeur;
+    const vh = video.videoHeight || hauteur;
+    // Recadrage « cover » : la vidéo remplit le format du cadre, centrée.
+    const echelle = Math.max(largeur / vw, hauteur / vh);
     const dw = vw * echelle;
     const dh = vh * echelle;
     if (miroir) {
-      ctx.translate(LARGEUR, 0);
+      ctx.translate(largeur, 0);
       ctx.scale(-1, 1); // en selfie, la photo garde le miroir de l'aperçu
     }
-    ctx.drawImage(video, (LARGEUR - dw) / 2, (HAUTEUR - dh) / 2, dw, dh);
+    ctx.drawImage(video, (largeur - dw) / 2, (hauteur - dh) / 2, dw, dh);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const imageCadre = new Image();
     imageCadre.src = cadre.src;
@@ -116,7 +129,7 @@ export function Photobooth() {
       imageCadre.onload = r;
       imageCadre.onerror = r;
     });
-    ctx.drawImage(imageCadre, 0, 0, LARGEUR, HAUTEUR);
+    ctx.drawImage(imageCadre, 0, 0, largeur, hauteur);
     setCliche(canvas.toDataURL("image/jpeg", 0.88));
     setEnvoi("repos");
   }
@@ -159,14 +172,15 @@ export function Photobooth() {
         if (!res.ok) throw new Error(res.motif);
       } else {
         // Sans Cloudinary : version réduite en base.
+        const d = dimsDe(cadre);
         const petit = document.createElement("canvas");
         petit.width = 750;
-        petit.height = 1000;
+        petit.height = Math.round((750 * d.hauteur) / d.largeur);
         const pctx = petit.getContext("2d")!;
         const img = new Image();
         img.src = cliche;
         await new Promise((r) => (img.onload = r));
-        pctx.drawImage(img, 0, 0, 750, 1000);
+        pctx.drawImage(img, 0, 0, petit.width, petit.height);
         const res = await enregistrerPhotoSouvenir({
           image: petit.toDataURL("image/jpeg", 0.8),
           cadre: cadre.cle,
@@ -186,7 +200,7 @@ export function Photobooth() {
       {/* Scène 3:4 */}
       <div
         className="relative h-full max-h-full"
-        style={{ aspectRatio: "3 / 4", maxWidth: "100vw" }}
+        style={{ aspectRatio: `${dimsDe(cadre).largeur} / ${dimsDe(cadre).hauteur}`, maxWidth: "100vw" }}
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
