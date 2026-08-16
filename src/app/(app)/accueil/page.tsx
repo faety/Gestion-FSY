@@ -129,6 +129,22 @@ export default async function Accueil() {
     activitePourMoi({ ...a, groupeIds: a.groupes.map((g) => g.groupeId) }, user.role, mesGroupes)
   );
 
+  // Pendant la conférence, la journée affichée est celle d'aujourd'hui : on
+  // marque ce qui se passe en ce moment et ce qui vient juste après, pour
+  // qu'un coup d'œil à l'accueil suffise entre deux activités. Une activité
+  // sans heure de fin (l'appel, l'extinction) est réputée durer trente minutes.
+  const maintenant = new Date();
+  const enCeMoment = new Set<string>();
+  let aSuivre: string | null = null;
+  if (!titreJour) {
+    for (const a of activitesPourMoi) {
+      if (a.statut === "ANNULE") continue;
+      const fin = a.fin ?? new Date(a.debut.getTime() + 30 * 60 * 1000);
+      if (a.debut <= maintenant && maintenant < fin) enCeMoment.add(a.id);
+      else if (aSuivre === null && a.debut > maintenant) aSuivre = a.id;
+    }
+  }
+
   const aCompleter = [
     !user.photoPublicId && CLOUDINARY_ACTIF && "votre photo",
     !user.telephone && "votre numéro",
@@ -283,13 +299,28 @@ export default async function Accueil() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {activitesPourMoi.map((a) => (
-              <li key={a.id} className="py-2.5 flex items-start gap-3">
+              <li
+                key={a.id}
+                className={`py-2.5 flex items-start gap-3 ${
+                  enCeMoment.has(a.id) ? "bg-green-50 -mx-2 px-2 rounded-lg" : ""
+                }`}
+              >
                 <Horaire debut={a.debut.toISOString()} fin={a.fin?.toISOString()} />
                 <div className="min-w-0">
                   <div className={`font-medium ${a.statut === "ANNULE" ? "line-through text-slate-400" : ""}`}>
                     {a.titre}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                    {enCeMoment.has(a.id) && (
+                      <span className="text-xs font-semibold text-green-700 bg-green-100 rounded-full px-2 py-0.5">
+                        ● En ce moment
+                      </span>
+                    )}
+                    {aSuivre === a.id && (
+                      <span className="text-xs font-semibold text-fsy bg-blue-50 rounded-full px-2 py-0.5">
+                        → À suivre
+                      </span>
+                    )}
                     <BadgeRole role={monRoleActivite(user.role, a)} />
                     <BadgesActivite
                       statut={a.statut}

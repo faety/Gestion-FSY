@@ -138,7 +138,7 @@ const FICHES: Fiche[] = [
       "Spécificités de la conférence : responsabilités des conseillers, questions communes (le reste en réunion de l'après-midi)",
       "Procédures d'urgence et lieux de rassemblement ; consignes propres au bâtiment",
       "Enregistrement des participants : modalités, gestion professionnelle des difficultés, tenue et présentation",
-      "Parole au couple dirigeant (facultatif)",
+      "Parole au couple dirigeant : un message d'encouragement de cinq minutes",
       "Chant du thème des jeunes — prière de clôture",
     ],
   },
@@ -323,6 +323,8 @@ const FICHES: Fiche[] = [
       "Badge au tour de cou, bracelet au poignet, en expliquant leur importance : ils ouvrent toutes les activités, repas et bals",
       "Faire écrire le nom sur le manuel, à garder à portée de main toute la conférence",
       "Motiver sans agitation ; souplesse si la météo ou les circonstances bousculent le déroulé",
+      "Adjoints : surveillez les files et fluidifiez ; apprenez à connaître les jeunes et créez l'enthousiasme",
+      "Couple dirigeant : soyez à l'enregistrement pour accueillir les jeunes — les situations délicates (tenue et présentation, notamment) se résolvent avec vous et les coordinateurs",
     ],
   },
   {
@@ -334,6 +336,8 @@ const FICHES: Fiche[] = [
       "Tout dégât constaté se signale immédiatement à votre coordinateur adjoint — surtout ce qui doit être réparé sans attendre (douche, robinet, prise)",
       "Dire aux jeunes de signaler immédiatement tout dégât survenu pendant la conférence",
       "Inciter à laisser chambre et lieux en meilleur état qu'à l'arrivée",
+      "Adjoints : recueillez le rapport de détériorations de chaque conseiller avant « Rencontre ton conseiller », et relancez ceux qui n'ont rien signalé avant la réunion d'accueil",
+      "Adjoint responsable des détériorations : tous les rapports rassemblés avant ce soir ; les coordinateurs préviennent le responsable du centre pour réparer sans attendre ce qui gêne un participant (douche, clé, fenêtre cassées)",
     ],
   },
   {
@@ -351,6 +355,8 @@ const FICHES: Fiche[] = [
       "Santé et sécurité : pour les toilettes ou l'eau, le jeune prévient son conseiller et signale son retour ; au-delà des environs immédiats, deux encadrants l'accompagnent, ou un encadrant avec deux à quatre jeunes — jamais un encadrant seul avec un jeune",
       "Téléphones : interdits aux jeunes pour cette conférence (règle locale, différente du fascicule international) ; le vôtre reste allumé en vibreur pour être joignable par les encadrants",
       "Attribuer aux jeunes les réunions spirituelles matinales des jours 2 à 5 (enseigner en binômes, préparation pendant les temps libres)",
+      "Adjoints : balayez la zone d'enregistrement pour orienter les derniers jeunes, aidez les retardataires à s'enregistrer, rangez le matériel ; sous la direction des coordinateurs, appelez les inscrits non arrivés et prévenez les conseillers des retards et absences",
+      "Couple dirigeant : vous pouvez passer vous présenter — brièvement : c'est la première occasion de lien entre conseillers et jeunes, et ils ont beaucoup à couvrir en peu de temps",
     ],
   },
   {
@@ -382,6 +388,11 @@ const FICHES: Fiche[] = [
       "S'asseoir côté couloir : voir qui a besoin de sortir (toilettes), et réserver un siège à ceux qui reviennent",
       "Applaudir tout le monde et tout ce qui est présenté — les jeunes suivront votre exemple",
       "Possibilité d'apprendre une danse en ligne et de l'exécuter à la réunion",
+      "Adjoints : sur place trente minutes avant ; placement lancé dix à quinze minutes avant le début — un adjoint dehors répartit les compagnies par allée, les autres remplissent chaque siège en gardant le bout de rangée aux conseillers",
+      "Coordinateurs : la logistique vous revient — matériel audiovisuel revu avec ses responsables une heure avant, programme entier revu avec le couple dirigeant, plan de rechange si la technique lâche",
+      "Coordinateurs : avant de libérer, donner toutes les instructions pour le dîner et la soirée au foyer ; libérer par les cris de compagnie (facultatif)",
+      "Couple dirigeant : arrivez trente minutes avant ; deux interventions — vous présenter en trente secondes, puis la section « Comportement lors des activités de l'Église », avec amour et sans casser l'élan",
+      "Coordinateurs du bien-être : disponibles pour aider ; un temps de présentation et d'annonces santé vous est réservé",
     ],
   },
   {
@@ -424,6 +435,9 @@ const FICHES: Fiche[] = [
       "Point d'eau : approvisionnement continu, propreté, de quoi essuyer un renversement",
       "Postes et zones : couloirs, toilettes, entrées et sorties — pas de sortie sans l'autorisation d'un conseiller, pas d'attroupement",
       "Fixer à votre compagnie un lieu de rassemblement après le bal, pour se retrouver et se disperser en ordre",
+      "Coordinateurs : supervisez l'éclairage (on doit voir un visage de l'autre côté de la piste) et le volume ; le DJ a sa liste de chansons prête à l'avance — puis dansez",
+      "Couple dirigeant : dansez avec les jeunes et amusez-vous ; on pourra vous demander d'être juges du concours de danse",
+      "Le cinquième soir : quelques adjoints quittent le bal plus tôt pour installer les sièges du message « À emporter chez soi », si les jeunes changent de lieu",
     ],
   },
   {
@@ -437,6 +451,7 @@ const FICHES: Fiche[] = [
       "Entre les témoignages, recueillement : Écritures, ou écrire témoignage et impressions dans le manuel",
       "Tenir le temps : observer la file et l'heure, annoncer gentiment s'il n'y en aura pas pour tous — ceux qui n'ont pas pu témoigneront en groupe pendant « Réfléchir et revoir »",
       "Clore par la prière, et renvoyer les compagnies dans la révérence",
+      "Couple dirigeant et coordinateurs : choisissez une réunion et restez-y jusqu'à la fin — on ne va pas de salle en salle",
     ],
   },
   {
@@ -459,7 +474,7 @@ const FICHES: Fiche[] = [
     ],
   },
   {
-    titres: ["Extinction des feux", "Extinction des feux | Veille de nuit"],
+    titres: ["Extinction des feux"],
     objet: "Conseillers : chacun dans sa chambre, lumières éteintes — et vos jeunes savent où vous trouver.",
     nature: "reperes",
     alerte: "Après l'appel du soir, plus personne ne quitte son étage ou son dortoir sans l'autorisation de son conseiller et un accompagnement.",
@@ -467,7 +482,192 @@ const FICHES: Fiche[] = [
       "22 h 30 : tous les participants dans leur chambre, lumières éteintes",
       "Vos jeunes savent où vous dormez, pour vous trouver en cas d'urgence",
       "Fenêtres occultées le cas échéant ; vigilance particulière après l'extinction",
-      "Le cinquième soir : garde de nuit — postes et consignes donnés par les coordinateurs",
+      "Adjoints : aimables mais présents — une lumière encore allumée se règle par le conseiller du jeune, jamais en direct ; restez en lien avec vos conseillers de 22 h 30 à l'extinction complète",
+      "Adjoints : message à vos coordinateurs quand toutes les lumières de vos conseillers sont éteintes",
+      "Coordinateurs : la réunion du soir ne commence pas avant l'extinction complète (sauf cas extrême, à votre discrétion) — profitez de l'attente pour la préparer avec votre collègue",
+    ],
+  },
+  {
+    titres: ["Extinction des feux | Veille de nuit"],
+    objet:
+      "Cinquième soir : la surveillance est renforcée — c'est la garde de nuit. En fin de conférence, les jeunes tentent plus volontiers de s'éclipser ou de veiller.",
+    nature: "reperes",
+    alerte: "Après l'appel du soir, plus personne ne quitte son étage ou son dortoir sans l'autorisation de son conseiller et un accompagnement.",
+    points: [
+      "22 h 30 : tous les participants dans leur chambre, lumières éteintes — vigilance accrue ce soir",
+      "Conseillers en poste : une sortie, une cage d'escalier ou un bâtiment chacun, en surveillance visuelle des chambres — postes et consignes donnés par les coordinateurs",
+      "Conseillers : ne récupérez pas les clés des participants ce soir, sauf indication contraire des coordinateurs",
+      "Adjoints et coordinateurs : passez régulièrement voir les postes ; zone calme et jeunes couchés — le poste peut être relevé, à la discrétion du coordinateur",
+      "Prévoir des rotations : la sécurité des jeunes compte, le repos des encadrants aussi — ne gardez personne éveillé plus que nécessaire",
+    ],
+  },
+
+  // ---------- Qui fait quoi, niveau par niveau ----------
+  //
+  // Transcrites des fascicules « Le Couple Dirigeant », « Les Coordonnateurs
+  // principaux » et « Les Coordonnateurs adjoints » : les activités partagées
+  // où chaque niveau a un rôle précis. Les points sont préfixés par le niveau
+  // concerné, comme sur la fiche de l'appel.
+  {
+    titres: ["Réunion spirituelle avec le couple dirigeant"],
+    objet:
+      "Les coordinateurs principaux dirigent la réunion ; le couple dirigeant donne un message appuyé sur le thème de l'année.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : tout est prêt avant le début — annonces, prières, cantiques, pianiste, sonorisation ; clair, direct, professionnel",
+      "Coordinateurs : les annonces se font en fin de réunion, après la prière de clôture",
+      "Adjoints : trente minutes avant pour l'installation ; les compagnies entrent en silence et s'assoient vite et en ordre, pour commencer à l'heure",
+      "Conseillers : tous vos jeunes sont là et entrent en silence ; une fois vos jeunes assis, asseyez-vous avec votre groupe",
+      "Couple dirigeant : arrivez trente minutes avant ; votre message s'appuie sur le thème de l'année des jeunes",
+    ],
+  },
+  {
+    titres: ["Étude de l'Évangile"],
+    objet:
+      "Les conseillers enseignent à leur groupe ; les adjoints observent pour les faire grandir.",
+    nature: "reperes",
+    points: [
+      "Conseillers : vous enseignez la leçon du jour à votre groupe — la préparation se fait pendant les temps libres",
+      "Adjoints : observez sans intervenir pendant la discussion ; étudiez vos Écritures avec les jeunes",
+      "Adjoints, après la réunion : retour bienveillant au conseiller — questions orientées (comment ça s'est passé ? qu'est-ce qui a bien marché ? que ferais-tu autrement ?), centré sur l'amour des jeunes et le respect de l'horaire",
+      "Adjoints : observez chaque équipe les deux premiers jours, puis de nouveau en fin de conférence ; signalez aux coordinateurs tout problème sérieux",
+      "Coordinateurs et couple : libre à vous d'assister — sans prendre la main",
+    ],
+  },
+  {
+    titres: ["Réfléchir et revoir"],
+    objet: "Le conseiller instruit et dirige : le bilan spirituel du jour, avec son groupe.",
+    nature: "reperes",
+    points: [
+      "Conseillers : animez la discussion et laissez largement les jeunes participer",
+      "Adjoints : l'appel du soir est remonté aux coordinateurs AVANT de venir observer",
+      "Adjoints : observez un conseiller ; après la réunion, commentaires positifs et suggestions concrètes",
+      "Couple dirigeant : vous pouvez participer — en laissant le conseiller diriger et les jeunes s'exprimer",
+    ],
+  },
+  {
+    titres: ["Leçon de la soirée au foyer"],
+    objet: "Les coordinateurs principaux dirigent la réunion ; le couple dirigeant enseigne.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : arrivez en avance, commencez à l'heure, asseyez-vous sur l'estrade avec le couple",
+      "Déroulé : bienvenue — Écritures, manuel et stylo en main — cantique et prière d'ouverture (annoncer aussi qui fera la prière de clôture), message du couple, prière, annonces",
+      "Couple dirigeant : quarante-cinq minutes centrées sur le thème de l'année — terminez à l'heure, les activités de la soirée suivent immédiatement",
+      "Après les annonces : chaque compagnie rejoint son lieu de rassemblement pour les jeux",
+    ],
+  },
+  {
+    titres: ["Jeux de la soirée au foyer", "Se fixer des buts pendant la soirée au foyer"],
+    objet:
+      "Les conseillers animent ; adjoints, coordinateurs et couple observent, aident, et tissent des liens en participant.",
+    nature: "reperes",
+    points: [
+      "Adjoints : observez les compagnies pendant les jeux et le bilan ; participer avec les jeunes de vos conseillers crée des liens",
+      "Adjoints : pendant « Se fixer des buts », observez l'enseignement des conseillers",
+      "Coordinateurs : plan de secours en cas de mauvais temps — au besoin, voyez vite avec le responsable du centre",
+      "Couple dirigeant : rencontrez les jeunes et jouez avec eux ; assistez à une session de fixation de buts en compagnie",
+    ],
+  },
+  {
+    titres: ["Soirée jeux et cris de ralliement"],
+    objet:
+      "L'adjoint responsable conduit la soirée ; coordinateurs et couple tournent entre les emplacements et jugent les cris.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : tout est prêt dès l'après-midi — eau accessible aux jeunes (à vérifier avec la logistique), plan de secours en cas de pluie, responsable du centre joignable",
+      "Coordinateurs et couple : passez d'un emplacement à l'autre pour juger les cris ; en arrivant, l'adjoint responsable finit la manche en cours et vous donne la parole",
+      "Pour chaque cri : les autres groupes assis en demi-cercle, pour que toutes les compagnies voient",
+      "Finale : à lancer quand il reste vingt minutes — gagnants des bannières annoncés par groupe d'âge, puis les compagnies gagnantes exécutent leur cri",
+      "Si l'heure déborde : annoncez seulement les gagnants, les cris gagnants se montreront le cinquième jour — la soirée jeux n'empiète pas sur la soirée plat préféré",
+    ],
+  },
+  {
+    titres: ["Soirée plat préféré"],
+    objet: "L'adjoint responsable conduit ; les coordinateurs aident à la distribution.",
+    nature: "reperes",
+    alerte:
+      "Aucun plat ne circule sans que les restrictions alimentaires non signalées à l'inscription aient été transmises aux personnes en charge de la nourriture.",
+    points: [
+      "Adjoint responsable : transmettez toute restriction alimentaire connue de fraîche date aux personnes en charge de la nourriture",
+      "Coordinateurs : aidez les adjoints à distribuer la nourriture aux conseillers, puis profitez de la soirée avec les jeunes",
+      "Couple dirigeant : assistez avec une équipe de conseillers, si vous le désirez",
+    ],
+  },
+  {
+    titres: ["Spectacle musical"],
+    objet:
+      "Trente minutes qui introduisent la veillée spirituelle — les coordinateurs principaux dirigent la soirée.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : à l'auditorium une heure avant — matériel audiovisuel vérifié, medley revu, besoins audiovisuels du couple prévus",
+      "Coordinateurs, avec le couple : revoir l'ordre de la soirée (spectacle, veillée, rédaction des témoignages, medley), la durée du message, et les musiques pendant la rédaction et les déplacements",
+      "Couple dirigeant : le spectacle est déjà riche en médias — allégez d'autant votre message de la veillée",
+    ],
+  },
+  {
+    titres: ["Veillée spirituelle du couple dirigeant"],
+    objet:
+      "Les coordinateurs principaux dirigent, assis sur l'estrade avec le couple ; le couple enseigne.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : annoncez d'emblée tous les événements de la soirée, pour ne plus donner d'instructions avant les réunions de témoignage",
+      "Couple dirigeant : leçon de trente-cinq minutes centrée sur l'expiation de Jésus-Christ",
+      "Après la prière de clôture : postlude recueilli, annonce des salles de témoignage et du conseiller qui dirige chacune, rappel de finir à l'heure",
+      "Libérer les compagnies dans le respect, en route vers les lieux de témoignage",
+    ],
+  },
+  {
+    titres: ["Rédaction du témoignage | Medley FSY"],
+    objet: "Dix minutes pour écrire son témoignage dans le journal, sur fond de musique douce.",
+    nature: "reperes",
+    points: [
+      "Musique au piano ou enregistrée, propice au recueillement — convenue à l'avance entre coordinateurs et couple",
+      "Adjoints qui ont dirigé le medley le matin : vous le dirigez à nouveau en fin de réunion",
+    ],
+  },
+  {
+    titres: ["Message « À emporter chez soi »"],
+    objet: "Le dernier message de la conférence — le couple dirigeant l'apporte.",
+    nature: "reperes",
+    points: [
+      "Coordinateurs : après le bal, ramenez le calme et faites asseoir les jeunes par compagnie",
+      "Déroulé : chant du thème avec la vidéo (5 min) · vidéo de l'Autorité générale (3-5 min) · message du couple (10 min) · témoignage personnel du couple (5 min) · explication de l'activité en compagnie (5 min) · medley · prière",
+      "Couple dirigeant : reliez les réunions spirituelles matinales au thème, lancez l'invitation « Agir et devenir », et expliquez ce qui attend les compagnies juste après",
+    ],
+  },
+  {
+    titres: ["« À emporter chez soi » en compagnie"],
+    objet:
+      "Conseillers : la dernière discussion avec vos jeunes — l'Évangile est ce qu'ils emportent chez eux.",
+    nature: "reperes",
+    points: [
+      "Faire réfléchir à ce qu'ils ont vécu, noter des buts personnels (livret « Un modèle de progression »), et inviter à les partager",
+      "Relier chaque but à l'invitation « Agir et devenir » — un changement qui dure au-delà de la conférence",
+    ],
+  },
+  {
+    titres: ["Activité « Vivre l'Évangile »"],
+    objet: "Dirigée par les conseillers ; l'adjoint veille à la préparation et au soutien.",
+    nature: "reperes",
+    points: [
+      "Conseillers : vous dirigez — faire connaître l'amour du Christ, devenir attentif aux besoins d'autrui, faire des plans pour mieux servir",
+      "Adjoints : pas de rôle désigné, mais les objectifs sont compris, la logistique communiquée, et les conseillers prêts (instructions lues)",
+      "Adjoints : soyez présent surtout pendant la partie individuelle (deuxième partie), pour aider les jeunes qui décrochent",
+      "Couple dirigeant : participez librement — votre exemple porte",
+    ],
+  },
+  {
+    titres: ["Préparation au départ", "Vérification des chambres | Départ des participants"],
+    objet: "Tous les encadrants sont en service jusqu'au départ du dernier jeune.",
+    nature: "reperes",
+    alerte:
+      "Personne ne va à la réunion de clôture tant que tous les jeunes dont il répond n'ont pas libéré leur chambre et été pris en charge.",
+    points: [
+      "Conseillers : inspection de chaque chambre avec les jeunes, clés récupérées, placards et tiroirs vérifiés ; départs validés dans le module Cars",
+      "Conseillers : tout dégât et toute clé perdue se signalent — les pochettes de clés se rapportent",
+      "Adjoints : toutes les clés de vos conseillers sont rendues selon les instructions ; supervisez les procédures de départ",
+      "Responsable des détériorations : clés perdues et dégâts se règlent avec le responsable du centre — vérifier chaque frais qui sera facturé à la conférence",
+      "Couple dirigeant : vous supervisez le départ — c'est ce dont vous répondez le plus directement",
     ],
   },
 

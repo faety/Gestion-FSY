@@ -41,23 +41,19 @@
 //   la journée entière, à l'identique. Ce qui diffère, ce sont les instructions
 //   qui suivent le tableau — ce que chaque niveau est attendu d'y faire.
 //
-//   Le rôle "AUCUN" efface l'activité du programme de ce niveau. L'appliquer au
-//   coordinateur principal ou au couple dirigeant contredit donc le manuel :
-//   ils n'ont plus rien avant sept heures, plus rien après vingt-deux heures,
-//   et l'appel — le moment où l'on compte les jeunes — ne figure nulle part
-//   chez eux. Ces deux niveaux n'ont donc plus aucun "AUCUN" : à défaut de
-//   tâche assignée, c'est "FACULTATIF", qui dit la vérité — ils peuvent y être.
+//   Le rôle "AUCUN" efface l'activité du programme de ce niveau — c'est ce qui
+//   garde chaque programme lisible le jour même.
 //
-//   Deux conséquences tirées des instructions du manuel :
-//     • Appel : le couple dirigeant "reçoit" comme les coordinateurs. Il répond
-//       de la conférence ; un jeune manquant doit lui parvenir.
-//     • Extinction des feux et veille de nuit : il supervise. « Allez voir dans
-//       la zone des dortoirs si les jeunes vont bien » (section couple
-//       dirigeant, suggestions générales).
-//
-//   Les conseillers et les coordonnateurs adjoints gardent leurs "AUCUN" :
-//   leur programme reste celui de leur périmètre, sans quoi il deviendrait
-//   illisible le jour même.
+//   Les cellules de rôle suivent le tableau officiel « Aperçu du programme
+//   complet » des fascicules 2026, qui fait foi — y compris là où il donne
+//   "AUCUN" au couple dirigeant (appel, extinction) : le manuel ne lui y
+//   assigne pas de tâche. Une exception, documentée sur place : le départ du
+//   dernier jour, où le tableau met un tiret mais où le fascicule du couple
+//   ordonne « Tous les encadrants doivent être en service pour le départ des
+//   participants » — le texte l'emporte sur le tiret. Ce que chaque niveau
+//   doit concrètement FAIRE à chaque activité est porté par les fiches de
+//   src/lib/ordres-du-jour.ts, attachées à l'affichage — c'est là que vivent
+//   les instructions détaillées de chaque fascicule.
 //
 // STATUTS
 //   "PLANIFIE"    → horaire officiel des manuels.
@@ -104,19 +100,17 @@ type Roles = [Role, Role, Role, Role];
 // Combinaisons récurrentes du manuel de l'encadrant
 const R = {
   // L'appel remonte : le conseiller compte, l'adjoint reçoit, le coordinateur
-  // reçoit — et le couple dirigeant reçoit aussi. Le manuel ne lui assigne pas
-  // de tâche, mais il répond de la conférence : un jeune manquant doit lui
-  // parvenir. Le laisser à « AUCUN » effaçait l'appel de son programme, et il
-  // ne voyait même pas à quelle heure on compte les jeunes.
+  // reçoit. Le tableau officiel laisse le couple dirigeant à « AUCUN » — un
+  // jeune manquant lui parvient par les coordinateurs, immédiatement (fiche
+  // de l'appel dans ordres-du-jour.ts).
   APPEL: ["DIRIGER", "RECEVOIR", "RECEVOIR", "AUCUN"] as Roles,
   REPAS: ["ASSISTER", "SI_ATTRIBUE", "ASSISTER", "ASSISTER"] as Roles,
   CONSEILLER_DIRIGE: ["DIRIGER", "FACULTATIF", "FACULTATIF", "FACULTATIF"] as Roles,
   CONSEILLER_SEUL: ["DIRIGER", "AUCUN", "FACULTATIF", "FACULTATIF"] as Roles,
   TRANQUILLITE: ["SUPERVISER", "AUCUN", "FACULTATIF", "FACULTATIF"] as Roles,
   // Extinction des feux et veille de nuit : le conseiller surveille, l'adjoint
-  // et le coordinateur aident, le couple dirigeant supervise. C'est le moment
-  // où six cent quarante mineurs sont couchés sur un site qui n'est pas le
-  // leur ; il n'a pas à disparaître du programme de ceux qui en répondent.
+  // et le coordinateur aident — conforme au tableau officiel, qui n'y assigne
+  // rien au couple dirigeant.
   EXTINCTION: ["SUPERVISER", "AIDER", "AIDER", "AUCUN"] as Roles,
   REUNION_COORD_ADJOINTS: ["AUCUN", "ASSISTER", "DIRIGER", "FACULTATIF"] as Roles,
   REUNION_COORD_CONSEILLERS: ["ASSISTER", "DIRIGER", "FACULTATIF", "AUCUN"] as Roles,
@@ -762,9 +756,11 @@ export const PROGRAMME: ActiviteSeed[] = [
     fin: "07:00",
     titre: "Préparation au départ",
     type: "PAR_GROUPE",
-    // Le départ de six cent quarante mineurs est ce dont le couple dirigeant
-    // répond le plus directement : il supervise, il n'est pas absent.
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
+    // Tableau officiel, sauf le couple : son fascicule ordonne « Tous les
+    // encadrants doivent être en service pour le départ des participants » —
+    // il supervise, le départ ne peut pas disparaître de son programme.
+    // Instructions par niveau : fiche « Préparation au départ ».
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
   },
   {
     jour: 6,
@@ -774,7 +770,9 @@ export const PROGRAMME: ActiviteSeed[] = [
     type: "PAR_GROUPE",
     description:
       "Inspection de chaque chambre avec les jeunes, récupération des clés, vérification des placards et tiroirs. Les conseillers valident les départs dans l'application (module Cars) et restent avec les jeunes jusqu'à leur prise en charge.",
-    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "AUCUN"],
+    // Même arbitrage que « Préparation au départ » : le fascicule du couple
+    // le met en service jusqu'au départ du dernier jeune.
+    r: ["DIRIGER", "SI_ATTRIBUE", "SUPERVISER", "SUPERVISER"],
   },
   {
     jour: 6,
