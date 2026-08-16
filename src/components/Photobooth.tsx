@@ -39,8 +39,29 @@ const DESIGNS = [
   { cle: "force", nom: "Je peux tout", groupe: "Jeunes gens" },
 ];
 
+// Les cadres officiels dessinés par le couple dirigeant : format « story »
+// 9:16 en portrait, 16:9 en paysage, fournis avec leur transparence. Ils
+// ouvrent la liste des choix.
+const OFFICIELS = [
+  { cle: "officiel-floral", nom: "Floral officiel", groupe: "Officiels" },
+  { cle: "officiel-montagne", nom: "Montagne officiel", groupe: "Officiels" },
+];
+
 const CADRES: Cadre[] = [
+  ...OFFICIELS.map((d) => ({
+    ...d,
+    src: `/cadres/cadre-${d.cle}.png`,
+    largeur: 1080,
+    hauteur: 1920,
+  })),
   ...DESIGNS.map((d) => ({ ...d, src: `/cadres/cadre-${d.cle}.png` })),
+  ...OFFICIELS.map((d) => ({
+    ...d,
+    cle: `${d.cle}-paysage`,
+    src: `/cadres/cadre-${d.cle}-paysage.png`,
+    largeur: 1920,
+    hauteur: 1080,
+  })),
   ...DESIGNS.map((d) => ({
     ...d,
     cle: `${d.cle}-paysage`,
@@ -221,7 +242,10 @@ export function Photobooth() {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center select-none">
+    <div
+      className="fixed inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center select-none"
+      style={{ paddingBottom: cliche ? 0 : "13.5rem" }}
+    >
       {/* Scène 3:4 */}
       <div
         className="relative"
@@ -229,7 +253,11 @@ export function Photobooth() {
           // La scène prend la plus grande taille possible au ratio du cadre,
           // dans les deux sens — écran portrait ou paysage.
           aspectRatio: `${dimsDe(cadre).largeur} / ${dimsDe(cadre).hauteur}`,
-          width: `min(100vw, calc(100dvh * ${dimsDe(cadre).largeur / dimsDe(cadre).hauteur}))`,
+          // Les commandes occupent le bas de l'écran : la scène s'arrête
+          // au-dessus, pour ne jamais masquer le message du cadre.
+          width: `min(100vw, calc((100dvh - ${cliche ? 0 : 13.5}rem) * ${
+            dimsDe(cadre).largeur / dimsDe(cadre).hauteur
+          }))`,
         }}
       >
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -298,16 +326,10 @@ export function Photobooth() {
           </div>
         )}
 
-        {/* Commandes de prise */}
+        {/* Commandes de prise — hors du cadre, en bas de l'écran */}
         {!cliche && (
-          <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-2.5">
+          <div className="fixed inset-x-0 bottom-0 pb-3 pt-2 flex flex-col items-center gap-2 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent">
             {/* Les dix cadres, en vignettes défilantes */}
-            <button
-              onClick={basculerOrientation}
-              className="text-xs font-semibold rounded-full px-3.5 py-1.5 bg-white/85 text-slate-700 shadow"
-            >
-              {paysage ? "🖼️ Paysage — passer en portrait" : "📱 Portrait — passer en paysage"}
-            </button>
             <div className="w-full overflow-x-auto px-3" style={{ scrollbarWidth: "none" }}>
               <div className="flex gap-2 w-max mx-auto items-end">
                 {cadresVisibles.map((c) => (
@@ -330,6 +352,12 @@ export function Photobooth() {
                 ))}
               </div>
             </div>
+            <button
+              onClick={basculerOrientation}
+              className="text-xs font-semibold rounded-full px-3.5 py-1.5 bg-white/85 text-slate-700 shadow"
+            >
+              {paysage ? "🖼️ Paysage — passer en portrait" : "📱 Portrait — passer en paysage"}
+            </button>
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setFace(face === "user" ? "environment" : "user")}
