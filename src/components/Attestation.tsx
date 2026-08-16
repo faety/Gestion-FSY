@@ -11,6 +11,7 @@ import {
   type FaitsAttestation,
 } from "@/lib/attestations";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { signaturesDuCouple } from "@/lib/signatures";
 import { SITE_AFFICHE, lienVerification } from "@/lib/site";
 
 const fmtLong = new Intl.DateTimeFormat("fr-FR", {
@@ -233,6 +234,10 @@ export async function Attestation({
   const titre = TITRES[role] ?? TITRES.CONSEILLER;
   const comp = competences(role);
 
+  // Signatures manuscrites du couple, tracées dans l'application. Sur les
+  // vrais documents seulement : le spécimen garde son rendu sans tracé.
+  const signatures = donnees.specimen ? {} : await signaturesDuCouple();
+
   // Le corps est écrit en deux temps : ce qui a été exercé, puis le détail des
   // responsabilités. On les met en page différemment.
   const [intro, detail] = corpsAttestation(role, sexe, faits).split("\n\n");
@@ -318,6 +323,14 @@ export async function Attestation({
     <div className="flex items-end justify-between gap-[6mm]">
       {SIGNATAIRES.map((s) => (
         <div key={s.nom} className="text-center">
+          {signatures[s.nom] && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={signatures[s.nom]}
+              alt=""
+              className="w-[46mm] h-[13mm] object-contain mx-auto mb-[0.6mm]"
+            />
+          )}
           <div className="w-[46mm] h-px" style={{ background: BLEU, opacity: 0.5 }} />
           <div className="text-[9.5pt] font-semibold mt-[1.5mm]" style={{ fontFamily: SERIF }}>
             {s.nom}

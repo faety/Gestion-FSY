@@ -55,6 +55,7 @@ import { transfererReferences } from "./fusion";
 import {
   ROLES_ATTESTABLES,
   RAPPORTS_POSSIBLES,
+  SIGNATAIRES,
   calculerMention,
   codeDepuisOctets,
   modeleValide,
@@ -2061,6 +2062,45 @@ export async function delivrerAttestations() {
   revalidatePath("/attestations");
   revalidatePath("/attestation");
   return { delivrees, parMention };
+}
+
+// Signature manuscrite d'un membre du couple dirigeant, tracée au doigt ou au
+// stylet. Chacun des deux peut signer depuis n'importe quel compte DIRIGEANT
+// (une même tablette qui passe de main en main) : le pad porte le nom du
+// signataire, pas celui du compte connecté. Elle s'appose sur toutes les
+// vraies attestations ; le spécimen garde sa signature de police.
+export async function enregistrerSignature(nom: string, image: string) {
+  const user = await exiger("DIRIGEANT");
+  if (!SIGNATAIRES.some((s) => s.nom === nom)) {
+    return { ok: false as const, motif: "Signataire inconnu." };
+  }
+  // Un PNG en data URL, et rien d'autre : la chaîne est réaffichée telle
+  // quelle dans une balise image, sur les attestations imprimées.
+  if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(image)) {
+    return { ok: false as const, motif: "Le tracé n'a pas pu être lu. Réessayez." };
+  }
+  if (image.length > 300_000) {
+    return { ok: false as const, motif: "Tracé trop lourd — signez d'un trait plus simple." };
+  }
+  await prisma.signatureDirigeant.upsert({
+    where: { nom },
+    create: { nom, image, misAJourParId: user.id },
+    update: { image, misAJourParId: user.id },
+  });
+  await journaliser(user.id, "SIGNATURE_ENREGISTREE", `Signature de ${nom}`);
+  revalidatePath("/attestations");
+  revalidatePath("/attestation");
+  revalidatePath("/attestations/impression");
+  return { ok: true as const };
+}
+
+export async function effacerSignature(nom: string) {
+  const user = await exiger("DIRIGEANT");
+  await prisma.signatureDirigeant.deleteMany({ where: { nom } });
+  await journaliser(user.id, "SIGNATURE_EFFACEE", `Signature de ${nom}`);
+  revalidatePath("/attestations");
+  revalidatePath("/attestation");
+  revalidatePath("/attestations/impression");
 }
 
 // Chacun choisit l'habillage de son attestation — présentation pure : le code

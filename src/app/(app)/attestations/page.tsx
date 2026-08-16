@@ -8,11 +8,14 @@ import {
   RAPPORTS_POSSIBLES,
   ROLES_ATTESTABLES,
   SEUIL_RIGUEUR,
+  SIGNATAIRES,
   calculerMention,
   lireFaits,
   mention,
 } from "@/lib/attestations";
+import { signaturesDuCouple } from "@/lib/signatures";
 import { DelivrerAttestations, RevoquerAttestation } from "@/components/OutilsAttestation";
+import { PadSignature } from "@/components/PadSignature";
 
 export const metadata = { title: "Attestations" };
 
@@ -20,6 +23,7 @@ export default async function AttestationsPage() {
   const user = await exigerUtilisateur();
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
+  const signatures = await signaturesDuCouple();
   const [encadrants, attestations] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
@@ -77,6 +81,24 @@ export default async function AttestationsPage() {
           🖨️ Imprimer en lot {attestations > 0 && `(${attestations})`}
         </Link>
       </div>
+
+      {/* Les signatures manuscrites du couple, tracées une fois chacune —
+          au doigt ou au stylet, éventuellement sur la même tablette — puis
+          apposées sur toutes les vraies attestations. */}
+      <section className="bg-white rounded-xl shadow-sm p-4">
+        <h2 className="font-bold">✍️ Vos signatures manuscrites</h2>
+        <p className="text-sm text-slate-500 mt-0.5 mb-3">
+          Chacun signe une fois, au doigt ou au stylet — la tablette peut passer de main en
+          main. La signature s&apos;appose sur toutes les attestations, y compris celles déjà
+          délivrées ; sans tracé, le document sort avec le nom seul. Le spécimen n&apos;est pas
+          concerné.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {SIGNATAIRES.map((s) => (
+            <PadSignature key={s.nom} nom={s.nom} signatureExistante={signatures[s.nom] ?? null} />
+          ))}
+        </div>
+      </section>
 
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

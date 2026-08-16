@@ -3,10 +3,13 @@ import {
   CONFERENCE,
   SIGNATAIRES,
   TITRES,
+  ampleur,
+  competences,
   corpsAttestation,
   corpsAttestationEn,
   mention,
 } from "@/lib/attestations";
+import { signaturesDuCouple } from "@/lib/signatures";
 import { SITE_AFFICHE, lienVerification } from "@/lib/site";
 import type { DonneesAttestation } from "@/components/Attestation";
 
@@ -50,6 +53,11 @@ const TEXTES = {
     verifier: "Vérifier sur",
     code: "Code",
     fait: (lieu: string, date: string) => `Fait à ${lieu}, le ${date}.`,
+    competences: "Compétences mises en œuvre",
+    jeunes: "jeunes encadrés",
+    jours: "jours de responsabilité",
+    rapports: "comptes rendus remis",
+    participants: "participants encadrés",
   },
   en: {
     eglise: "The Church of Jesus Christ of Latter-day Saints",
@@ -58,6 +66,11 @@ const TEXTES = {
     verifier: "Verify at",
     code: "Code",
     fait: (lieu: string, date: string) => `Issued in ${lieu} on ${date}.`,
+    competences: "Competencies demonstrated",
+    jeunes: "youth supervised",
+    jours: "days on duty",
+    rapports: "daily reports filed",
+    participants: "participants",
   },
 } as const;
 
@@ -87,6 +100,21 @@ export async function AttestationPrestige({
     errorCorrectionLevel: "M",
     color: { dark: BLEU_NUIT, light: "#ffffff" },
   });
+
+  // Les mêmes faits chiffrés et compétences que le modèle classique : le
+  // design change, jamais le contenu.
+  const comp = competences(role)[langue];
+  const chiffres: [string, string][] = [
+    ...(faits.jeunesEncadres > 0
+      ? ([[String(faits.jeunesEncadres), t.jeunes]] as [string, string][])
+      : ([[String(ampleur(faits).participants), t.participants]] as [string, string][])),
+    [String(CONFERENCE.jours), t.jours],
+    [`${faits.rapportsRemis}/${faits.rapportsPossibles}`, t.rapports],
+  ];
+
+  // Signatures manuscrites du couple — vrais documents seulement, le spécimen
+  // garde sa signature de police.
+  const signatures = donnees.specimen ? {} : await signaturesDuCouple();
 
   return (
     <div className={`porte-paysage bg-white mx-auto ${derniere ? "" : "break-after-page"}`}>
@@ -228,25 +256,82 @@ export async function AttestationPrestige({
           />
 
           {/* Corps */}
-          <p className="text-[10pt] leading-[1.6] mt-[4.5mm] max-w-[172mm]">{intro}</p>
-          <p className="text-[8.8pt] leading-[1.55] mt-[2.5mm] max-w-[160mm] text-slate-700">
+          <p className="text-[10pt] leading-[1.6] mt-[4mm] max-w-[172mm]">{intro}</p>
+          <p className="text-[8.8pt] leading-[1.55] mt-[2.5mm] max-w-[164mm] text-slate-700">
             {detail}
           </p>
 
-          <div className="text-[9pt] italic text-slate-600 mt-[4mm]">{t.fait(lieu, date)}</div>
+          {/* Les chiffres qui font la valeur du document — les mêmes que sur
+              le modèle classique */}
+          <div className="flex items-stretch gap-[6mm] mt-[3.5mm] max-w-[164mm]">
+            {chiffres.map(([valeur, label], i) => (
+              <div
+                key={label}
+                className="flex-1 text-center py-[2.2mm] px-[2mm]"
+                style={{
+                  borderTop: `0.5mm solid ${OR_CLAIR}`,
+                  borderBottom: `0.2mm solid ${OR_CLAIR}`,
+                  background: i % 2 === 0 ? "#FAF6EC" : "#F7F8FC",
+                }}
+              >
+                <div
+                  className="text-[15pt] font-bold leading-none"
+                  style={{ color: BLEU_NUIT, fontFamily: SERIF }}
+                >
+                  {valeur}
+                </div>
+                <div className="text-[6.3pt] uppercase tracking-[0.12em] mt-[1.1mm] text-slate-500">
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Compétences, sur deux colonnes — identiques au classique */}
+          <div className="mt-[3.5mm] max-w-[164mm]">
+            <div
+              className="text-[7pt] uppercase tracking-[0.22em] pb-[1.1mm]"
+              style={{ color: OR, borderBottom: `0.2mm solid ${OR_CLAIR}` }}
+            >
+              {t.competences}
+            </div>
+            <div className="grid grid-cols-2 gap-x-[8mm] gap-y-[1.2mm] mt-[2mm]">
+              {comp.map((c) => (
+                <div key={c} className="flex items-start gap-[2mm] text-[8.3pt] leading-snug">
+                  <span
+                    className="rotate-45 w-[1.1mm] h-[1.1mm] mt-[1.4mm] shrink-0"
+                    style={{ background: OR }}
+                  />
+                  <span>{c}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="flex-1" />
 
-          {/* Signatures */}
+          <div className="text-[9pt] italic text-slate-600 mb-[2.5mm]">{t.fait(lieu, date)}</div>
+
+          {/* Signatures — le tracé manuscrit enregistré dans l'application
+              quand il existe, la police de signature sinon */}
           <div className="flex items-end gap-[10mm]">
-            {SIGNATAIRES.map((s, i) => (
+            {SIGNATAIRES.map((s) => (
               <div key={s.nom} className="text-center w-[58mm]">
-                <div
-                  className="text-[19pt] leading-none whitespace-nowrap"
-                  style={{ fontFamily: "'Grande Signature', cursive", color: BLEU_NUIT }}
-                >
-                  {s.nom}
-                </div>
+                {signatures[s.nom] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={signatures[s.nom]}
+                    alt=""
+                    className="h-[14mm] max-w-[54mm] object-contain mx-auto"
+                  />
+                ) : (
+                  <div
+                    className="text-[19pt] leading-none whitespace-nowrap"
+                    style={{ fontFamily: "'Grande Signature', cursive", color: BLEU_NUIT }}
+                  >
+                    {s.nom}
+                  </div>
+                )}
                 <div className="h-px mt-[1.2mm]" style={{ background: OR_CLAIR }} />
                 <div className="text-[8.5pt] font-semibold mt-[1.2mm]" style={{ color: BLEU_NUIT }}>
                   {s.nom}
@@ -254,7 +339,6 @@ export async function AttestationPrestige({
                 <div className="text-[7pt]" style={{ color: OR }}>
                   {langue === "fr" ? s.titre : s.titreEn}
                 </div>
-                {i === 0 && <span className="sr-only">·</span>}
               </div>
             ))}
           </div>

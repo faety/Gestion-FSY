@@ -62,10 +62,10 @@ export type CleModele = (typeof MODELES)[number]["cle"];
 export const modeleValide = (cle: string): cle is CleModele =>
   MODELES.some((m) => m.cle === cle);
 
-// Le couple dirigeant signe seul.
+// Le couple dirigeant signe seul — Armande d'abord, comme sur le communiqué.
 export const SIGNATAIRES = [
-  { nom: "Bérenger Dahakpoin", titre: "Couple dirigeant", titreEn: "Conference Director" },
   { nom: "Armande Dahakpoin", titre: "Couple dirigeant", titreEn: "Conference Director" },
+  { nom: "Bérenger Dahakpoin", titre: "Couple dirigeant", titreEn: "Conference Director" },
 ];
 
 // ---------- Mentions ----------

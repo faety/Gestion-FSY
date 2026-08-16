@@ -431,6 +431,18 @@ model TentativeConnexion {
   @@index([email, createdAt])
 }
 
+// Signature manuscrite de chacun des deux membres du couple dirigeant, tracée
+// au doigt ou au stylet dans l'application, une seule fois. Elle s'appose sur
+// toutes les VRAIES attestations ; le spécimen garde sa signature de police.
+// Clé = nom du signataire tel que dans SIGNATAIRES (lib/attestations).
+model SignatureDirigeant {
+  nom          String   @id
+  // PNG en data URL, fond transparent, tracé sombre. Petite (< 200 Ko).
+  image        String
+  misAJourLe   DateTime @updatedAt
+  misAJourParId String?
+}
+
 // Jalon du calendrier de préparation, tel que le fixe le guide de planification.
 //
 // Seul l'état est en base : l'intitulé, l'échéance et le responsable viennent
