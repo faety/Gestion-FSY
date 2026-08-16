@@ -655,6 +655,42 @@ async function main() {
     console.log("   📣 Communiqué du départ des conseillers publié (cible : conseillers).");
   }
 
+  // Annonce validée par le couple dirigeant : l'attestation d'encadrement et
+  // la photo de profil. Cible « TOUS » — conseillers, adjoints et
+  // coordinateurs reçoivent tous une attestation. Même mécanisme de jalon :
+  // publiée une seule fois, supprimable ensuite sans qu'elle revienne.
+  const jalonAttestation = "annonce-attestation-photo-2026";
+  if (
+    dirigeant &&
+    !(await prisma.auditLog.findFirst({
+      where: { action: "ANNONCE_SEMEE", details: jalonAttestation },
+    }))
+  ) {
+    await prisma.annonce.create({
+      data: {
+        titre: "Votre attestation d'encadrement se prépare chaque jour",
+        contenu:
+          "Chers encadrants,\n\n" +
+          "À la clôture de la conférence, le samedi 29 août, chacun de vous recevra son attestation d'encadrement officielle — signée de notre main, avec vos chiffres réels (jeunes encadrés, jours de responsabilité, comptes rendus remis) et vos compétences mises en œuvre. Un employeur pourra en vérifier l'authenticité à tout moment en scannant le QR ou sur www.fsy.ci.\n\n" +
+          "Trois choses à savoir dès maintenant :\n\n" +
+          "1. Votre mention se prépare chaque jour. C'est votre régularité qui la décide : mention Rigueur et suivi dès 5 rapports quotidiens sur 7, mention Excellence à 7 sur 7 avec l'assiduité. Chaque rapport compte, dès la veille du 23 août.\n\n" +
+          "2. Ajoutez votre photo de profil dès aujourd'hui. Quand un recruteur scanne votre attestation, votre photo s'affiche sur la page de vérification : c'est votre visage qui authentifie votre document. Sans photo au moment de la remise, l'attestation partira « sans photographie ». Deux minutes dans Mon profil.\n\n" +
+          "3. Choisissez le design de votre attestation. Trois présentations au choix — classique bilingue, Prestige français, Prestige anglais — avec un aperçu à votre nom dans Mon attestation. C'est votre choix qui sera imprimé et remis.\n\n" +
+          "Merci pour votre service. Ce document dira ce que vous aurez réellement fait — faites-le beau.\n\n" +
+          "Armande et Bérenger Dahakpoin — Couple dirigeant la conférence",
+        cible: "TOUS",
+        // À l'instant du semis : une date « programmée » plus tard dans la
+        // journée resterait invisible aux encadrants jusqu'à son heure.
+        datePublication: new Date(),
+        creeParId: dirigeant.id,
+      },
+    });
+    await prisma.auditLog.create({
+      data: { userId: dirigeant.id, action: "ANNONCE_SEMEE", details: jalonAttestation },
+    });
+    console.log("   📣 Annonce attestation + photo de profil publiée (cible : tous).");
+  }
+
   console.log("✅ Base initialisée.");
   console.log("Comptes (mot de passe : fsy2026) :");
   console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
