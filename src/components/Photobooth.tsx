@@ -43,8 +43,10 @@ const DESIGNS = [
 // 9:16 en portrait, 16:9 en paysage, fournis avec leur transparence. Ils
 // ouvrent la liste des choix.
 const OFFICIELS = [
-  { cle: "officiel-floral", nom: "Floral officiel", groupe: "Officiels" },
-  { cle: "officiel-montagne", nom: "Montagne officiel", groupe: "Officiels" },
+  { cle: "officiel-floral", nom: "Floral", groupe: "Officiels" },
+  { cle: "officiel-montagne", nom: "Montagne", groupe: "Officiels" },
+  { cle: "officiel-tropical", nom: "Tropical", groupe: "Officiels" },
+  { cle: "officiel-aventure", nom: "Aventure", groupe: "Officiels" },
 ];
 
 const CADRES: Cadre[] = [
