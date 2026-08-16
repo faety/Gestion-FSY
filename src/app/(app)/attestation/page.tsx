@@ -1,6 +1,15 @@
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
-import { lireFaits, mention, phraseCV, RAPPORTS_POSSIBLES, SEUIL_RIGUEUR } from "@/lib/attestations";
+import {
+  CODE_SPECIMEN,
+  MENTIONS,
+  faitsSpecimen,
+  lireFaits,
+  mention,
+  phraseCV,
+  RAPPORTS_POSSIBLES,
+  SEUIL_RIGUEUR,
+} from "@/lib/attestations";
 import { DetailAttestation } from "@/components/Attestation";
 import { AttestationSelonModele, apercuDuModele } from "@/components/AttestationSelonModele";
 import { ChoixModeleAttestation } from "@/components/ChoixModeleAttestation";
@@ -18,19 +27,23 @@ export default async function MonAttestationPage() {
   ]);
 
   // Avant la délivrance : on montre où l'on en est, pour que la mention ne soit
-  // pas une surprise le dernier jour.
+  // pas une surprise le dernier jour — et le document lui-même, au nom de la
+  // personne, pour donner envie de l'obtenir. Le couple dirigeant délivre mais
+  // n'en reçoit pas : pas d'aperçu à son nom.
   if (!attestation) {
     const manquants = Math.max(0, SEUIL_RIGUEUR - mesRapports);
+    const apercuPersonnel = user.role !== "DIRIGEANT";
     return (
-      <div className="space-y-4 max-w-xl">
-        <div>
+      <div className="space-y-4">
+        <StyleImpression />
+        <div className="max-w-xl">
           <h1 className="text-2xl font-bold">🎓 Mon attestation</h1>
           <p className="text-slate-500 text-sm">
             Elle sera délivrée par le couple dirigeant à la clôture de la conférence.
           </p>
         </div>
 
-        <section className="bg-white rounded-xl shadow-sm p-4">
+        <section className="bg-white rounded-xl shadow-sm p-4 max-w-xl">
           <h2 className="font-bold">Où vous en êtes</h2>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-fsy">{mesRapports}</span>
@@ -67,6 +80,36 @@ export default async function MonAttestationPage() {
         </section>
 
         <ChoixModeleAttestation modeleActuel={user.modeleAttestation} />
+
+        {/* L'aperçu au nom de la personne, dans le design qu'elle a choisi,
+            avec la mention Excellence en ligne de mire. Barré SPÉCIMEN et
+            porteur du code de démonstration : rien à en faire d'autre que
+            d'avoir envie du vrai. */}
+        {apercuPersonnel && (
+          <section>
+            <h2 className="font-bold">Votre attestation, telle qu'elle vous sera remise</h2>
+            <p className="text-sm text-slate-500 mt-0.5 mb-3 max-w-xl">
+              Aperçu à votre nom, dans le design choisi ci-dessus, avec la mention Excellence —
+              celle que visent {RAPPORTS_POSSIBLES} rapports sur {RAPPORTS_POSSIBLES}. Les
+              chiffres sont fictifs jusqu'à la remise : les vôtres y seront figés à la clôture.
+            </p>
+            <Apercu {...apercuDuModele(user.modeleAttestation)}>
+              <AttestationSelonModele
+                modele={user.modeleAttestation}
+                donnees={{
+                  code: CODE_SPECIMEN,
+                  role: user.role,
+                  sexe: user.sexe,
+                  mention: MENTIONS.EXCELLENCE.cle,
+                  faits: { ...faitsSpecimen(), nomComplet: `${user.prenom} ${user.nom}` },
+                  delivreeLe: new Date(),
+                  revoqueeLe: null,
+                  specimen: true,
+                }}
+              />
+            </Apercu>
+          </section>
+        )}
       </div>
     );
   }
