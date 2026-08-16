@@ -2260,6 +2260,61 @@ export async function demanderSignaturePhoto() {
   return signerEnvoi();
 }
 
+// ---------- Photobooth souvenir ----------
+//
+// L'iPad de l'événement : les jeunes se prennent en selfie dans un cadre FSY.
+// La tablette reste connectée sur un compte encadrant ; les photos partent
+// chez Cloudinary (dossier dédié, livraison signée — des mineurs y figurent),
+// avec un repli en base quand Cloudinary n'est pas configuré.
+
+export async function demanderSignatureSouvenir() {
+  await exiger("CONSEILLER");
+  return signerEnvoi("souvenirs");
+}
+
+export async function enregistrerPhotoSouvenir(donnee: {
+  publicId?: string;
+  image?: string;
+  cadre: string;
+}) {
+  const user = await exiger("CONSEILLER");
+  const cadre = String(donnee.cadre).slice(0, 40);
+  if (donnee.publicId) {
+    if (!publicIdValide(donnee.publicId, "souvenirs")) {
+      return { ok: false as const, motif: "Image refusée." };
+    }
+    await prisma.photoSouvenir.create({
+      data: { publicId: donnee.publicId, cadre, priseParId: user.id },
+    });
+  } else if (donnee.image) {
+    // Repli sans Cloudinary : une image réduite, jamais plus.
+    if (!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(donnee.image)) {
+      return { ok: false as const, motif: "La photo n'a pas pu être lue." };
+    }
+    if (donnee.image.length > 900_000) {
+      return { ok: false as const, motif: "Photo trop lourde." };
+    }
+    await prisma.photoSouvenir.create({
+      data: { image: donnee.image, cadre, priseParId: user.id },
+    });
+  } else {
+    return { ok: false as const, motif: "Aucune image reçue." };
+  }
+  revalidatePath("/souvenir/galerie");
+  return { ok: true as const };
+}
+
+export async function supprimerPhotoSouvenir(id: string) {
+  const user = await exiger("COORDINATEUR");
+  const photo = await prisma.photoSouvenir.findUnique({ where: { id } });
+  if (!photo) return { ok: false as const, motif: "Photo introuvable." };
+  await prisma.photoSouvenir.delete({ where: { id } });
+  if (photo.publicId) await supprimerPhotos([photo.publicId]);
+  await journaliser(user.id, "PHOTO_SOUVENIR_SUPPRIMEE", photo.publicId ?? photo.id);
+  revalidatePath("/souvenir/galerie");
+  return { ok: true as const };
+}
+
 // ---------- Attestations d'encadrement ----------
 
 // Délivre les attestations à tous ceux que le couple dirigeant encadre :

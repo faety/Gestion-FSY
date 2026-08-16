@@ -435,6 +435,19 @@ model TentativeConnexion {
   @@index([email, createdAt])
 }
 
+// Photobooth : les selfies souvenirs pris sur l'iPad de l'événement, avec un
+// cadre FSY. Cloudinary quand il est configuré (publicId), repli en base
+// sinon (image, réduite). Des mineurs y figurent : livraison signée, galerie
+// réservée à la direction.
+model PhotoSouvenir {
+  id         String   @id @default(cuid())
+  publicId   String?
+  image      String?
+  cadre      String
+  creeLe     DateTime @default(now())
+  priseParId String?
+}
+
 // Photographie de l'organisation (groupes, compagnies, affectations) prise
 // juste avant qu'une réorganisation automatique ne s'applique : le bouton
 // « Revenir à l'état d'avant » restaure ce contenu tel quel. Les données sont

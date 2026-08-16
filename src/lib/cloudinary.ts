@@ -25,6 +25,9 @@ import { v2 as cloudinary } from "cloudinary";
 export const DOSSIERS = {
   rapports: "fsy2026/rapports",
   profils: "fsy2026/profils",
+  // Photobooth de l'événement : selfies cadrés FSY pris sur l'iPad. Des
+  // mineurs y figurent — même livraison signée que les rapports.
+  souvenirs: "fsy2026/souvenirs",
 } as const;
 
 export type Dossier = keyof typeof DOSSIERS;
