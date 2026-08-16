@@ -45,7 +45,9 @@ export default async function Accueil() {
       include: inclureActivite,
     }),
     Promise.all([
-      prisma.jeune.count(),
+      // L'effectif de travail : les annulés ne comptent pas ici (la page
+      // publique, elle, annonce volontairement toutes les inscriptions).
+      prisma.jeune.count({ where: { statutInscription: { not: "Annulé(e)" } } }),
       prisma.groupe.count(),
       prisma.mouvement.count({ where: { type: "ARRIVEE" } }),
       prisma.user.count({ where: { role: "CONSEILLER", actif: true } }),
