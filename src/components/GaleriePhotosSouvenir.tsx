@@ -15,8 +15,9 @@ export function GaleriePhotosSouvenir({
   photos: { id: string; url: string | null; pleine: string | null; cadre: string; date: string }[];
   /** Couple dirigeant et coordinateurs principaux : toutes les photos, et la suppression. */
   direction: boolean;
-  /** Nombre d'archives nécessaires : au-delà d'une centaine de photos, on
-   *  télécharge en plusieurs fois plutôt qu'un fichier géant fragile. */
+  /** Nombre d'archives à proposer — 0 quand ce compte n'a pas le
+   *  téléchargement groupé. Au-delà d'une centaine de photos, on télécharge en
+   *  plusieurs fois plutôt qu'un seul fichier géant et fragile. */
   lots: number;
 }) {
   const router = useRouter();
@@ -49,9 +50,11 @@ export function GaleriePhotosSouvenir({
         </div>
         <div className="shrink-0 flex flex-wrap gap-2 sm:justify-end">
           {/* Tout emporter d'un coup : une archive ZIP, à ranger le soir même
-              sur un ordinateur ou un disque. C'est la sauvegarde de ces jours-là. */}
+              sur un ordinateur ou un disque. C'est la sauvegarde de ces
+              jours-là — réservée pour l'instant au compte qui en répond. */}
           {photos.length > 0 &&
-            (lots <= 1 ? (
+            lots > 0 &&
+            (lots === 1 ? (
               <a
                 href="/souvenir/galerie/zip"
                 className="bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-slate-50 transition"

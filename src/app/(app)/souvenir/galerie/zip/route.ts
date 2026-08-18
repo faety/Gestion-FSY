@@ -3,11 +3,16 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { urlPhoto } from "@/lib/cloudinary";
+import { peutToutTelecharger } from "@/lib/souvenirs";
 import { fluxZip, PHOTOS_PAR_LOT, type FichierZip } from "@/lib/zip";
 
 // « Tout télécharger » : les photos du photobooth en une archive.
 //
-// Même règle de visibilité que la galerie — la direction emporte tout
+// Réservé, pour l'instant, aux seuls comptes désignés dans souvenirs.ts — le
+// couple décidera plus tard d'élargir. Le contrôle est ici, pas seulement sur
+// le bouton : une adresse tapée à la main ne doit pas suffire.
+//
+// Au-delà, même règle de visibilité que la galerie : la direction emporte tout
 // l'événement, un encadrant ses propres photos. Ce sont des images de mineurs :
 // rien ici n'élargit ce que l'on a déjà le droit de voir.
 //
@@ -23,6 +28,13 @@ const AVANCE = 4;
 
 export async function GET(requete: NextRequest) {
   const user = await exigerUtilisateur();
+  if (!peutToutTelecharger(user)) {
+    return new Response(
+      "Le téléchargement de toute la galerie n'est pas ouvert à votre compte. " +
+        "Chaque photo reste téléchargeable une par une depuis la galerie.",
+      { status: 403 }
+    );
+  }
   const direction = roleAuMoins(user.role, "COORDINATEUR");
 
   const photos = await prisma.photoSouvenir.findMany({

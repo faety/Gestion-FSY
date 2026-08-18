@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { urlPhoto } from "@/lib/cloudinary";
+import { peutToutTelecharger } from "@/lib/souvenirs";
 import { PHOTOS_PAR_LOT } from "@/lib/zip";
 import { GaleriePhotosSouvenir } from "@/components/GaleriePhotosSouvenir";
 
@@ -25,7 +26,7 @@ export default async function GalerieSouvenirPage() {
   return (
     <GaleriePhotosSouvenir
       direction={direction}
-      lots={Math.ceil(photos.length / PHOTOS_PAR_LOT)}
+      lots={peutToutTelecharger(user) ? Math.ceil(photos.length / PHOTOS_PAR_LOT) : 0}
       photos={photos.map((p) => ({
         id: p.id,
         url: p.publicId ? urlPhoto(p.publicId, 600) : p.image,
