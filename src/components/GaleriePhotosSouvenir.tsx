@@ -10,10 +10,14 @@ import { supprimerPhotoSouvenir } from "@/lib/actions";
 export function GaleriePhotosSouvenir({
   photos,
   direction,
+  lots,
 }: {
   photos: { id: string; url: string | null; pleine: string | null; cadre: string; date: string }[];
   /** Couple dirigeant et coordinateurs principaux : toutes les photos, et la suppression. */
   direction: boolean;
+  /** Nombre d'archives nécessaires : au-delà d'une centaine de photos, on
+   *  télécharge en plusieurs fois plutôt qu'un fichier géant fragile. */
+  lots: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -21,7 +25,9 @@ export function GaleriePhotosSouvenir({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
+      {/* Sur téléphone, le titre et les boutons se suivent ; à partir de la
+          tablette, ils se partagent la ligne. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">
             {direction ? "📸 Galerie souvenir" : "📸 Mes souvenirs"}
@@ -41,13 +47,44 @@ export function GaleriePhotosSouvenir({
             )}
           </p>
         </div>
-        <Link
-          href="/souvenir"
-          className="shrink-0 bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
-        >
-          {direction ? "Ouvrir le photobooth" : "📷 Prendre une photo"}
-        </Link>
+        <div className="shrink-0 flex flex-wrap gap-2 sm:justify-end">
+          {/* Tout emporter d'un coup : une archive ZIP, à ranger le soir même
+              sur un ordinateur ou un disque. C'est la sauvegarde de ces jours-là. */}
+          {photos.length > 0 &&
+            (lots <= 1 ? (
+              <a
+                href="/souvenir/galerie/zip"
+                className="bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-slate-50 transition"
+              >
+                ⬇️ Tout télécharger
+              </a>
+            ) : (
+              Array.from({ length: lots }, (_, i) => (
+                <a
+                  key={i}
+                  href={`/souvenir/galerie/zip?lot=${i + 1}`}
+                  className="bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-slate-50 transition"
+                >
+                  ⬇️ Lot {i + 1}/{lots}
+                </a>
+              ))
+            ))}
+          <Link
+            href="/souvenir"
+            className="bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
+          >
+            {direction ? "Ouvrir le photobooth" : "📷 Prendre une photo"}
+          </Link>
+        </div>
       </div>
+
+      {photos.length > 0 && lots > 1 && (
+        <p className="text-xs text-slate-500 -mt-2">
+          Les photos sont réparties en {lots} archives : au-delà d&apos;une centaine, un seul
+          fichier mettrait trop de temps à descendre et risquerait de s&apos;interrompre.
+          Téléchargez-les l&apos;une après l&apos;autre.
+        </p>
+      )}
 
       {photos.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-6 text-sm text-slate-600 space-y-2">

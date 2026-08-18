@@ -73,6 +73,35 @@ const CADRES: Cadre[] = [
   })),
 ];
 
+// Trois rendus, pas trente. Ils ne coûtent rien : le navigateur sait déjà
+// filtrer une image, c'est la même mécanique que le flou d'un arrière-plan.
+// Rien n'est envoyé nulle part, rien n'est installé.
+//   • Naturel : la photo telle quelle ;
+//   • Éclat : un voile flou très léger repassé par-dessus l'image nette —
+//     le grain de peau s'adoucit sans que le visage change ;
+//   • Noir et blanc : contrasté, celui qui rend le mieux à l'impression.
+// On s'arrête là volontairement : ce sont des jeunes, et une photo souvenir
+// doit leur ressembler.
+const FILTRES = [
+  { cle: "naturel", nom: "Naturel", court: "Naturel", apercu: "none", rendu: "none", voile: 0 },
+  {
+    cle: "eclat",
+    nom: "Éclat",
+    court: "✨ Éclat",
+    apercu: "brightness(1.06) saturate(1.08) blur(0.5px)",
+    rendu: "brightness(1.06) saturate(1.08)",
+    voile: 0.3,
+  },
+  {
+    cle: "nb",
+    nom: "Noir et blanc",
+    court: "◑ N&B",
+    apercu: "grayscale(1) contrast(1.3) brightness(1.05)",
+    rendu: "grayscale(1) contrast(1.3) brightness(1.05)",
+    voile: 0,
+  },
+];
+
 const LARGEUR = 1200;
 const HAUTEUR = 1600;
 const dimsDe = (c: Cadre) => ({ largeur: c.largeur ?? LARGEUR, hauteur: c.hauteur ?? HAUTEUR });
@@ -91,6 +120,7 @@ export function Photobooth() {
   // Frontale par défaut (selfie) ; l'arrière sert quand un encadrant
   // photographie quelqu'un d'autre avec son téléphone.
   const [face, setFace] = useState<"user" | "environment">("user");
+  const [filtre, setFiltre] = useState(FILTRES[0]);
   const miroir = face === "user";
 
   // Portrait ou paysage : chaque design existe dans les deux sens. La bascule
@@ -169,8 +199,22 @@ export function Photobooth() {
       ctx.translate(largeur, 0);
       ctx.scale(-1, 1); // en selfie, la photo garde le miroir de l'aperçu
     }
+    // Le filtre choisi s'applique à la photo, jamais au cadre : le cadre garde
+    // ses couleurs FSY même en noir et blanc.
+    ctx.filter = filtre.rendu;
     ctx.drawImage(video, (largeur - dw) / 2, (hauteur - dh) / 2, dw, dh);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = "none";
+    if (filtre.voile) {
+      // Adoucissement : la même image, floutée, reposée en transparence par
+      // -dessus. Les traits restent nets, le grain s'estompe.
+      ctx.save();
+      ctx.globalAlpha = filtre.voile;
+      ctx.filter = `blur(${Math.max(2, Math.round(largeur / 220))}px)`;
+      ctx.drawImage(canvas, 0, 0);
+      ctx.restore();
+      ctx.filter = "none";
+    }
     const imageCadre = new Image();
     imageCadre.src = cadre.src;
     await new Promise((r) => {
@@ -268,6 +312,7 @@ export function Photobooth() {
           playsInline
           muted
           className={`absolute inset-0 w-full h-full object-cover ${miroir ? "-scale-x-100" : ""}`}
+          style={{ filter: filtre.apercu }}
         />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cadre.src} alt="" className="absolute inset-0 w-full h-full pointer-events-none" />
@@ -355,12 +400,30 @@ export function Photobooth() {
                 ))}
               </div>
             </div>
-            <button
-              onClick={basculerOrientation}
-              className="text-xs font-semibold rounded-full px-3.5 py-1.5 bg-white/85 text-slate-700 shadow"
-            >
-              {paysage ? "🖼️ Paysage — passer en portrait" : "📱 Portrait — passer en paysage"}
-            </button>
+            {/* Une seule ligne, même sur un téléphone : le bas du cadre porte le
+                verset et la date, il ne doit jamais être recouvert. */}
+            <div className="flex items-center gap-1.5 justify-center px-2">
+              <button
+                onClick={basculerOrientation}
+                aria-label={paysage ? "Passer en portrait" : "Passer en paysage"}
+                className="text-xs font-semibold rounded-full px-3 py-1.5 bg-white/85 text-slate-700 shadow whitespace-nowrap"
+              >
+                {paysage ? "📱 Portrait" : "🖼️ Paysage"}
+              </button>
+              {FILTRES.map((f) => (
+                <button
+                  key={f.cle}
+                  onClick={() => setFiltre(f)}
+                  aria-label={f.nom}
+                  aria-pressed={filtre.cle === f.cle}
+                  className={`text-xs font-semibold rounded-full px-3 py-1.5 shadow transition whitespace-nowrap ${
+                    filtre.cle === f.cle ? "bg-fsy text-white" : "bg-white/25 text-white/90"
+                  }`}
+                >
+                  {f.court}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setFace(face === "user" ? "environment" : "user")}
