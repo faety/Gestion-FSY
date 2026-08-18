@@ -114,13 +114,23 @@ export default async function SantePage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">⚕️ Santé et alimentation</h1>
-        <p className="text-slate-500 text-sm">
-          Tous les jeunes attendus qui signalent un problème de santé ou une contrainte
-          alimentaire, quel que soit leur groupe. Renseignements déclarés à l&apos;inscription
-          par les familles.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">⚕️ Santé et alimentation</h1>
+          <p className="text-slate-500 text-sm">
+            Tous les jeunes attendus qui signalent un problème de santé ou une contrainte
+            alimentaire, quel que soit leur groupe. Renseignements déclarés à
+            l&apos;inscription par les familles.
+          </p>
+        </div>
+        {/* Le seul document de cette page qui soit fait pour sortir : il ne
+            porte que l'alimentaire, jamais le médical. */}
+        <a
+          href="/sante/repas/pdf"
+          className="shrink-0 bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition text-center"
+        >
+          🍽️ Rapport pour le fournisseur des repas (PDF)
+        </a>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
