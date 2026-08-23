@@ -5,7 +5,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { lireFaits } from "@/lib/attestations";
 import {
   AttestationSelonModele,
-  apercuDuModele,
+  estModelePaysage,
   pagesDuModele,
 } from "@/components/AttestationSelonModele";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
@@ -81,10 +81,19 @@ export default async function ImpressionPage({
     (h, a) => h + (pagesDuModele(a.user.modeleAttestation) === 2 ? 2 * 297 : 210),
     0
   );
+  // L'orientation de la page suit ce qui est affiché : paysage si le lot ne
+  // contient que des Prestige, portrait s'il ne contient que des classiques.
+  // Une page ne peut pas avoir deux orientations — c'est la raison des deux
+  // passes, et la raison pour laquelle on n'imprime pas un lot mélangé.
+  const paysage =
+    attestations.length > 0 && attestations.every((a) => estModelePaysage(a.user.modeleAttestation));
+  const melangeAffiche =
+    attestations.some((a) => estModelePaysage(a.user.modeleAttestation)) &&
+    attestations.some((a) => !estModelePaysage(a.user.modeleAttestation));
 
   return (
     <div className="space-y-4">
-      <StyleImpression />
+      <StyleImpression paysage={paysage} />
 
       <div className="print:hidden">
         <h1 className="text-2xl font-bold">🖨️ Impression des attestations</h1>
@@ -137,12 +146,23 @@ export default async function ImpressionPage({
       )}
 
       <section className="bg-white rounded-xl shadow-sm p-4 print:hidden space-y-2">
-        <ImprimerAttestation />
+        {melangeAffiche ? (
+          <p className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900">
+            <strong>Choisissez d'abord une des deux passes ci-dessus.</strong> Une page
+            d'impression n'a qu'une orientation : les classiques sont en portrait, les
+            Prestige à l'italienne. Lancés ensemble, les Prestige sortiraient rétrécis dans un
+            coin de la feuille. L'aperçu ci-dessous montre tout le lot, il ne s'imprime pas
+            tel quel.
+          </p>
+        ) : (
+          <ImprimerAttestation />
+        )}
         <p className="text-xs text-slate-500">
-          Les attestations classiques s'impriment recto-verso : le verso anglais de chacune au
-          dos de son recto. Les modèles Prestige tiennent sur une seule page à l'italienne —
-          en recto simple, la feuille se tourne à la remise, le réglage A4 ne change pas. Sur
-          un gros volume, imprimez d'abord une ou deux attestations pour contrôler le réglage.
+          {paysage
+            ? "Ce lot s'imprime en A4 paysage, une feuille par attestation : la page est déclarée à l'italienne, la boîte de dialogue doit afficher « Paysage » d'elle-même. Si votre imprimante propose encore Portrait, choisissez Paysage."
+            : "Les attestations classiques s'impriment recto-verso, en A4 portrait : le verso anglais de chacune au dos de son recto."}{" "}
+          Sur un gros volume, imprimez d'abord une ou deux attestations pour contrôler le
+          réglage.
         </p>
       </section>
 

@@ -21,6 +21,10 @@ export const metadata = { title: "Mon attestation" };
 export default async function MonAttestationPage() {
   const user = await exigerUtilisateur();
 
+  // Le format de la feuille dépend du design choisi : les modèles Prestige
+  // sont à l'italienne et s'impriment sur une page A4 paysage.
+  const feuille = apercuDuModele(user.modeleAttestation);
+
   const [attestation, mesRapports] = await Promise.all([
     prisma.attestation.findUnique({ where: { userId: user.id } }),
     prisma.rapportQuotidien.count({ where: { auteurId: user.id } }),
@@ -35,7 +39,7 @@ export default async function MonAttestationPage() {
     const apercuPersonnel = user.role !== "DIRIGEANT";
     return (
       <div className="space-y-4">
-        <StyleImpression />
+        <StyleImpression paysage={feuille.paysage} />
         <div className="max-w-xl">
           <h1 className="text-2xl font-bold">🎓 Mon attestation</h1>
           <p className="text-slate-500 text-sm">
@@ -93,7 +97,7 @@ export default async function MonAttestationPage() {
               celle que visent {RAPPORTS_POSSIBLES} rapports sur {RAPPORTS_POSSIBLES}. Les
               chiffres sont fictifs jusqu'à la remise : les vôtres y seront figés à la clôture.
             </p>
-            <Apercu {...apercuDuModele(user.modeleAttestation)}>
+            <Apercu hauteurMm={feuille.hauteurMm} largeurMm={feuille.largeurMm}>
               <AttestationSelonModele
                 modele={user.modeleAttestation}
                 donnees={{
@@ -134,10 +138,10 @@ export default async function MonAttestationPage() {
   return (
     <div className="space-y-4">
       {/* @page est une règle globale : on ne la pose que sur cette page, pour
-          ne pas imposer ce format au rapport final. A4 portrait sans marge :
-          c'est le réglage par défaut de toutes les imprimantes, le document
-          sort entier sans que personne ait à toucher aux options. */}
-      <StyleImpression />
+          ne pas imposer ce format au rapport final. Sans marge, et dans
+          l'orientation du design choisi — le document sort entier, bord à
+          bord, sans que personne ait à toucher aux options. */}
+      <StyleImpression paysage={feuille.paysage} />
 
       <div className="print:hidden">
         <h1 className="text-2xl font-bold">🎓 Mon attestation</h1>
@@ -147,8 +151,13 @@ export default async function MonAttestationPage() {
         </p>
       </div>
 
-      <div className="print:hidden">
+      <div className="print:hidden space-y-1.5">
         <ImprimerAttestation />
+        <p className="text-xs text-slate-500">
+          {feuille.paysage
+            ? "Une feuille A4 à l'italienne, recto simple. La page est déclarée en paysage : la boîte de dialogue doit l'afficher d'elle-même — si elle propose encore Portrait, choisissez Paysage."
+            : "Deux pages A4 portrait : le français au recto, l'anglais au verso. Réglez l'imprimante en recto-verso pour n'avoir qu'une feuille."}
+        </p>
       </div>
 
       <section className="bg-white rounded-xl shadow-sm p-4 print:hidden">
@@ -172,7 +181,7 @@ export default async function MonAttestationPage() {
 
       {/* Le document lui-même, dans le design choisi. À l'écran il est
           réduit ; à l'impression il est à taille réelle. */}
-      <Apercu {...apercuDuModele(user.modeleAttestation)}>
+      <Apercu hauteurMm={feuille.hauteurMm} largeurMm={feuille.largeurMm}>
         <AttestationSelonModele
           modele={user.modeleAttestation}
           donnees={{

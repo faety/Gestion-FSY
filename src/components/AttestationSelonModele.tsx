@@ -21,11 +21,18 @@ export function AttestationSelonModele({
   return <Attestation donnees={donnees} derniere={derniere} />;
 }
 
+/** Le modèle s'imprime-t-il sur une page A4 paysage ? */
+export const estModelePaysage = (modele: string) => modele.startsWith("PRESTIGE");
+
 /** Dimensions à l'écran d'un modèle, pour dimensionner l'aperçu. */
-export function apercuDuModele(modele: string): { hauteurMm: number; largeurMm: number } {
-  return modele.startsWith("PRESTIGE")
-    ? { hauteurMm: 210, largeurMm: 296.5 }
-    : { hauteurMm: 2 * 297, largeurMm: 210 };
+export function apercuDuModele(modele: string): {
+  hauteurMm: number;
+  largeurMm: number;
+  paysage: boolean;
+} {
+  return estModelePaysage(modele)
+    ? { hauteurMm: 210, largeurMm: 297, paysage: true }
+    : { hauteurMm: 2 * 297, largeurMm: 210, paysage: false };
 }
 
 /** Pages A4 qu'imprime un modèle (le classique est recto-verso, deux pages). */

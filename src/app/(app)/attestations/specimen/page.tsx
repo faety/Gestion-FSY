@@ -36,6 +36,7 @@ export default async function SpecimenPage({
       : "CONSEILLER"
     : user.role;
   const modele = modeleDemande && modeleValide(modeleDemande) ? modeleDemande : "CLASSIQUE";
+  const feuille = apercuDuModele(modele);
 
   const lienAvec = (params: Record<string, string>) => {
     const q = new URLSearchParams({ role, modele, ...params });
@@ -44,7 +45,7 @@ export default async function SpecimenPage({
 
   return (
     <div className="space-y-4">
-      <StyleImpression />
+      <StyleImpression paysage={feuille.paysage} />
 
       <div className="print:hidden">
         <h1 className="text-2xl font-bold">🎓 Spécimen d'attestation</h1>
@@ -112,7 +113,7 @@ export default async function SpecimenPage({
         <ImprimerAttestation />
       </section>
 
-      <Apercu {...apercuDuModele(modele)}>
+      <Apercu hauteurMm={feuille.hauteurMm} largeurMm={feuille.largeurMm}>
         <AttestationSelonModele
           modele={modele}
           donnees={{
