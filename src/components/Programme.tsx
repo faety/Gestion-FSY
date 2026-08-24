@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { CONFERENCE, LIEU } from "@/lib/theme";
 import {
   creerActivite,
@@ -16,6 +16,7 @@ import {
   TYPE_LABELS,
   TYPES_CREATION,
 } from "@/lib/roles";
+import { jourParDefaut } from "@/lib/jours";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 import { OrdreDuJourSuggere } from "@/components/OrdreDuJourSuggere";
 
@@ -78,6 +79,7 @@ export function Programme({
   peutModifierDirect,
   peutProposer,
   peutValider,
+  maintenant,
 }: {
   activites: ActiviteVue[];
   propositions: Proposition[];
@@ -90,8 +92,18 @@ export function Programme({
   peutModifierDirect: boolean;
   peutProposer: boolean;
   peutValider: boolean;
+  /** L'instant présent, lu sur le serveur : un téléphone mal réglé ne doit pas
+   *  ouvrir le programme sur le mauvais jour. */
+  maintenant: number;
 }) {
-  const [jourSelectionne, setJourSelectionne] = useState<string | null>(null);
+  // Le jour ouvert au départ est celui d'aujourd'hui, sans que personne ait
+  // à le chercher : pendant la conférence, c'est ce que l'on vient voir. Hors
+  // conférence, aucun jour ne correspond et la vue d'ensemble reste.
+  //
+  // `undefined` veut dire « personne n'a encore choisi » : le jour se déduit
+  // alors de la date. Dès qu'une pastille est touchée — « Tout » compris — le
+  // choix de la personne l'emporte pour le reste de la visite.
+  const [choixJour, setChoixJour] = useState<string | null | undefined>(undefined);
   const [editionId, setEditionId] = useState<string | null>(null);
   const [creation, setCreation] = useState(false);
   const [typeCreation, setTypeCreation] = useState("GENERAL");
@@ -118,6 +130,31 @@ export function Programme({
     }
     return [...m.entries()].sort((a, b) => a[1].getTime() - b[1].getTime());
   }, [pertinentes]);
+
+  // La clé du jour d'aujourd'hui, dans le même repère que les journées
+  // affichées — les deux se lisent dans le fuseau de l'appareil, elles ne
+  // peuvent donc pas se décaler l'une par rapport à l'autre.
+  const cleAujourdhui = useMemo(() => new Date(maintenant).toDateString(), [maintenant]);
+
+  // Hors conférence — ou si la journée du jour ne contient rien qui me
+  // concerne — aucune pastille ne correspond : la vue d'ensemble reste.
+  const jourSelectionne =
+    choixJour !== undefined ? choixJour : jourParDefaut(jours.map(([cle]) => cle), maintenant);
+
+  // Sept journées ne tiennent pas dans la largeur d'un téléphone : sans cela,
+  // le programme s'ouvrirait sur J5 avec une pastille active hors de l'écran,
+  // et l'on croirait être resté sur « Tout ». Seule la barre défile, jamais la
+  // page — et une seule fois, à l'ouverture : toucher une pastille ne doit
+  // rien déplacer sous le doigt.
+  const refBarreJours = useRef<HTMLDivElement>(null);
+  const refJourActif = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const barre = refBarreJours.current;
+    const actif = refJourActif.current;
+    if (!barre || !actif) return;
+    barre.scrollLeft = actif.offsetLeft - barre.clientWidth / 2 + actif.clientWidth / 2;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const visibles = useMemo(
     () =>
@@ -291,30 +328,49 @@ export function Programme({
         </form>
       )}
 
-      {/* Filtre par jour */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Filtre par jour — ouvert sur aujourd'hui pendant la conférence */}
+      <div ref={refBarreJours} className="flex gap-2 overflow-x-auto pb-1">
         <button
-          onClick={() => setJourSelectionne(null)}
+          ref={jourSelectionne === null ? refJourActif : undefined}
+          onClick={() => setChoixJour(null)}
           className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
             !jourSelectionne ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
           }`}
         >
           Tout
         </button>
-        {jours.map(([cle, date]) => (
-          <button
-            key={cle}
-            onClick={() => setJourSelectionne(cle)}
-            className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap capitalize ${
-              jourSelectionne === cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
-            }`}
-          >
-            {journeeParDate.get(cle)?.numero === 0
+        {jours.map(([cle, date]) => {
+          const libelle = `${
+            journeeParDate.get(cle)?.numero === 0
               ? "Veille"
-              : `J${journeeParDate.get(cle)?.numero ?? "?"}`}{" "}
-            · {fmtJourCourt.format(date)}
-          </button>
-        ))}
+              : `J${journeeParDate.get(cle)?.numero ?? "?"}`
+          } · ${fmtJourCourt.format(date)}`;
+          const cEstAujourdhui = cle === cleAujourdhui;
+          return (
+            <button
+              key={cle}
+              ref={jourSelectionne === cle ? refJourActif : undefined}
+              onClick={() => setChoixJour(cle)}
+              aria-current={cEstAujourdhui ? "date" : undefined}
+              aria-label={cEstAujourdhui ? `${libelle} — aujourd'hui` : libelle}
+              title={cEstAujourdhui ? "Aujourd'hui" : undefined}
+              className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap capitalize flex items-center gap-1.5 ${
+                jourSelectionne === cle ? "bg-fsy text-white" : "bg-white shadow-sm text-slate-600"
+              }`}
+            >
+              {/* Le point dit pourquoi c'est ce jour-là qui s'est ouvert. */}
+              {cEstAujourdhui && (
+                <span
+                  aria-hidden
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    jourSelectionne === cle ? "bg-white" : "bg-fsy"
+                  }`}
+                />
+              )}
+              {libelle}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filtre : n'afficher que ce qui me concerne */}

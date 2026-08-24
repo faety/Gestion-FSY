@@ -33,6 +33,10 @@ export default async function ProgrammePage() {
         <EncartReport precision="Le programme court du dimanche 23 — arrivée des encadrants — au samedi 29. Les horaires sont ceux des manuels, décalés de trois semaines : les jours de la semaine sont inchangés, donc tout tient tel quel." />
       )}
     <Programme
+      // L'heure du serveur, pas celle de l'appareil : un téléphone mal réglé
+      // ne doit pas ouvrir le programme sur le mauvais jour. Rien de plus à
+      // lire en base pour autant — c'est la date d'aujourd'hui, rien d'autre.
+      maintenant={Date.now()}
       peutCreer={roleAuMoins(user.role, "COORDINATEUR")}
       peutModifierDirect={peutModifierDirectement(user)}
       peutProposer={user.role === "ADJOINT"}
