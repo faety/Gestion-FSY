@@ -30,6 +30,7 @@ import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
 import { candidats, rapprochementBloquant } from "./rapprochement";
+import { rapprocherJeunes } from "./rapprochement-jeunes";
 import { renseignementUtile } from "./renseignements";
 import { JOURNEES, PROGRAMME, type ActiviteSeed } from "../../prisma/programme-fsy2026";
 import { dateDuJour } from "./theme";
@@ -1560,13 +1561,236 @@ export async function marquerPresenceJeune(jeuneId: string, present: boolean) {
   return { ok: true as const };
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  L'appel du conseiller : son groupe, sur place
+// ════════════════════════════════════════════════════════════════════════════
+
+const PAGES_APPEL = ["/jeunes", "/reorganisation", "/groupes", "/accueil"];
+
+// Le groupe dans lequel un conseiller agit. Un conseiller ne touche qu'aux
+// siens ; s'il dirige plusieurs groupes, il précise lequel.
+function groupeDuConseiller(
+  user: { groupesDiriges: { id: string; sexe: string }[] },
+  groupeId?: string
+) {
+  const groupes = user.groupesDiriges;
+  if (groupes.length === 0) return null;
+  if (groupeId) return groupes.find((g) => g.id === groupeId) ?? null;
+  return groupes.length === 1 ? groupes[0] : null;
+}
+
+/**
+ * L'appel : le conseiller marque chaque jeune de son groupe présent ou absent.
+ *
+ * L'absent apparaît barré — rien n'est supprimé, et cela se défait d'une
+ * pression : l'enfant peut arriver le lendemain. Le constat du conseiller
+ * prime sur le pointage du car : il est plus récent, et fait sur place.
+ */
+export async function constaterAppelJeune(jeuneId: string, present: boolean) {
+  const user = await exiger("CONSEILLER");
+  const jeune = await prisma.jeune.findUnique({ where: { id: jeuneId } });
+  if (!jeune) return { ok: false as const, motif: "Jeune introuvable." };
+  // Son groupe seulement — sauf pour la direction, qui peut corriger partout.
+  const direction = roleAuMoins(user.role, "COORDINATEUR");
+  if (!direction && !user.groupesDiriges.some((g) => g.id === jeune.groupeId)) {
+    return { ok: false as const, motif: "Ce jeune n'est pas dans votre groupe." };
+  }
+  await prisma.jeune.update({
+    where: { id: jeuneId },
+    data: { absenceConstatee: !present, presenceManuelle: present },
+  });
+  await journaliser(
+    user.id,
+    present ? "APPEL_PRESENT" : "APPEL_ABSENT",
+    `${jeune.prenom} ${jeune.nom}`
+  );
+  for (const p of PAGES_APPEL) revalidatePath(p);
+  return { ok: true as const };
+}
+
+export type SaisieJeune = {
+  prenom: string;
+  nom: string;
+  pieuId: string;
+  paroisse: string;
+  dateNaissance?: string;
+  groupeId?: string;
+};
+
+// La fiche montrée au conseiller quand un nom ressemble à un enfant déjà en
+// base : de quoi décider « c'est lui » ou « non, c'est un autre », rien de plus.
+export type JeuneRessemblant = {
+  id: string;
+  prenom: string;
+  nom: string;
+  pieu: string;
+  paroisse: string | null;
+  groupe: string | null;
+  sexe: string;
+  annule: boolean;
+  memeSexe: boolean;
+  dejaChezMoi: boolean;
+};
+
+const saisieValide = (s: SaisieJeune) =>
+  s.prenom.trim().length >= 2 && s.nom.trim().length >= 2 && s.pieuId && s.paroisse.trim();
+
+async function chercherRessemblants(
+  saisie: SaisieJeune,
+  groupe: { id: string; sexe: string }
+): Promise<JeuneRessemblant[]> {
+  const tous = await prisma.jeune.findMany({
+    select: {
+      id: true,
+      prenom: true,
+      nom: true,
+      sexe: true,
+      paroisse: true,
+      statutInscription: true,
+      groupeId: true,
+      pieu: { select: { nom: true } },
+      groupe: { select: { nom: true } },
+    },
+  });
+  return rapprocherJeunes({ prenom: saisie.prenom, nom: saisie.nom }, tous).map((j) => ({
+    id: j.id,
+    prenom: j.prenom,
+    nom: j.nom,
+    pieu: j.pieu.nom,
+    paroisse: j.paroisse,
+    groupe: j.groupe?.nom ?? null,
+    sexe: j.sexe,
+    annule: j.statutInscription === STATUT_ANNULE,
+    memeSexe: j.sexe === groupe.sexe,
+    dejaChezMoi: j.groupeId === groupe.id,
+  }));
+}
+
+/**
+ * Un enfant arrivé sans être sur la liste, ajouté par son conseiller.
+ *
+ * L'ajout se fait en deux temps : le premier appel cherche d'abord, dans toute
+ * la base, les enfants dont le nom ressemble — et s'il en trouve, il les rend
+ * SANS créer. Le conseiller tranche : « c'est lui » passe par
+ * adopterJeuneExistant, « c'est bien un autre enfant » rappelle cette action
+ * avec confirmerCreation. On ne crée jamais un doublon en silence.
+ *
+ * L'enfant créé va dans le groupe du conseiller, du sexe de ce groupe (les
+ * groupes ne sont pas mixtes : c'est le seul sexe possible), marqué présent —
+ * il est debout devant lui — et badgé « ajouté sur place » pour la
+ * régularisation du soir par la direction.
+ */
+export async function ajouterJeuneSurPlace(saisie: SaisieJeune, confirmerCreation = false) {
+  const user = await exiger("CONSEILLER");
+  const groupe = groupeDuConseiller(user, saisie.groupeId);
+  if (!groupe) {
+    return {
+      ok: false as const,
+      motif: "Aucun groupe ne vous est attribué : voyez un coordinateur principal.",
+    };
+  }
+  if (!saisieValide(saisie)) {
+    return { ok: false as const, motif: "Nom, prénoms, pieu et paroisse sont nécessaires." };
+  }
+  const pieu = await prisma.pieu.findUnique({ where: { id: saisie.pieuId } });
+  if (!pieu) return { ok: false as const, motif: "Pieu inconnu." };
+
+  if (!confirmerCreation) {
+    const ressemblants = await chercherRessemblants(saisie, groupe);
+    if (ressemblants.length > 0) {
+      return { ok: false as const, ressemblants };
+    }
+  }
+
+  // La date est facultative : on n'arrête pas un enfant à la porte pour une
+  // date de naissance — les coordinateurs complèteront. Une date invalide est
+  // gardée en brut, comme à l'import.
+  let dateNaissance: Date | null = null;
+  let dateNaissanceBrute: string | null = null;
+  if (saisie.dateNaissance?.trim()) {
+    const d = new Date(saisie.dateNaissance);
+    if (Number.isNaN(d.getTime()) || d.getFullYear() < 1990) {
+      dateNaissanceBrute = saisie.dateNaissance.trim();
+    } else {
+      dateNaissance = d;
+    }
+  }
+
+  const jeune = await prisma.jeune.create({
+    data: {
+      prenom: saisie.prenom.trim(),
+      nom: saisie.nom.trim(),
+      sexe: groupe.sexe,
+      pieuId: pieu.id,
+      paroisse: saisie.paroisse.trim(),
+      dateNaissance,
+      dateNaissanceBrute,
+      groupeId: groupe.id,
+      presenceManuelle: true,
+      ajouteSurPlace: true,
+    },
+  });
+  await journaliser(
+    user.id,
+    "JEUNE_AJOUTE_SUR_PLACE",
+    `${jeune.prenom} ${jeune.nom} (${pieu.nom} · ${jeune.paroisse}) → son groupe`
+  );
+  for (const p of PAGES_APPEL) revalidatePath(p);
+  return { ok: true as const, prenom: jeune.prenom, nom: jeune.nom };
+}
+
+/**
+ * « C'est lui » : l'enfant existait déjà — on le déplace dans le groupe du
+ * conseiller au lieu d'en créer un deuxième. Une inscription annulée qui se
+ * présente quand même est réactivée : l'enfant est là.
+ */
+export async function adopterJeuneExistant(jeuneId: string, groupeId?: string) {
+  const user = await exiger("CONSEILLER");
+  const groupe = groupeDuConseiller(user, groupeId);
+  if (!groupe) {
+    return { ok: false as const, motif: "Aucun groupe ne vous est attribué." };
+  }
+  const jeune = await prisma.jeune.findUnique({
+    where: { id: jeuneId },
+    include: { groupe: { select: { nom: true } } },
+  });
+  if (!jeune) return { ok: false as const, motif: "Jeune introuvable." };
+  if (jeune.sexe !== groupe.sexe) {
+    return {
+      ok: false as const,
+      motif:
+        jeune.sexe === "F"
+          ? "Cette jeune fille ne peut pas rejoindre un groupe de garçons — voyez sa conseillère."
+          : "Ce jeune homme ne peut pas rejoindre un groupe de filles — voyez son conseiller.",
+    };
+  }
+  const reactive = jeune.statutInscription === STATUT_ANNULE;
+  await prisma.jeune.update({
+    where: { id: jeuneId },
+    data: {
+      groupeId: groupe.id,
+      presenceManuelle: true,
+      absenceConstatee: false,
+      ...(reactive ? { statutInscription: "Approuvée" } : {}),
+    },
+  });
+  await journaliser(
+    user.id,
+    "JEUNE_DEPLACE_SUR_PLACE",
+    `${jeune.prenom} ${jeune.nom} : ${jeune.groupe?.nom ?? "sans groupe"} → mon groupe` +
+      (reactive ? " (inscription réactivée)" : "")
+  );
+  for (const p of PAGES_APPEL) revalidatePath(p);
+  return { ok: true as const, prenom: jeune.prenom, nom: jeune.nom, reactive };
+}
+
 // L'état réel, assemblé pour l'algorithme : présent = pointé à l'arrivée d'un
 // car OU marqué présent à la main.
 async function chargerDonneesReorganisation() {
   const [jeunes, arrives, groupes, conseillers, adjoints, compagnies] = await Promise.all([
     prisma.jeune.findMany({
       where: { statutInscription: { not: STATUT_ANNULE } },
-      select: { id: true, sexe: true, groupeId: true, presenceManuelle: true },
+      select: { id: true, sexe: true, groupeId: true, presenceManuelle: true, absenceConstatee: true },
     }),
     prisma.mouvement.findMany({
       where: { type: "ARRIVEE" },
@@ -1589,8 +1813,10 @@ async function chargerDonneesReorganisation() {
   const pointes = new Set(arrives.map((a) => a.jeuneId));
   return {
     donnees: {
+      // Le constat d'absence du conseiller prime sur le pointage du car : il
+      // est plus récent, et fait sur place.
       jeunesPresents: jeunes
-        .filter((j) => pointes.has(j.id) || j.presenceManuelle)
+        .filter((j) => (pointes.has(j.id) || j.presenceManuelle) && !j.absenceConstatee)
         .map((j) => ({ id: j.id, sexe: j.sexe, groupeId: j.groupeId })),
       groupes,
       conseillersPresents: conseillers.map((c) => ({
@@ -1608,6 +1834,7 @@ async function chargerDonneesReorganisation() {
     },
     nbPointes: pointes.size,
     nbManuels: jeunes.filter((j) => j.presenceManuelle && !pointes.has(j.id)).length,
+    nbBarres: jeunes.filter((j) => j.absenceConstatee).length,
   };
 }
 

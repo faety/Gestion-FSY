@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 
 // Nombre de fiches rendues d'un coup
 const PAGE = 40;
-import { deplacerJeune } from "@/lib/actions";
+import { constaterAppelJeune, deplacerJeune } from "@/lib/actions";
 import { anniversairePendantConference } from "@/lib/anniversaires-client";
 
 type Jeune = {
@@ -22,6 +22,11 @@ type Jeune = {
   statutInscription: string;
   motifHorsCriteres: string | null;
   ageConference: number | null;
+  presenceManuelle: boolean;
+  absenceConstatee: boolean;
+  ajouteSurPlace: boolean;
+  /** Pointé à la montée d'un car : l'avertissement au moment de le barrer. */
+  pointeCar: boolean;
   medical: string | null;
   alimentaire: string | null;
   contactNom: string | null;
@@ -35,11 +40,14 @@ export function RechercheJeunes({
   groupes,
   portee,
   peutReassigner,
+  peutAppeler,
 }: {
   jeunes: Jeune[];
   groupes: { id: string; nom: string; sexe: string }[];
   portee: string;
   peutReassigner: boolean;
+  /** L'appel : marquer présent/absent — le conseiller sur son groupe. */
+  peutAppeler: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
   // 650 fiches rendues d'un coup pesaient plus de deux mégaoctets de HTML, et
@@ -49,7 +57,7 @@ export function RechercheJeunes({
   const [filtre, setFiltre] = useState<
     "TOUS" | "ANNIVERSAIRE" | "MEDICAL" | "HORS_CRITERES" | "SANS_GROUPE"
   >("TOUS");
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
 
   const compteurs = useMemo(
     () => ({
@@ -140,14 +148,15 @@ export function RechercheJeunes({
           const anniv =
             j.dateNaissance && anniversairePendantConference(new Date(j.dateNaissance));
           const annule = j.statutInscription === "Annulé(e)";
+          const barre = annule || j.absenceConstatee;
           return (
             <li
               key={j.id}
-              className={`bg-white rounded-xl shadow-sm p-3 ${annule ? "opacity-60" : ""}`}
+              className={`bg-white rounded-xl shadow-sm p-3 ${barre ? "opacity-60" : ""}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className={`font-medium ${annule ? "line-through" : ""}`}>
+                  <div className={`font-medium ${barre ? "line-through text-slate-500" : ""}`}>
                     {j.prenom} {j.nom}
                   </div>
                   <div className="text-sm text-slate-500">
@@ -201,6 +210,16 @@ export function RechercheJeunes({
                     {j.dateNaissanceBrute && ` (« ${j.dateNaissanceBrute} »)`}
                   </span>
                 )}
+                {j.absenceConstatee && (
+                  <span className="text-xs bg-slate-200 text-slate-700 rounded-full px-2 py-0.5">
+                    Absent(e) — constaté à l&apos;appel
+                  </span>
+                )}
+                {j.ajouteSurPlace && (
+                  <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">
+                    Ajouté(e) sur place
+                  </span>
+                )}
                 {j.statutInscription.startsWith("En attente") && (
                   <span className="text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5">
                     En attente d'approbation
@@ -217,6 +236,56 @@ export function RechercheJeunes({
                   </span>
                 )}
               </div>
+
+              {peutAppeler && !annule && (
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  {j.absenceConstatee ? (
+                    <button
+                      disabled={pending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          await constaterAppelJeune(j.id, true);
+                        })
+                      }
+                      className="text-sm bg-white border border-slate-300 rounded-lg px-3 py-1.5 font-medium disabled:opacity-50"
+                    >
+                      ↺ Finalement présent(e)
+                    </button>
+                  ) : (
+                    <button
+                      disabled={pending}
+                      onClick={() => {
+                        // Un enfant pointé à la montée du car et pourtant
+                        // absent du groupe : le barrer est peut-être juste
+                        // (pointage erroné, enfant reparti), mais il faut le
+                        // savoir avant de confirmer.
+                        if (
+                          j.pointeCar &&
+                          !confirm(
+                            `⚠️ ${j.prenom} ${j.nom} a été pointé(e) PRÉSENT(E) à la montée du car.\n\n` +
+                              "Si vous le/la barrez, votre constat sur place l'emporte : " +
+                              "l'enfant sera compté(e) absent(e) partout, y compris pour la réorganisation.\n\n" +
+                              "Confirmer l'absence ?"
+                          )
+                        )
+                          return;
+                        startTransition(async () => {
+                          await constaterAppelJeune(j.id, false);
+                        });
+                      }}
+                      className="text-sm bg-white border border-slate-300 text-slate-600 rounded-lg px-3 py-1.5 disabled:opacity-50"
+                    >
+                      Barrer — absent(e)
+                    </button>
+                  )}
+                  {j.pointeCar && !j.absenceConstatee && (
+                    <span className="text-xs text-green-700">🚌 pointé(e) au car</span>
+                  )}
+                  {j.presenceManuelle && !j.pointeCar && !j.absenceConstatee && (
+                    <span className="text-xs text-green-700">✓ présent(e), constaté sur place</span>
+                  )}
+                </div>
+              )}
 
               {j.contactNom && (
                 <div className="text-xs text-slate-400 mt-1.5">

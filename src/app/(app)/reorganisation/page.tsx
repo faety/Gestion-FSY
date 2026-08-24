@@ -19,7 +19,7 @@ export default async function ReorganisationPage() {
   const [jeunes, arrives, groupes, encadrants, compagnies, instantanes] = await Promise.all([
     prisma.jeune.findMany({
       where: { statutInscription: { not: STATUT_ANNULE } },
-      select: { id: true, prenom: true, nom: true, sexe: true, groupeId: true, presenceManuelle: true },
+      select: { id: true, prenom: true, nom: true, sexe: true, groupeId: true, presenceManuelle: true, absenceConstatee: true },
       orderBy: [{ nom: "asc" }, { prenom: "asc" }],
     }),
     prisma.mouvement.findMany({
@@ -51,7 +51,11 @@ export default async function ReorganisationPage() {
   ]);
 
   const pointes = new Set(arrives.map((a) => a.jeuneId));
-  const jeunesPresents = jeunes.filter((j) => pointes.has(j.id) || j.presenceManuelle);
+  // Le constat d'absence fait à l'appel par le conseiller prime sur le
+  // pointage du car : plus récent, et fait sur place.
+  const jeunesPresents = jeunes.filter(
+    (j) => (pointes.has(j.id) || j.presenceManuelle) && !j.absenceConstatee
+  );
   const conseillersPresents = encadrants.filter((e) => e.role === "CONSEILLER" && e.actif);
   const adjointsPresents = encadrants.filter((e) => e.role === "ADJOINT" && e.actif);
 

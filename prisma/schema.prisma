@@ -132,6 +132,14 @@ model Jeune {
   // car). La présence réelle = pointage ARRIVEE OU cette coche — c'est elle
   // que lit la réorganisation du jour 1.
   presenceManuelle Boolean @default(false)
+  // Constat d'absence fait par le conseiller à l'appel de son groupe : le nom
+  // apparaît barré, et la réorganisation compte l'enfant absent même s'il
+  // avait été pointé dans un car — le constat sur place, plus récent, prime
+  // sur le pointage de la montée. Réversible d'une pression.
+  absenceConstatee Boolean @default(false)
+  // Arrivé sans être sur la liste, ajouté par un conseiller depuis la page
+  // Jeunes : badge visible pour la régularisation du soir par la direction.
+  ajouteSurPlace Boolean @default(false)
   // Données sensibles, importées séparément (voir scripts/importer-sensibles.ts)
   telephone     String?
   email         String?
