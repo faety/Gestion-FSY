@@ -88,6 +88,62 @@ export default async function PieuxPage() {
         </p>
       </div>
 
+      {/* Les listes de papier. Quand le pointage numérique a manqué, c'est le
+          cahier d'émargement qui rétablit la vérité — et le service des repas
+          n'attend pas que l'application soit à jour. */}
+      {roleAuMoins(user.role, "COORDINATEUR") && (
+        <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+          <div>
+            <h2 className="font-bold">🖨️ Listes à imprimer</h2>
+            <p className="text-sm text-slate-500">
+              Deux documents à tenir à la main, prêts pour l'A4 portrait. Ils nomment des
+              mineurs : ils restent entre les mains de l'encadrement et se détruisent à la fin
+              de la conférence.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+              <div className="font-medium text-sm">Émargement par pieu</div>
+              <p className="text-xs text-slate-500">
+                Une page par pieu ou district, les jeunes rangés par paroisse, et devant chaque
+                nom une case à signer pour chacun des six jours. Des lignes vides après chaque
+                paroisse et en fin de pieu accueillent ceux qui sont arrivés sans figurer sur la
+                liste. Un total à reporter en bas de chaque feuille.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="/rapports/emargement/pdf"
+                  className="bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
+                >
+                  ⬇️ Tous les attendus
+                </a>
+                <a
+                  href="/rapports/emargement/pdf?presents=1"
+                  className="bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-slate-50 transition"
+                >
+                  Seulement ceux déjà signalés présents
+                </a>
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+              <div className="font-medium text-sm">Effectifs des repas</div>
+              <p className="text-xs text-slate-500">
+                Tout le monde d'une seule numérotation continue : les jeunes, les encadrants
+                connus présents, puis soixante-dix lignes numérotées d'avance pour la sono, la
+                cuisine, les chauffeurs et les visiteurs. Le dernier numéro rempli donne le
+                nombre de personnes nourries — il n'y a rien à compter.
+              </p>
+              <a
+                href="/rapports/effectifs/pdf"
+                className="inline-block bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
+              >
+                ⬇️ Effectifs des repas (PDF)
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Inscrits", valeur: totaux.total },
