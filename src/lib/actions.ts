@@ -125,7 +125,18 @@ export async function seConnecter(
     };
   }
   if (!user.actif) {
-    return { erreur: "Ce compte a été désactivé. Adressez-vous aux coordinateurs principaux." };
+    // Le même interrupteur porte deux gestes très différents : « marquer
+    // absent » à la réorganisation, et la désactivation d'un compte dans
+    // l'administration. Le premier est de loin le plus fréquent, et le message
+    // d'origine — « ce compte a été désactivé » — envoyait la personne croire
+    // qu'on lui avait retiré son accès. Il dit maintenant les deux causes, et
+    // surtout où l'on répare : la fiche de la personne, page Administration.
+    return {
+      erreur:
+        "Ce compte est marqué absent ou désactivé — c'est pourquoi la connexion est refusée. " +
+        "Demandez à un coordinateur principal de vous rechercher dans Administration " +
+        "(par votre nom ou cette adresse) et de « Rétablir l'accès ».",
+    };
   }
   await creerSession(user.id);
   await journaliser(user.id, "CONNEXION");

@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { basculerDroit, confierResponsabilite } from "@/lib/actions";
-import { jetons } from "@/lib/rapprochement";
+import { basculerDroit, basculerPresenceEncadrant, confierResponsabilite } from "@/lib/actions";
+import { jetons, normaliser } from "@/lib/rapprochement";
 import { DROITS, ROLE_LABELS, roleAuMoins, type Droit, type Role } from "@/lib/roles";
 
 // Retrouver quelqu'un de l'équipe par son nom, voir d'un coup d'œil ce qu'il
@@ -55,14 +55,29 @@ export function RechercheEncadrant({
     [personnes]
   );
 
+  // Par le nom, ou par l'adresse. Chercher par adresse n'est pas un luxe :
+  // quand quelqu'un ne peut pas se connecter, c'est l'adresse qu'il donne, et
+  // c'est le seul moyen de savoir quel compte porte réellement cette adresse —
+  // deux comptes pour une même personne, cela s'est déjà vu.
   const resultats = useMemo(() => {
-    const demandes = jetons(recherche, "");
+    const brut = recherche.trim();
+    if (brut.length === 0) return [];
+    if (brut.includes("@")) {
+      const q = brut.toLowerCase();
+      return personnes.filter((p) => p.email.toLowerCase().includes(q)).slice(0, 8);
+    }
+    const demandes = jetons(brut, "");
     if (demandes.length === 0) return [];
-    return indexe
+    const parNom = indexe
       .filter(({ mots }) => demandes.every((d) => mots.some((m) => m.startsWith(d))))
-      .map(({ p }) => p)
-      .slice(0, 8);
-  }, [indexe, recherche]);
+      .map(({ p }) => p);
+    // Un fragment d'adresse (« ericjunior631 ») retrouve aussi son compte.
+    const q = normaliser(brut).replace(/\s+/g, "");
+    const parAdresse = personnes.filter(
+      (p) => q.length >= 4 && p.email.toLowerCase().includes(q) && !parNom.includes(p)
+    );
+    return [...parNom, ...parAdresse].slice(0, 8);
+  }, [indexe, personnes, recherche]);
 
   const choisi = personnes.find((p) => p.id === choisiId) ?? null;
   const siennes = choisi ? responsabilites.filter((r) => r.titulaireId === choisi.id) : [];
@@ -98,8 +113,10 @@ export function RechercheEncadrant({
       <div>
         <h2 className="font-bold">🔎 Rechercher un encadrant</h2>
         <p className="text-sm text-slate-500">
-          Tapez un nom pour vérifier ce qu&apos;il porte — appel, droits, responsabilités, accès à
-          la santé — et le corriger d&apos;ici.
+          Tapez un nom <strong>ou une adresse e-mail</strong> pour vérifier ce que porte la
+          personne — connexion, appel, droits, responsabilités, accès à la santé — et le
+          corriger d&apos;ici. Quelqu&apos;un ne parvient pas à se connecter ? Cherchez
+          l&apos;adresse qu&apos;il utilise : c&apos;est elle qui dit quel compte répond.
         </p>
       </div>
 
@@ -111,7 +128,7 @@ export function RechercheEncadrant({
           setChoisiId(null);
           setMessage("");
         }}
-        placeholder="Nom ou prénom…"
+        placeholder="Nom, prénom ou adresse e-mail…"
         className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base"
       />
 
@@ -127,10 +144,18 @@ export function RechercheEncadrant({
                 }}
                 className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-baseline justify-between gap-2"
               >
-                <span className="font-medium">
+                <span className="font-medium min-w-0">
                   {p.prenom} {p.nom}
+                  {!p.actif && (
+                    <span className="ml-1.5 text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5 font-normal">
+                      ne peut pas se connecter
+                    </span>
+                  )}
+                  <span className="block text-xs text-slate-400 font-normal truncate">
+                    {p.email}
+                  </span>
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 shrink-0 text-right">
                   {ROLE_LABELS[p.role as Role] ?? p.role}
                   {p.groupes.length > 0 && ` · ${p.groupes.join(", ")}`}
                   {p.compagnie && ` · ${p.compagnie}`}
@@ -179,6 +204,49 @@ export function RechercheEncadrant({
             >
               ✕
             </button>
+          </div>
+
+          {/* Peut-il se connecter, oui ou non ? C'est la première question
+              qu'on pose de cette fiche quand quelqu'un est bloqué devant
+              l'écran de connexion — elle mérite une réponse en toutes lettres,
+              et le geste qui la corrige. */}
+          <div
+            className={`text-sm rounded-lg border p-3 ${
+              choisi.actif
+                ? "bg-green-50 border-green-200 text-green-900"
+                : "bg-red-50 border-red-200 text-red-900"
+            }`}
+          >
+            {choisi.actif ? (
+              <>
+                <span className="font-medium">✅ Peut se connecter.</span> Avec l&apos;adresse{" "}
+                <span className="font-mono">{choisi.email}</span>
+                {choisi.attente && " — mais c'est une adresse d'attente : aucun message ne peut y arriver, et la personne ne la connaît pas."}
+              </>
+            ) : (
+              <>
+                <div className="font-medium">
+                  🚫 Ne peut pas se connecter — « Ce compte a été désactivé ».
+                </div>
+                <p className="mt-1">
+                  Ce compte est marqué absent ou désactivé. Tant qu&apos;il l&apos;est, la
+                  personne ne peut pas ouvrir l&apos;application, même avec le bon mot de passe.
+                </p>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    agir(
+                      () => basculerPresenceEncadrant(choisi.id),
+                      `${choisi.prenom} ${choisi.nom} peut de nouveau se connecter.`
+                    )
+                  }
+                  className="mt-2 bg-fsy text-white rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  Rétablir l&apos;accès
+                </button>
+              </>
+            )}
           </div>
 
           {acces && (
