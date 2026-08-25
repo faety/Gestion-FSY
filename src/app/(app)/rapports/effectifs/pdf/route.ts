@@ -1,5 +1,6 @@
 // Effectifs des repas — jeunes, encadrants et toute personne servie sur place,
 // d'une seule numérotation continue.
+import { NextRequest } from "next/server";
 import { getUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { journaliser } from "@/lib/audit";
@@ -8,7 +9,7 @@ import { genererEffectifsRepasPdf } from "@/lib/listes-pdf";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function GET(requete: Request) {
+export async function GET(requete: NextRequest) {
   const user = await getUtilisateur();
   if (!user) return Response.redirect(new URL("/login", requete.url), 302);
   if (!roleAuMoins(user.role, "COORDINATEUR")) {
@@ -17,8 +18,18 @@ export async function GET(requete: Request) {
     });
   }
 
-  const { octets, nomFichier, total } = await genererEffectifsRepasPdf(user);
-  await journaliser(user.id, "EXPORT_EFFECTIFS_REPAS", `Numérotation imprimée jusqu'à ${total}`);
+  // Par défaut, seuls les jeunes arrivés : on ne sert pas un repas à une
+  // inscription. La variante « tous les attendus » reste possible tant que la
+  // présence n'est pas à jour dans l'application.
+  const tousLesJeunes = requete.nextUrl.searchParams.get("tous") === "1";
+  const { octets, nomFichier, total, nbJeunes } = await genererEffectifsRepasPdf(user, {
+    tousLesJeunes,
+  });
+  await journaliser(
+    user.id,
+    "EXPORT_EFFECTIFS_REPAS",
+    `${nbJeunes} jeune(s) ${tousLesJeunes ? "attendus" : "arrivés"} — numérotation jusqu'à ${total}`
+  );
 
   return new Response(Buffer.from(octets), {
     headers: {

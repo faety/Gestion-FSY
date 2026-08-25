@@ -9,10 +9,13 @@
 //     vérité quand le pointage numérique a manqué ;
 //
 //   • les effectifs des repas : une seule numérotation continue du premier
-//     jeune à la dernière ligne blanche, jeunes puis encadrants puis tous les
-//     autres — sono, cuisine, chauffeurs, visiteurs. Le dernier numéro écrit
+//     jeune à la dernière ligne blanche — les jeunes arrivés, l'encadrement
+//     groupe par groupe, puis tous les autres : sono, sécurité, hygiène,
+//     cuisine, invités du séminaire et de l'institut. Le dernier numéro écrit
 //     est le nombre de personnes nourries. C'est tout l'intérêt de numéroter
-//     les lignes vides d'avance : personne n'a plus à compter.
+//     les lignes vides d'avance : personne n'a plus à compter. Chaque groupe
+//     finit par des places libres, parce qu'aucune de ces listes n'est
+//     complète et qu'un nom écrit au mauvais endroit fausse le décompte.
 //
 // Les deux nomment des mineurs : ils portent la mention de confidentialité et
 // ne s'éditent que depuis la direction.
@@ -44,6 +47,22 @@ const BLANCS_PAR_PAROISSE = 2;
 const BLANCS_PAR_PIEU = 6;
 /** Lignes blanches du rapport des repas — sono, cuisine, chauffeurs, visiteurs. */
 const BLANCS_AUTRES = 70;
+/** Fin de chaque pieu, dans le rapport des repas : on ne sait jamais. */
+const BLANCS_FIN_PIEU = 5;
+/** Fin de chaque groupe d'encadrants. Les adjoints n'ont que des places. */
+const BLANCS_ADJOINTS = 6;
+const BLANCS_CONSEILLERS = 8;
+const BLANCS_DIRECTION = 2;
+
+/**
+ * Le couple logistique, nommé par le couple dirigeant.
+ *
+ * Il ne tient pas de compte dans l'application — il n'y en a pas besoin pour
+ * porter la logistique — mais il mange, et un rapport de repas qui l'oublie
+ * est faux. Écrit ici parce que c'est là qu'il est vrai, et corrigeable d'un
+ * mot si l'orthographe doit changer.
+ */
+const COUPLE_LOGISTIQUE = ["Évêque Douané", "Sœur Douané"];
 
 type Colonne = { titre: string; largeur: number; centre?: boolean };
 
@@ -351,11 +370,11 @@ export async function genererEmargementPdf(
 //  2. Effectifs des repas — tout le monde, d'une seule numérotation
 // ════════════════════════════════════════════════════════════════════════════
 
-export async function genererEffectifsRepasPdf(editeur: {
-  prenom: string;
-  nom: string;
-}): Promise<{ octets: Uint8Array; nomFichier: string; total: number }> {
-  const [pieux, jours, encadrants, auteurs] = await Promise.all([
+export async function genererEffectifsRepasPdf(
+  editeur: { prenom: string; nom: string },
+  { tousLesJeunes = false }: { tousLesJeunes?: boolean } = {}
+): Promise<{ octets: Uint8Array; nomFichier: string; total: number; nbJeunes: number }> {
+  const [pieux, jours, encadrants, auteurs, arrives] = await Promise.all([
     prisma.pieu.findMany({
       orderBy: { nom: "asc" },
       select: {
@@ -363,7 +382,14 @@ export async function genererEffectifsRepasPdf(editeur: {
         jeunes: {
           where: { statutInscription: { not: STATUT_ANNULE } },
           orderBy: [{ paroisse: "asc" }, { nom: "asc" }, { prenom: "asc" }],
-          select: { prenom: true, nom: true, paroisse: true },
+          select: {
+            id: true,
+            prenom: true,
+            nom: true,
+            paroisse: true,
+            presenceManuelle: true,
+            absenceConstatee: true,
+          },
         },
       },
     }),
@@ -371,16 +397,31 @@ export async function genererEffectifsRepasPdf(editeur: {
     journeesDe(0),
     prisma.user.findMany({
       where: { valide: true },
-      orderBy: [{ role: "asc" }, { nom: "asc" }],
-      select: { id: true, prenom: true, nom: true, role: true, actif: true },
+      orderBy: [{ nom: "asc" }, { prenom: "asc" }],
+      select: { id: true, prenom: true, nom: true, role: true },
     }),
     prisma.rapportQuotidien.findMany({ select: { auteurId: true }, distinct: ["auteurId"] }),
+    prisma.mouvement.findMany({
+      where: { type: "ARRIVEE" },
+      select: { jeuneId: true },
+      distinct: ["jeuneId"],
+    }),
   ]);
+
+  // Ce rapport-là ne compte que ceux qui sont là : on ne sert pas un repas à
+  // une inscription. Un jeune est arrivé s'il a été pointé à un car ou marqué
+  // présent sur place, et qu'aucun conseiller ne l'a barré depuis.
+  const pointes = new Set(arrives.map((a) => a.jeuneId));
+  const arrive = (j: { id: string; presenceManuelle: boolean; absenceConstatee: boolean }) =>
+    (pointes.has(j.id) || j.presenceManuelle) && !j.absenceConstatee;
+
+  // Un encadrant qui a remis un rapport était là : on ne remet pas un rapport
+  // quotidien depuis chez soi. C'est la preuve de présence la plus sûre que
+  // l'application détienne, et c'est celle que le couple a retenue.
   const aRemisUnRapport = new Set(auteurs.map((a) => a.auteurId));
-  // « Présent » se lit de deux façons, et l'une rattrape l'autre : marqué
-  // présent dans l'application, ou ayant remis un rapport — on ne remet pas de
-  // rapport depuis chez soi.
-  const presents = encadrants.filter((e) => e.actif || aRemisUnRapport.has(e.id));
+  const parRole = (role: string) => encadrants.filter((e) => e.role === role);
+  const avecRapport = (role: string) =>
+    parRole(role).filter((e) => aRemisUnRapport.has(e.id));
 
   const largeurJour = (UTILE - 28 - 168 - 104) / jours.length;
   const colonnes: Colonne[] = [
@@ -400,8 +441,10 @@ export async function genererEffectifsRepasPdf(editeur: {
   );
   c.paragraphe(
     `Toutes les personnes nourries pendant la conférence, d'une seule numérotation continue : ` +
-      `jeunes, encadrants, puis toute personne servie sur place. Une croix par repas pris. ` +
-      `Le dernier numéro rempli donne le nombre total de personnes — il n'y a rien à compter. ` +
+      `les jeunes ${tousLesJeunes ? "attendus" : "arrivés"}, l'encadrement groupe par groupe, ` +
+      `puis toute personne servie sur place. Une croix par repas pris. Des lignes libres ` +
+      `attendent partout ceux qui manquent — écrivez leur nom dans leur groupe. Le dernier ` +
+      `numéro rempli donne le nombre total de personnes nourries : il n'y a rien à compter. ` +
       `Lieu : ${LIEU.nom}. Édité le ${horodatage()} par ${editeur.prenom} ${editeur.nom}.`,
     { police: c.oblique, taille: 8, couleur: GRIS }
   );
@@ -425,31 +468,81 @@ export async function genererEffectifsRepasPdf(editeur: {
     });
   };
 
-  // ---------- Les jeunes ----------
+  // ---------- Les jeunes arrivés ----------
   placer(18 + 19);
-  bandeSection(c, "JEUNES");
+  bandeSection(c, "JEUNES", tousLesJeunes ? "tous les attendus" : "arrivés");
   const debutJeunes = numero + 1;
+  let nbJeunes = 0;
   for (const pieu of pieux) {
-    if (pieu.jeunes.length === 0) continue;
+    const dedans = tousLesJeunes ? pieu.jeunes : pieu.jeunes.filter(arrive);
+    if (dedans.length === 0) continue;
+    nbJeunes += dedans.length;
     placer(18 + 19);
-    bandeSection(c, pieu.nom, `${pieu.jeunes.length} jeune(s)`);
-    for (const j of pieu.jeunes) ligne(`${j.prenom} ${j.nom}`, j.paroisse ?? "—");
+    bandeSection(c, pieu.nom, `${dedans.length} jeune(s)`);
+    for (const j of dedans) ligne(`${j.prenom} ${j.nom}`, j.paroisse ?? "—");
+    // Cinq lignes à la fin de chaque pieu : un enfant arrive toujours après
+    // qu'on a imprimé, et il faut pouvoir l'écrire chez les siens.
+    for (let i = 0; i < BLANCS_FIN_PIEU; i++) ligne(null, null);
   }
   const finJeunes = numero;
 
-  // ---------- Les encadrants ----------
+  // ---------- L'encadrement, groupe par groupe ----------
+  //
+  // Chaque groupe finit par des lignes libres, parce qu'aucune de ces listes
+  // n'est complète : celle des conseillers ne connaît que ceux qui ont remis
+  // un rapport, et celle des adjoints n'existe pas — d'où six places nues.
   placer(18 + 19);
-  bandeSection(c, "ENCADRANTS PRÉSENTS", `${presents.length} personne(s)`);
+  bandeSection(c, "ENCADREMENT");
   const debutEncadrants = numero + 1;
-  const libelleRole: Record<string, string> = {
-    DIRIGEANT: "Couple dirigeant",
-    COORDINATEUR: "Coord. principal",
-    ADJOINT: "Coord. adjoint",
-    CONSEILLER: "Conseiller",
+  const nomComplet = (e: { prenom: string; nom: string }) => `${e.prenom} ${e.nom}`;
+
+  const groupe = (
+    titre: string,
+    note: string,
+    gens: { prenom: string; nom: string }[],
+    provenance: string,
+    blancs: number
+  ) => {
+    placer(18 + 19);
+    bandeSection(c, titre, note);
+    for (const g of gens) ligne(nomComplet(g), provenance);
+    for (let i = 0; i < blancs; i++) ligne(null, provenance);
   };
-  for (const e of presents) ligne(`${e.prenom} ${e.nom}`, libelleRole[e.role] ?? e.role);
-  // De la place pour les encadrants que l'application ne connaît pas encore.
-  for (let i = 0; i < 12; i++) ligne(null, null);
+
+  const dirigeants = parRole("DIRIGEANT");
+  const coordinateurs = parRole("COORDINATEUR");
+  const adjointsConnus = avecRapport("ADJOINT");
+  const conseillersConnus = avecRapport("CONSEILLER");
+
+  groupe("Couple dirigeant", "connu", dirigeants, "Couple dirigeant", 0);
+  groupe(
+    "Coordonnateurs principaux",
+    "connus",
+    coordinateurs,
+    "Coord. principal",
+    BLANCS_DIRECTION
+  );
+  groupe(
+    "Couple logistique",
+    "connu",
+    COUPLE_LOGISTIQUE.map((n) => ({ prenom: n, nom: "" })),
+    "Logistique",
+    BLANCS_DIRECTION
+  );
+  groupe(
+    "Coordonnateurs adjoints",
+    `${adjointsConnus.length} connu(s) · ${BLANCS_ADJOINTS} places libres`,
+    adjointsConnus,
+    "Coord. adjoint",
+    BLANCS_ADJOINTS
+  );
+  groupe(
+    "Conseillers et conseillères",
+    `${conseillersConnus.length} ayant remis au moins un rapport`,
+    conseillersConnus,
+    "Conseiller",
+    BLANCS_CONSEILLERS
+  );
   const finEncadrants = numero;
 
   // ---------- Tous les autres ----------
@@ -457,7 +550,7 @@ export async function genererEffectifsRepasPdf(editeur: {
   bandeSection(
     c,
     "AUTRES PERSONNES NOURRIES",
-    "sono, cuisine, chauffeurs, sécurité, visiteurs, invités"
+    "sono, sécurité, hygiène, cuisine, chauffeurs, invités du séminaire et de l'institut"
   );
   const debutAutres = numero + 1;
   for (let i = 0; i < BLANCS_AUTRES; i++) ligne(null, null);
@@ -486,7 +579,7 @@ export async function genererEffectifsRepasPdf(editeur: {
   enTeteTableau(c, colonnesRecap, 26);
   for (const intitule of [
     `Jeunes (n° ${debutJeunes} à ${finJeunes})`,
-    `Encadrants (n° ${debutEncadrants} à ${finEncadrants})`,
+    `Encadrement (n° ${debutEncadrants} à ${finEncadrants})`,
     `Autres (n° ${debutAutres} à ${finAutres})`,
   ]) {
     ligneTableau(c, colonnesRecap, [intitule, ...jours.map(() => null)], { hauteur: 30, taille: 9 });
@@ -506,9 +599,17 @@ export async function genererEffectifsRepasPdf(editeur: {
   );
   c.espace(6);
   c.paragraphe(
-    `Jeunes attendus imprimés : ${finJeunes}. Encadrants connus présents : ${presents.length} ` +
-      `(marqués présents dans l'application ou ayant remis un rapport quotidien), ` +
-      `plus 12 lignes libres. Lignes libres pour les autres personnes : ${BLANCS_AUTRES}.`,
+    `Ce que porte ce document. Jeunes : ${nbJeunes} ` +
+      (tousLesJeunes
+        ? "— tous les attendus, présence non vérifiée"
+        : "arrivés (pointés à un car ou marqués présents sur place, et non barrés depuis)") +
+      `, plus ${BLANCS_FIN_PIEU} lignes libres à la fin de chaque pieu. ` +
+      `Encadrement : ${dirigeants.length} du couple dirigeant et ${coordinateurs.length} ` +
+      `coordonnateur(s) principal(aux) — connus ; ${COUPLE_LOGISTIQUE.length} pour le couple ` +
+      `logistique ; ${adjointsConnus.length} adjoint(s) et ${conseillersConnus.length} ` +
+      `conseiller(s) ayant remis au moins un rapport, avec ${BLANCS_ADJOINTS} et ` +
+      `${BLANCS_CONSEILLERS} places libres après eux. ` +
+      `Autres personnes : ${BLANCS_AUTRES} lignes libres.`,
     { taille: 8.5, couleur: GRIS }
   );
   c.espace(10);
@@ -544,7 +645,8 @@ export async function genererEffectifsRepasPdf(editeur: {
   pied(c, "effectifs des repas");
   return {
     octets: await c.doc.save(),
-    nomFichier: "FSY2026-effectifs-repas.pdf",
+    nomFichier: `FSY2026-effectifs-repas${tousLesJeunes ? "-tous" : ""}.pdf`,
     total: finAutres,
+    nbJeunes,
   };
 }

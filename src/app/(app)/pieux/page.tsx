@@ -128,17 +128,27 @@ export default async function PieuxPage() {
             <div className="border border-slate-200 rounded-lg p-3 space-y-2">
               <div className="font-medium text-sm">Effectifs des repas</div>
               <p className="text-xs text-slate-500">
-                Tout le monde d'une seule numérotation continue : les jeunes, les encadrants
-                connus présents, puis soixante-dix lignes numérotées d'avance pour la sono, la
-                cuisine, les chauffeurs et les visiteurs. Le dernier numéro rempli donne le
+                Tout le monde d'une seule numérotation continue : les jeunes <strong>arrivés</strong>,
+                pieu par pieu ; l'encadrement groupe par groupe — couple dirigeant, coordonnateurs
+                principaux et couple logistique nommés, adjoints et conseillers connus par leurs
+                rapports remis ; puis la sono, la sécurité, l'hygiène, la cuisine et les invités.
+                Des places libres à la fin de chaque groupe. Le dernier numéro rempli donne le
                 nombre de personnes nourries — il n'y a rien à compter.
               </p>
-              <a
-                href="/rapports/effectifs/pdf"
-                className="inline-block bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
-              >
-                ⬇️ Effectifs des repas (PDF)
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="/rapports/effectifs/pdf"
+                  className="bg-fsy text-white text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-fsy-dark transition"
+                >
+                  ⬇️ Jeunes arrivés
+                </a>
+                <a
+                  href="/rapports/effectifs/pdf?tous=1"
+                  className="bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg px-3.5 py-2 hover:bg-slate-50 transition"
+                >
+                  Tous les attendus
+                </a>
+              </div>
             </div>
           </div>
         </section>
