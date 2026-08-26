@@ -37,7 +37,12 @@ export default async function JeunesPage() {
   const pointes = new Set(arrives.map((a) => a.jeuneId));
 
   const groupes = roleAuMoins(user.role, "COORDINATEUR")
-    ? await prisma.groupe.findMany({ orderBy: { nom: "asc" } })
+    ? await prisma.groupe.findMany({
+        // Seuls les groupes de l'organisation vivante : réaffecter un enfant
+        // vers une coquille vide de l'ancienne organisation serait le perdre.
+        where: { compagnieId: { not: null } },
+        orderBy: [{ compagnie: { numero: "asc" } }, { numeroDansCompagnie: "asc" }],
+      })
     : [];
 
   // Le formulaire d'ajout du conseiller : pieux, et paroisses connues de

@@ -12,11 +12,14 @@ export default async function OrganigrammePage() {
     prisma.user.findMany({ where: { role: "DIRIGEANT", actif: true }, orderBy: { nom: "asc" } }),
     prisma.user.findMany({ where: { role: "COORDINATEUR", actif: true }, orderBy: { nom: "asc" } }),
     prisma.compagnie.findMany({
-      orderBy: { nom: "asc" },
+      orderBy: [{ numero: "asc" }, { nom: "asc" }],
       include: {
         dirigeants: { where: { actif: true } },
+        // Le binôme de secteur, posé par les fiches papier : c'est lui qui
+        // suit la compagnie sur le terrain.
+        coordonnateurs: { where: { actif: true } },
         groupes: {
-          orderBy: { nom: "asc" },
+          orderBy: { numeroDansCompagnie: "asc" },
           include: { conseiller: true, _count: { select: { jeunes: true } } },
         },
       },
@@ -114,38 +117,50 @@ export default async function OrganigrammePage() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {compagnies.map((c) => (
+        {/* Les coquilles vides — anciennes lignes vidées par la réorganisation —
+            ne racontent rien : seules les compagnies vivantes s'affichent. */}
+        {compagnies.filter((c) => c.groupes.length > 0).map((c) => (
           <div key={c.id} className="bg-white rounded-xl shadow-sm p-4 space-y-3">
             <div>
               <div className="font-bold text-lg">{c.nom}</div>
               {/* L'adjoint est le nœud suivant de l'arbre : sa photo et un
                   appui ouvrent son arbre détaillé, groupes et jeunes compris. */}
-              {c.dirigeants.length > 0 ? (
-                <div className="mt-1.5 space-y-1">
-                  {c.dirigeants.map((d) => (
-                    <Link
-                      key={d.id}
-                      href={`/organigramme/${d.id}`}
-                      className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-50"
-                    >
-                      <Avatar
-                        prenom={d.prenom}
-                        nom={d.nom}
-                        photoPublicId={d.photoPublicId}
-                        taille={32}
-                      />
-                      <span className="text-sm min-w-0">
-                        <span className="font-medium">
-                          {d.prenom} {d.nom}
+              {(() => {
+                // Le binôme de secteur d'abord — c'est l'organisation réelle
+                // depuis les fiches papier — puis, à défaut, le rattachement
+                // historique un-à-un, sans doublonner les personnes.
+                const vus = new Set<string>();
+                const suivants = [
+                  ...c.coordonnateurs.map((d) => ({ ...d, etiquette: "coordonnateur" })),
+                  ...c.dirigeants.map((d) => ({ ...d, etiquette: "adjoint" })),
+                ].filter((d) => !vus.has(d.id) && (vus.add(d.id), true));
+                return suivants.length > 0 ? (
+                  <div className="mt-1.5 space-y-1">
+                    {suivants.map((d) => (
+                      <Link
+                        key={d.id}
+                        href={`/organigramme/${d.id}`}
+                        className="flex items-center gap-2 rounded-lg -mx-1 px-1 py-0.5 hover:bg-slate-50"
+                      >
+                        <Avatar
+                          prenom={d.prenom}
+                          nom={d.nom}
+                          photoPublicId={d.photoPublicId}
+                          taille={32}
+                        />
+                        <span className="text-sm min-w-0">
+                          <span className="font-medium">
+                            {d.prenom} {d.nom}
+                          </span>
+                          <span className="text-slate-400"> — {d.etiquette}</span>
                         </span>
-                        <span className="text-slate-400"> — adjoint</span>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-slate-500">Adjoints : non assignés</div>
-              )}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-500">Coordonnateurs : non assignés</div>
+                );
+              })()}
             </div>
             <ul className="space-y-2">
               {c.groupes.map((g) => (

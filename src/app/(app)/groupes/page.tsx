@@ -8,7 +8,16 @@ export default async function GroupesPage() {
 
   const [groupes, conseillers] = await Promise.all([
     prisma.groupe.findMany({
-      orderBy: { nom: "asc" },
+      // Les coquilles vides — lignes de l'ancienne organisation, vidées par la
+      // réorganisation — n'apparaissent pas : elles ne racontent rien.
+      where: {
+        OR: [
+          { compagnieId: { not: null } },
+          { conseillerId: { not: null } },
+          { jeunes: { some: {} } },
+        ],
+      },
+      orderBy: [{ compagnie: { numero: "asc" } }, { numeroDansCompagnie: "asc" }, { nom: "asc" }],
       include: {
         conseiller: true,
         compagnie: true,

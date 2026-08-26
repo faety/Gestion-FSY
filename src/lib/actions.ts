@@ -2220,7 +2220,10 @@ export async function appliquerFichesPapier() {
       });
 
       // 5. Les binômes de coordonnateurs adjoints, rattachés à leur secteur :
-      //    chaque compagnie reçoit les comptes retrouvés de ses deux noms.
+      //    chaque compagnie reçoit les comptes retrouvés de ses deux noms. Le
+      //    rattachement un-à-un d'avant la réorganisation s'efface — il ne
+      //    décrit plus rien, et l'instantané sait le rendre.
+      await tx.user.updateMany({ where: { role: "ADJOINT" }, data: { compagnieId: null } });
       const parCompagnie = new Map<number, string[]>();
       for (const c of plan.coordinations) {
         if (!c.userId) continue;

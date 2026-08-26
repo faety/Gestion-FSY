@@ -31,13 +31,16 @@ export function porteeJeunes(user: {
   }
 
   if (user.role === "ADJOINT") {
-    // Le rattachement historique (une compagnie) et le secteur de coordination
-    // (huit ou neuf, depuis les fiches papier) se cumulent : on voit ce dont
-    // on répond, ni plus ni moins.
+    // Le secteur de coordination (les fiches papier) fait foi dès qu'il
+    // existe : le rattachement historique à une compagnie vient de l'ancienne
+    // organisation et ne sert que de repli tant qu'aucun secteur n'est posé.
     const secteur = user.compagniesCoordonnees ?? [];
-    const ids = [
-      ...new Set([...(user.compagnieId ? [user.compagnieId] : []), ...secteur.map((c) => c.id)]),
-    ];
+    const ids =
+      secteur.length > 0
+        ? secteur.map((c) => c.id)
+        : user.compagnieId
+          ? [user.compagnieId]
+          : [];
     if (ids.length === 0) {
       return {
         where: { id: "-" }, // ne correspond à aucun identifiant

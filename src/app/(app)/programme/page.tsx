@@ -22,8 +22,14 @@ export default async function ProgrammePage() {
           include: { activite: true, proposePar: true },
         })
       : [],
-    prisma.compagnie.findMany({ orderBy: { nom: "asc" } }),
-    prisma.groupe.findMany({ orderBy: { nom: "asc" } }),
+    prisma.compagnie.findMany({
+      where: { groupes: { some: {} } },
+      orderBy: [{ numero: "asc" }, { nom: "asc" }],
+    }),
+    prisma.groupe.findMany({
+      where: { compagnieId: { not: null } },
+      orderBy: [{ compagnie: { numero: "asc" } }, { numeroDansCompagnie: "asc" }],
+    }),
     prisma.journeeConference.findMany({ orderBy: { numero: "asc" } }),
   ]);
 

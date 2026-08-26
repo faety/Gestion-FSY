@@ -60,6 +60,7 @@ export default async function ArbrePersonnePage({
     where: { id },
     include: {
       compagnie: true,
+      compagniesCoordonnees: { select: { id: true } },
       groupesDiriges: { orderBy: { nom: "asc" } },
     },
   });
@@ -69,14 +70,25 @@ export default async function ArbrePersonnePage({
     roleAuMoins(moi.role, "ADJOINT") || (conseillerId !== null && conseillerId === moi.id);
 
   // Ce que la personne a sous sa responsabilité, selon son appel.
-  const [compagnieDetaillee, groupesDuConseiller, compagniesVueDirection] = await Promise.all([
-    personne.role === "ADJOINT" && personne.compagnieId
-      ? prisma.compagnie.findUnique({
-          where: { id: personne.compagnieId },
+  // Un adjoint répond de son secteur entier. Le secteur des fiches papier
+  // fait foi dès qu'il existe ; le rattachement historique à une compagnie
+  // n'est qu'un repli d'avant la réorganisation.
+  const compagniesAdjointIds =
+    personne.compagniesCoordonnees.length > 0
+      ? personne.compagniesCoordonnees.map((c) => c.id)
+      : personne.compagnieId
+        ? [personne.compagnieId]
+        : [];
+  const [compagniesAdjoint, groupesDuConseiller, compagniesVueDirection] = await Promise.all([
+    personne.role === "ADJOINT" && compagniesAdjointIds.length > 0
+      ? prisma.compagnie.findMany({
+          where: { id: { in: compagniesAdjointIds }, groupes: { some: {} } },
+          orderBy: [{ numero: "asc" }, { nom: "asc" }],
           include: {
             dirigeants: { where: { actif: true } },
+            coordonnateurs: { where: { actif: true } },
             groupes: {
-              orderBy: { nom: "asc" },
+              orderBy: { numeroDansCompagnie: "asc" },
               include: {
                 conseiller: true,
                 jeunes: { orderBy: [{ prenom: "asc" }], select: { id: true, prenom: true, nom: true } },
@@ -84,7 +96,7 @@ export default async function ArbrePersonnePage({
             },
           },
         })
-      : null,
+      : [],
     personne.role === "CONSEILLER"
       ? prisma.groupe.findMany({
           where: { conseillerId: personne.id },
@@ -97,7 +109,8 @@ export default async function ArbrePersonnePage({
       : [],
     roleAuMoins(personne.role, "COORDINATEUR")
       ? prisma.compagnie.findMany({
-          orderBy: { nom: "asc" },
+          where: { groupes: { some: {} } },
+          orderBy: [{ numero: "asc" }, { nom: "asc" }],
           include: {
             dirigeants: { where: { actif: true } },
             groupes: { select: { id: true, _count: { select: { jeunes: true } } } },
@@ -106,7 +119,7 @@ export default async function ArbrePersonnePage({
       : [],
   ]);
 
-  const groupesAdjoint = compagnieDetaillee?.groupes ?? [];
+  const groupesAdjoint = compagniesAdjoint.flatMap((c) => c.groupes);
   const jeunesSousAdjoint = groupesAdjoint.reduce((n, g) => n + g.jeunes.length, 0);
 
   return (
@@ -137,48 +150,63 @@ export default async function ArbrePersonnePage({
         </div>
       </div>
 
-      {/* ---------- Adjoint : sa compagnie, groupe par groupe ---------- */}
+      {/* ---------- Adjoint : son secteur, compagnie par compagnie ---------- */}
       {personne.role === "ADJOINT" && (
         <>
-          {compagnieDetaillee ? (
+          {compagniesAdjoint.length > 0 ? (
             <>
               <div className="text-sm text-slate-500">
-                {compagnieDetaillee.nom} · {groupesAdjoint.length} groupes ·{" "}
-                {jeunesSousAdjoint} jeunes
-                {compagnieDetaillee.dirigeants.filter((d) => d.id !== personne.id).length > 0 &&
-                  ` · avec ${compagnieDetaillee.dirigeants
-                    .filter((d) => d.id !== personne.id)
-                    .map((d) => `${d.prenom} ${d.nom}`)
-                    .join(" & ")}`}
+                {compagniesAdjoint.length > 1
+                  ? `Secteur de ${compagniesAdjoint.length} compagnies`
+                  : compagniesAdjoint[0].nom}{" "}
+                · {groupesAdjoint.length} groupes · {jeunesSousAdjoint} jeunes
+                {(() => {
+                  const binome = [
+                    ...new Set(
+                      compagniesAdjoint
+                        .flatMap((c) => [...c.coordonnateurs, ...c.dirigeants])
+                        .filter((d) => d.id !== personne.id)
+                        .map((d) => `${d.prenom} ${d.nom}`)
+                    ),
+                  ];
+                  return binome.length > 0 ? ` · avec ${binome.join(" & ")}` : "";
+                })()}
               </div>
-              {groupesAdjoint.map((g) => (
-                <div key={g.id} className="bg-white rounded-xl shadow-sm p-4 space-y-2">
-                  <div className="flex items-baseline justify-between">
-                    <div className="font-bold">
-                      {g.nom}{" "}
-                      <span className="text-slate-400 font-normal text-sm">
-                        ({g.sexe === "M" ? "Garçons" : "Filles"} · {g.jeunes.length} jeunes)
-                      </span>
+              {compagniesAdjoint.map((c) => (
+                <div key={c.id} className="space-y-2">
+                  {compagniesAdjoint.length > 1 && (
+                    <div className="font-semibold text-slate-700 mt-2">{c.nom}</div>
+                  )}
+                  {c.groupes.map((g) => (
+                    <div key={g.id} className="bg-white rounded-xl shadow-sm p-4 space-y-2">
+                      <div className="flex items-baseline justify-between">
+                        <div className="font-bold">
+                          {g.nom}{" "}
+                          <span className="text-slate-400 font-normal text-sm">
+                            ({g.sexe === "M" ? "Garçons" : "Filles"} · {g.jeunes.length} jeunes)
+                          </span>
+                        </div>
+                      </div>
+                      {g.conseiller ? (
+                        <LignePersonne p={g.conseiller} sousTitre="Conseiller(ère)" />
+                      ) : (
+                        <div className="text-sm text-amber-700">Sans conseiller</div>
+                      )}
+                      {peutVoirJeunesDe(g.conseillerId) ? (
+                        <ul className="text-sm text-slate-600 columns-2 gap-4">
+                          {g.jeunes.map((j) => (
+                            <li key={j.id} className="break-inside-avoid">
+                              {j.prenom} {j.nom}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-slate-400">
+                          Liste nominative visible du conseiller du groupe et de l&apos;encadrement.
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  {g.conseiller ? (
-                    <LignePersonne p={g.conseiller} sousTitre="Conseiller(ère)" />
-                  ) : (
-                    <div className="text-sm text-amber-700">Sans conseiller</div>
-                  )}
-                  {peutVoirJeunesDe(g.conseillerId) ? (
-                    <ul className="text-sm text-slate-600 columns-2 gap-4">
-                      {g.jeunes.map((j) => (
-                        <li key={j.id} className="break-inside-avoid">
-                          {j.prenom} {j.nom}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-slate-400">
-                      Liste nominative visible du conseiller du groupe et de l&apos;encadrement.
-                    </p>
-                  )}
+                  ))}
                 </div>
               ))}
             </>
