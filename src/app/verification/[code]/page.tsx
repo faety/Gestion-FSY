@@ -2,6 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CODE_SPECIMEN, CONFERENCE, SIGNATAIRES, lireFaits, mention } from "@/lib/attestations";
+import {
+  GENRES,
+  lireFaitsTiers,
+  nature as natureTierce,
+  type CleGenre,
+} from "@/lib/attestations-tierces";
 import { urlPhoto } from "@/lib/cloudinary";
 import { Logo } from "@/components/Logo";
 import { SITE_AFFICHE } from "@/lib/site";
@@ -27,10 +33,17 @@ export default async function VerificationPage({
   const { code } = await params;
   const propre = decodeURIComponent(code).trim().toUpperCase().slice(0, 24);
 
-  const attestation = await prisma.attestation.findUnique({
-    where: { code: propre },
-    include: { user: { select: { role: true, photoPublicId: true } } },
-  });
+  // Deux familles de documents, un seul code : celui d'un encadrant, calculé
+  // par l'application, et celui d'un fournisseur ou d'un bénévole, attesté par
+  // le couple dirigeant. Le vérificateur saisit un code, il n'a pas à savoir
+  // laquelle il tient entre les mains.
+  const [attestation, tierce] = await Promise.all([
+    prisma.attestation.findUnique({
+      where: { code: propre },
+      include: { user: { select: { role: true, photoPublicId: true } } },
+    }),
+    prisma.attestationTierce.findUnique({ where: { code: propre } }),
+  ]);
 
   // Chaque consultation est consignée : le public voit le compteur (un faux
   // statique ne vit pas), le couple dirigeant voit le journal et les
@@ -39,9 +52,12 @@ export default async function VerificationPage({
   let premierScan: Date | null = null;
   try {
     await prisma.scanVerification.create({
-      data: { code: propre, connu: Boolean(attestation) || propre === CODE_SPECIMEN },
+      data: {
+        code: propre,
+        connu: Boolean(attestation) || Boolean(tierce) || propre === CODE_SPECIMEN,
+      },
     });
-    if (attestation) {
+    if (attestation || tierce) {
       const [total, premier] = await Promise.all([
         prisma.scanVerification.count({ where: { code: propre } }),
         prisma.scanVerification.findFirst({
@@ -114,6 +130,107 @@ export default async function VerificationPage({
           <p className="text-slate-500 mt-3 text-sm">
             Le document correspondant porte la mention SPÉCIMEN en travers de la page.
           </p>
+        </div>
+      </Cadre>
+    );
+  }
+
+  // ---------- Fournisseur ou bénévole ----------
+  //
+  // Le ton change, et c'est voulu. Pour un encadrant, la page affirme que les
+  // chiffres viennent de l'application et n'ont pas bougé. Ici l'application
+  // n'a rien constaté : elle rapporte ce que le couple dirigeant a déclaré.
+  // Le dire est la seule façon de ne pas transformer une attestation honnête
+  // en fausse garantie automatique.
+  if (tierce) {
+    if (tierce.revoqueeLe) {
+      return (
+        <Cadre>
+          <div className="bg-white rounded-2xl shadow-sm p-6 text-center border-t-4 border-red-500">
+            <div className="text-5xl">⛔</div>
+            <h1 className="text-xl font-bold mt-3">Attestation révoquée</h1>
+            <p className="text-slate-600 mt-2 text-sm">
+              Ce document n&apos;est plus valable depuis le {fmtLong.format(tierce.revoqueeLe)}.
+            </p>
+            <p className="text-slate-500 mt-1 text-sm">
+              Motif : {tierce.motifRevocation ?? "non précisé"}
+            </p>
+          </div>
+        </Cadre>
+      );
+    }
+
+    const f = lireFaitsTiers(tierce.faits);
+    const n = natureTierce(tierce.nature);
+    const g = GENRES[tierce.genre as CleGenre] ?? GENRES.FOURNISSEUR;
+    const lignesTierce: [string, string][] = [
+      ["Document", g.titre],
+      ...(n ? ([["Nature de la prestation", n.label]] as [string, string][]) : []),
+      ...(f.representant ? ([["Représenté par", f.representant]] as [string, string][]) : []),
+      ...(f.fonction ? ([["Fonction exercée", f.fonction]] as [string, string][]) : []),
+      ["Objet", f.objet],
+      ["Conférence", `${CONFERENCE.nom}, ${f.periode}`],
+      ["Délivrée le", fmtLong.format(tierce.delivreeLe)],
+      ...(tierce.modifieeLe
+        ? ([["Corrigée le", fmtLong.format(tierce.modifieeLe)]] as [string, string][])
+        : []),
+    ];
+
+    return (
+      <Cadre>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border-t-4 border-green-500">
+          <div className="p-6 text-center border-b border-slate-100">
+            <div className="text-5xl">✅</div>
+            <h1 className="text-xl font-bold mt-3">Attestation authentique</h1>
+            <p className="text-2xl font-bold text-fsy-dark mt-3">{f.beneficiaire}</p>
+            <p className="text-sm text-slate-500 mt-1">{g.resume}</p>
+          </div>
+
+          <dl className="divide-y divide-slate-100 px-6">
+            {lignesTierce.map(([k, v]) => (
+              <div key={k} className="py-3 flex justify-between gap-4 text-sm">
+                <dt className="text-slate-500 shrink-0">{k}</dt>
+                <dd className="font-medium text-right">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {f.precisions.length > 0 && (
+            <div className="px-6 pb-4">
+              <div className="text-xs text-slate-500 mb-1">
+                Constaté par la direction de la conférence
+              </div>
+              <ul className="text-sm list-disc pl-5 space-y-0.5">
+                {f.precisions.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="bg-slate-50 px-6 py-4 text-xs text-slate-500 leading-relaxed space-y-1">
+            <p>
+              Document délivré et signé par le couple dirigeant de la conférence,{" "}
+              {SIGNATAIRES.map((s) => s.nom.split(" ")[0]).join(" et ")} Dahakpoin. Ce qui
+              précède est ce que la direction de la conférence a constaté et déclaré au moment
+              de la délivrance — à la différence des attestations d&apos;encadrement, ces
+              éléments ne sont pas calculés par l&apos;application. Code de vérification{" "}
+              <span className="font-mono font-medium">{tierce.code}</span>.
+            </p>
+            {tierce.modifieeLe && (
+              <p>
+                ✏️ Ce document a été corrigé le {fmtLong.format(tierce.modifieeLe)} par la
+                direction.
+              </p>
+            )}
+            {nbScans > 0 && (
+              <p>
+                🔎 Ce code a été vérifié <strong>{nbScans} fois</strong>
+                {premierScan && nbScans > 1 && <> — la première le {fmtLong.format(premierScan)}</>}
+                , celle-ci comprise.
+              </p>
+            )}
+          </div>
         </div>
       </Cadre>
     );

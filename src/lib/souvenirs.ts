@@ -42,22 +42,23 @@ export const SOUS_DOMAINES_ALBUM = ["souvenir2026", "souvenirs"];
 
 // Qui peut emporter toute la galerie d'un coup ?
 //
-// Pour l'instant : personne d'autre que Bérenger, à sa demande. Une archive
-// rassemble en un fichier des centaines de photos de mineurs — autant que cela
-// reste, le temps de la mise au point, entre les mains de celui qui en répond.
-// Chacun garde par ailleurs le téléchargement photo par photo, qui n'a pas
-// changé.
+// Le couple dirigeant, et lui seul. Une archive rassemble en un fichier des
+// centaines de photos de mineurs : elle reste entre les mains de ceux qui en
+// répondent devant les familles. Les coordinateurs principaux ne l'ont pas —
+// ils voient la galerie, ils téléchargent photo par photo, comme avant.
 //
-// Pour élargir plus tard : ajouter l'adresse ici (Armande, les coordonnateurs
-// principaux), il n'y a rien d'autre à toucher. Le bouton et la route suivent.
-const COMPTES_ARCHIVE = ["berenger@fsy2026.ci"];
+// Pour élargir plus tard sans toucher au rôle : ajouter une adresse ci-dessous.
+// Le bouton et la route suivent, il n'y a rien d'autre à changer.
+const COMPTES_ARCHIVE: string[] = [];
 
 export function peutToutTelecharger(user: {
   email: string;
+  role: string;
   apercu?: string | null;
 }): boolean {
   // En mode aperçu, on voit l'application avec les yeux d'un autre appel :
   // le bouton ne doit pas apparaître là où l'autre ne l'aurait pas.
   if (user.apercu) return false;
+  if (user.role === "DIRIGEANT") return true;
   return COMPTES_ARCHIVE.includes(user.email.trim().toLowerCase());
 }

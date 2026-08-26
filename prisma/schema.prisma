@@ -69,6 +69,7 @@ model User {
   rapports           RapportQuotidien[]
   attestation        Attestation?
   attestationsDelivrees Attestation[] @relation("Delivreur")
+  attestationsTiercesDelivrees AttestationTierce[] @relation("DelivreurTiers")
   reinitialisations  ReinitialisationMotDePasse[]
   auditLogs          AuditLog[]
   tachesPreparation  TachePreparation[]
@@ -412,6 +413,40 @@ model Attestation {
   // de vérification doit pouvoir répondre « ce document n'est plus valable ».
   revoqueeLe      DateTime?
   motifRevocation String?
+}
+
+// Attestation remise à quelqu'un qui n'a pas de compte : un fournisseur, un
+// bénévole, un membre de l'équipe logistique.
+//
+// Séparée d'Attestation à dessein. Celle-ci se calcule à partir de ce que
+// l'application a constaté (rapports remis, groupes encadrés) et se rattache à
+// un utilisateur ; celle-là repose sur ce que le couple dirigeant déclare avoir
+// constaté lui-même, et son bénéficiaire n'existe nulle part en base. Mélanger
+// les deux reviendrait à laisser croire que l'application a vérifié ce qu'elle
+// n'a pas vu. Le code de vérification, lui, est commun aux deux : un
+// vérificateur saisit un code, il ne choisit pas une famille de document.
+model AttestationTierce {
+  id   String @id @default(cuid())
+  code String @unique
+
+  genre  String // FOURNISSEUR | PERSONNE
+  nature String // RESTAURATION | TRANSPORT | … (voir attestations-tierces.ts)
+  faits  String // JSON figé : bénéficiaire, objet, précisions, période
+
+  delivreePar   User     @relation("DelivreurTiers", fields: [delivreeParId], references: [id])
+  delivreeParId String
+  delivreeLe    DateTime @default(now())
+
+  // Une raison sociale mal orthographiée se corrige — le document n'est pas
+  // calculé, il est déclaré, et forcer une révocation pour un accent serait
+  // absurde. Mais la correction se voit : la page de vérification l'affiche,
+  // et le journal garde qui a changé quoi.
+  modifieeLe DateTime?
+
+  revoqueeLe      DateTime?
+  motifRevocation String?
+
+  @@index([genre, nature])
 }
 
 // Demande de réinitialisation de mot de passe.

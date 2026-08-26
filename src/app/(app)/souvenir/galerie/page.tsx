@@ -3,6 +3,7 @@ import { exigerUtilisateur } from "@/lib/auth";
 import { roleAuMoins } from "@/lib/roles";
 import { urlPhoto } from "@/lib/cloudinary";
 import { LIEN_ALBUM_SOUVENIRS, peutToutTelecharger } from "@/lib/souvenirs";
+import { SITE_AFFICHE } from "@/lib/site";
 import { PHOTOS_PAR_LOT } from "@/lib/zip";
 import { GaleriePhotosSouvenir } from "@/components/GaleriePhotosSouvenir";
 
@@ -27,6 +28,7 @@ export default async function GalerieSouvenirPage() {
     <GaleriePhotosSouvenir
       direction={direction}
       lienAlbum={LIEN_ALBUM_SOUVENIRS}
+      site={SITE_AFFICHE}
       lots={peutToutTelecharger(user) ? Math.ceil(photos.length / PHOTOS_PAR_LOT) : 0}
       photos={photos.map((p) => ({
         id: p.id,

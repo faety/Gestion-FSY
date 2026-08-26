@@ -12,6 +12,7 @@ export function GaleriePhotosSouvenir({
   direction,
   lots,
   lienAlbum,
+  site,
 }: {
   photos: { id: string; url: string | null; pleine: string | null; cadre: string; date: string }[];
   /** Couple dirigeant et coordinateurs principaux : toutes les photos, et la suppression. */
@@ -22,6 +23,8 @@ export function GaleriePhotosSouvenir({
   lots: number;
   /** L'album partagé de la conférence, derrière le lien court fsy.ci/souvenir2026. */
   lienAlbum: string;
+  /** L'adresse du site, sans protocole — pour écrire les liens en clair. */
+  site: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -99,11 +102,29 @@ export function GaleriePhotosSouvenir({
         </div>
       </a>
 
-      {photos.length > 0 && lots > 1 && (
+      {/* L'adresse en clair : le bouton ci-dessus suffit d'ordinaire, mais un
+          lien se met en favori, se colle dans un message et se rappelle d'un
+          autre appareil. Il ne s'ouvre que pour un compte du couple dirigeant —
+          la route revérifie, l'adresse seule ne donne rien. */}
+      {photos.length > 0 && lots > 0 && (
         <p className="text-xs text-slate-500 -mt-2">
-          Les photos sont réparties en {lots} archives : au-delà d&apos;une centaine, un seul
-          fichier mettrait trop de temps à descendre et risquerait de s&apos;interrompre.
-          Téléchargez-les l&apos;une après l&apos;autre.
+          {lots > 1 ? (
+            <>
+              Les {photos.length} photos sont réparties en {lots} archives : au-delà d&apos;une
+              centaine, un seul fichier mettrait trop de temps à descendre et risquerait de
+              s&apos;interrompre. Téléchargez-les l&apos;une après l&apos;autre. Lien direct du
+              premier lot :{" "}
+              <span className="font-mono text-slate-600">{site}/souvenir/galerie/zip</span>{" "}
+              — les suivants ajoutent <span className="font-mono text-slate-600">?lot=2</span>,{" "}
+              <span className="font-mono text-slate-600">?lot=3</span>…
+            </>
+          ) : (
+            <>
+              Lien direct de l&apos;archive, à mettre en favori :{" "}
+              <span className="font-mono text-slate-600">{site}/souvenir/galerie/zip</span>.
+              Réservé au couple dirigeant — ouvert depuis un autre compte, il ne donne rien.
+            </>
+          )}
         </p>
       )}
 

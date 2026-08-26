@@ -8,9 +8,9 @@ import { fluxZip, PHOTOS_PAR_LOT, type FichierZip } from "@/lib/zip";
 
 // « Tout télécharger » : les photos du photobooth en une archive.
 //
-// Réservé, pour l'instant, aux seuls comptes désignés dans souvenirs.ts — le
-// couple décidera plus tard d'élargir. Le contrôle est ici, pas seulement sur
-// le bouton : une adresse tapée à la main ne doit pas suffire.
+// Réservé au couple dirigeant (voir peutToutTelecharger dans souvenirs.ts). Le
+// contrôle est ici, pas seulement sur le bouton : l'adresse se retient et se
+// colle, elle ne doit jamais suffire à elle seule.
 //
 // Au-delà, même règle de visibilité que la galerie : la direction emporte tout
 // l'événement, un encadrant ses propres photos. Ce sont des images de mineurs :

@@ -31,7 +31,7 @@ export default async function AttestationsPage() {
     prisma.scanVerification.count(),
     prisma.scanVerification.findMany({ orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
-  const [encadrants, attestations] = await Promise.all([
+  const [encadrants, attestations, tierces] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
       orderBy: [{ role: "asc" }, { nom: "asc" }],
@@ -42,6 +42,7 @@ export default async function AttestationsPage() {
       },
     }),
     prisma.attestation.count(),
+    prisma.attestationTierce.count({ where: { revoqueeLe: null } }),
   ]);
 
   const sansAttestation = encadrants.filter((e) => !e.attestation);
@@ -86,6 +87,15 @@ export default async function AttestationsPage() {
           className="bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium shadow-sm"
         >
           🖨️ Imprimer en lot {attestations > 0 && `(${attestations})`}
+        </Link>
+        {/* Ceux qui n'ont pas de compte : traiteurs, transporteur, imprimeur,
+            couple logistique et son équipe. Rien de tout cela ne se calcule —
+            d'où une page à part, où le couple déclare ce qu'il a constaté. */}
+        <Link
+          href="/attestations/tierces"
+          className="bg-white hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium shadow-sm"
+        >
+          🤝 Fournisseurs et bénévoles {tierces > 0 && `(${tierces})`}
         </Link>
       </div>
 

@@ -62,6 +62,14 @@ import {
   codeDepuisOctets,
   modeleValide,
 } from "./attestations";
+import {
+  PERIODE_CONFERENCE,
+  genreValide,
+  lignesPrecisions,
+  lireFaitsTiers,
+  natureValide,
+  objetPropose as objetProposeTiers,
+} from "./attestations-tierces";
 
 async function exiger(minimum: "DIRIGEANT" | "COORDINATEUR" | "ADJOINT" | "CONSEILLER") {
   const user = await getUtilisateur();
@@ -2944,6 +2952,195 @@ export async function revoquerAttestation(id: string, motif: string) {
     `${a.user.prenom} ${a.user.nom} (${a.code}) — ${motif}`
   );
   revalidatePath("/attestations");
+}
+
+// ---------- Attestations des fournisseurs et des bénévoles ----------
+//
+// Rien ici ne se calcule : l'application n'a jamais vu le camion du
+// transporteur ni les marmites du traiteur. Le couple dirigeant déclare ce
+// qu'il a constaté, et le document le dit — « le couple dirigeant atteste
+// que ». C'est exactement ce qu'est une attestation de bonne exécution : la
+// parole du donneur d'ordre, vérifiable auprès de lui.
+//
+// D'où la seule règle de fond appliquée ici : ne jamais fabriquer un fait que
+// le couple n'a pas écrit. Un objet vide reprend la phrase générique de la
+// nature choisie, jamais une louange inventée.
+
+export type SaisieAttestationTierce = {
+  genre: string;
+  nature: string;
+  beneficiaire: string;
+  representant?: string;
+  fonction?: string;
+  objet?: string;
+  /** Un fait constaté par ligne, tel que saisi dans le champ libre. */
+  precisions?: string;
+  /** Période réellement couverte ; vide = celle de la conférence. */
+  periode?: string;
+};
+
+const LIMITES = { beneficiaire: 120, court: 120, objet: 400, periode: 80, precision: 120 };
+
+const coupe = (v: string | undefined | null, max: number) =>
+  (v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+/** Contrôle et mise en forme communes à la délivrance et à la correction. */
+function preparerFaitsTiers(saisie: SaisieAttestationTierce) {
+  if (!genreValide(saisie.genre)) {
+    return { ok: false as const, motif: "Choisissez un fournisseur ou une personne." };
+  }
+  if (!natureValide(saisie.nature)) {
+    return { ok: false as const, motif: "Choisissez la nature de la prestation." };
+  }
+  const beneficiaire = coupe(saisie.beneficiaire, LIMITES.beneficiaire);
+  if (beneficiaire.length < 2) {
+    return {
+      ok: false as const,
+      motif:
+        saisie.genre === "PERSONNE"
+          ? "Le nom de la personne est indispensable — c'est lui qui figurera sur le document."
+          : "La raison sociale du fournisseur est indispensable.",
+    };
+  }
+
+  // Sans objet saisi, la phrase générique de la nature choisie — celle qui
+  // convient au genre : un fournisseur met à disposition, un bénévole prête
+  // main-forte. « Autre prestation » n'en a pas : là, il faut écrire quelque
+  // chose.
+  const objet =
+    coupe(saisie.objet, LIMITES.objet) || objetProposeTiers(saisie.genre, saisie.nature);
+  if (!objet) {
+    return {
+      ok: false as const,
+      motif: "Décrivez la prestation en une phrase — elle s'écrira après « a assuré ».",
+    };
+  }
+
+  return {
+    ok: true as const,
+    genre: saisie.genre,
+    nature: saisie.nature,
+    faits: {
+      beneficiaire,
+      representant: coupe(saisie.representant, LIMITES.court) || null,
+      fonction: coupe(saisie.fonction, LIMITES.court) || null,
+      objet,
+      precisions: lignesPrecisions(saisie.precisions ?? "").map((l) =>
+        l.slice(0, LIMITES.precision)
+      ),
+      periode: coupe(saisie.periode, LIMITES.periode) || PERIODE_CONFERENCE,
+    },
+  };
+}
+
+export async function delivrerAttestationTierce(saisie: SaisieAttestationTierce) {
+  const user = await exiger("DIRIGEANT");
+  const prepare = preparerFaitsTiers(saisie);
+  if (!prepare.ok) return prepare;
+
+  // L'ampleur de la conférence est relevée maintenant et figée avec le reste :
+  // c'est elle qui donne sa portée à la référence, des années plus tard.
+  const [participants, encadrants] = await Promise.all([
+    prisma.jeune.count({ where: { statutInscription: { not: STATUT_ANNULE } } }),
+    prisma.user.count({
+      where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
+    }),
+  ]);
+
+  let code = codeDepuisOctets(randomBytes(8));
+  for (let essai = 0; essai < 5; essai++) {
+    const [a, b] = await Promise.all([
+      prisma.attestation.findUnique({ where: { code }, select: { id: true } }),
+      prisma.attestationTierce.findUnique({ where: { code }, select: { id: true } }),
+    ]);
+    if (!a && !b) break;
+    code = codeDepuisOctets(randomBytes(8));
+  }
+
+  const cree = await prisma.attestationTierce.create({
+    data: {
+      code,
+      genre: prepare.genre,
+      nature: prepare.nature,
+      faits: JSON.stringify({ ...prepare.faits, participants, encadrants }),
+      delivreeParId: user.id,
+    },
+  });
+
+  await journaliser(
+    user.id,
+    "ATTESTATION_TIERCE_DELIVREE",
+    `${prepare.faits.beneficiaire} — ${prepare.nature} (${code})`
+  );
+  for (const p of ["/attestations", "/attestations/tierces", "/attestations/tierces/impression"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const, id: cree.id, code };
+}
+
+// Corriger plutôt que révoquer : une raison sociale mal orthographiée n'est pas
+// une fraude. La correction laisse une trace visible sur la page publique et
+// dans le journal — c'est ce qui la distingue d'une réécriture silencieuse.
+export async function corrigerAttestationTierce(id: string, saisie: SaisieAttestationTierce) {
+  const user = await exiger("DIRIGEANT");
+  const prepare = preparerFaitsTiers(saisie);
+  if (!prepare.ok) return prepare;
+
+  const avant = await prisma.attestationTierce.findUnique({ where: { id } });
+  if (!avant) return { ok: false as const, motif: "Cette attestation n'existe plus." };
+  if (avant.revoqueeLe) {
+    return {
+      ok: false as const,
+      motif: "Cette attestation est révoquée : elle ne peut plus être corrigée. Délivrez-en une nouvelle.",
+    };
+  }
+
+  // Les chiffres de la conférence figés à la délivrance ne bougent pas : la
+  // correction porte sur ce que le couple a écrit, pas sur ce qui a été relevé.
+  const ancien = lireFaitsTiers(avant.faits);
+  await prisma.attestationTierce.update({
+    where: { id },
+    data: {
+      genre: prepare.genre,
+      nature: prepare.nature,
+      faits: JSON.stringify({
+        ...prepare.faits,
+        participants: ancien.participants,
+        encadrants: ancien.encadrants,
+      }),
+      modifieeLe: new Date(),
+    },
+  });
+
+  await journaliser(
+    user.id,
+    "ATTESTATION_TIERCE_CORRIGEE",
+    `${avant.code} — « ${ancien.beneficiaire} » devient « ${prepare.faits.beneficiaire} »`
+  );
+  for (const p of ["/attestations", "/attestations/tierces", "/attestations/tierces/impression"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const, id, code: avant.code };
+}
+
+export async function revoquerAttestationTierce(id: string, motif: string) {
+  const user = await exiger("DIRIGEANT");
+  const a = await prisma.attestationTierce.findUnique({ where: { id } });
+  if (!a) return { ok: false as const, motif: "Cette attestation n'existe plus." };
+
+  await prisma.attestationTierce.update({
+    where: { id },
+    data: { revoqueeLe: new Date(), motifRevocation: motif.trim() || "Non précisé" },
+  });
+  await journaliser(
+    user.id,
+    "ATTESTATION_TIERCE_REVOQUEE",
+    `${lireFaitsTiers(a.faits).beneficiaire} (${a.code}) — ${motif}`
+  );
+  for (const p of ["/attestations", "/attestations/tierces", "/attestations/tierces/impression"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const };
 }
 
 // ---------- Remise à zéro après les essais ----------
