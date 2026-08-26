@@ -29,6 +29,7 @@
 // l'encadrement : un document qui ne se vérifie pas ne vaut rien.
 
 import { CONFERENCE } from "./attestations";
+import { LIEU } from "./theme";
 
 export const GENRES = {
   FOURNISSEUR: {
@@ -187,9 +188,30 @@ export type FaitsTiers = {
   precisions: string[];
   /** Période réellement couverte, en clair. Par défaut celle de la conférence. */
   periode: string;
-  /** Ampleur de la conférence au moment de la délivrance. */
-  participants?: number;
-  encadrants?: number;
+  /** Effectif définitif figé sur le document (voir EFFECTIFS_FINAUX). */
+  total?: number;
+  jeunes?: number;
+};
+
+// ---------- L'effectif définitif ----------
+//
+// Les chiffres arrêtés par le couple dirigeant à la clôture : ce sont les
+// personnes réellement venues, pas les inscrits.
+//
+// Ils ne se comptent pas en base, et c'est voulu. L'application connaît les
+// inscriptions ; elle n'a jamais su combien de personnes de la sono, de la
+// sécurité, de l'hygiène ou du séminaire de l'institut ont mangé sur place —
+// c'est précisément ce qui manquait dans les listes d'émargement papier. Le
+// couple a fait le compte à la main, il fait foi.
+//
+// Ce chiffre est celui qui compte pour un traiteur : 503, c'est le nombre de
+// repas à servir. Écrire 645 « participants inscrits » sur son attestation lui
+// donnerait une référence qu'il ne pourrait pas défendre.
+export const EFFECTIFS_FINAUX = {
+  /** Toutes les personnes présentes : jeunes, encadrement, équipes, invités. */
+  total: 503,
+  /** Dont adolescents de 14 à 18 ans. */
+  jeunes: 382,
 };
 
 export const PERIODE_CONFERENCE = `du ${CONFERENCE.du} au ${CONFERENCE.au}`;
@@ -222,20 +244,20 @@ export const lignesPrecisions = (texte: string): string[] =>
 // la satisfaction de la direction » est vrai et vérifiable ; « prestation
 // exceptionnelle » n'engage que celui qui l'écrit et ne pèse rien.
 
-const AMPLEUR_DEFAUT = { participants: CONFERENCE.participants, encadrants: CONFERENCE.encadrants };
-
 export const ampleurTiers = (f: FaitsTiers) => ({
-  participants: f.participants ?? AMPLEUR_DEFAUT.participants,
-  encadrants: f.encadrants ?? AMPLEUR_DEFAUT.encadrants,
+  total: f.total ?? EFFECTIFS_FINAUX.total,
+  jeunes: f.jeunes ?? EFFECTIFS_FINAUX.jeunes,
 });
 
 /** Le premier paragraphe : qui, quoi, quand, pour quel événement. */
 export function corpsTiers(genre: string, f: FaitsTiers): string {
   const a = ampleurTiers(f);
+  // « au Foyer des Jeunes de Jacqueville, en Côte d'Ivoire » — et non
+  // CONFERENCE.lieu, qui écrirait « Jacqueville, Jacqueville, Côte d'Ivoire ».
   const cadre =
     `la conférence pour la jeunesse ${CONFERENCE.nom}, tenue ${f.periode} ` +
-    `à ${CONFERENCE.lieu}, qui a réuni ${a.participants} participants mineurs ` +
-    `encadrés par ${a.encadrants} responsables`;
+    `au ${LIEU.nom}, en ${LIEU.pays}, qui a rassemblé ${a.total} personnes, ` +
+    `dont ${a.jeunes} adolescents de 14 à 18 ans`;
 
   if (genre === "PERSONNE") {
     const enQualite = f.fonction ? `, en qualité de ${f.fonction.toLowerCase()},` : "";

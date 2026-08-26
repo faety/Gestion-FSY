@@ -4,6 +4,7 @@ import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CODE_SPECIMEN, CONFERENCE, SIGNATAIRES, lireFaits, mention } from "@/lib/attestations";
 import {
   GENRES,
+  ampleurTiers as ampleurTierce,
   lireFaitsTiers,
   nature as natureTierce,
   type CleGenre,
@@ -170,6 +171,12 @@ export default async function VerificationPage({
       ...(f.fonction ? ([["Fonction exercée", f.fonction]] as [string, string][]) : []),
       ["Objet", f.objet],
       ["Conférence", `${CONFERENCE.nom}, ${f.periode}`],
+      // Le chiffre que vérifiera un donneur d'ordre : c'est l'ampleur de la
+      // prestation, pas une décoration.
+      [
+        "Effectif rassemblé",
+        `${ampleurTierce(f).total} personnes, dont ${ampleurTierce(f).jeunes} jeunes`,
+      ],
       ["Délivrée le", fmtLong.format(tierce.delivreeLe)],
       ...(tierce.modifieeLe
         ? ([["Corrigée le", fmtLong.format(tierce.modifieeLe)]] as [string, string][])

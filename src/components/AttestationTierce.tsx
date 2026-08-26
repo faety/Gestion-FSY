@@ -85,15 +85,10 @@ export async function AttestationTierce({
 
   const signatures = donnees.specimen ? {} : await signaturesDuCouple();
 
-  // La ligne sous le nom, quand il y a quelque chose à ajouter. Répéter là le
-  // domaine de la prestation ne dirait rien de plus que le bandeau juste
-  // au-dessus : mieux vaut du blanc qu'un doublon.
-  const sousTitre =
-    donnees.genre === "PERSONNE"
-      ? f.fonction?.trim() || ""
-      : f.representant?.trim()
-        ? `Représenté par ${f.representant.trim()}`
-        : "";
+  // Rien sous le nom. Le domaine de la prestation est déjà dans le bandeau
+  // au-dessus, le représentant et la fonction sont déjà dans la phrase
+  // au-dessous : une ligne de plus ne ferait que répéter, et sur un document
+  // officiel une redite se lit comme une négligence.
 
   return (
     <div className={`porte-paysage bg-white mx-auto ${derniere ? "" : "break-after-page"}`}>
@@ -220,9 +215,6 @@ export async function AttestationTierce({
           >
             {f.beneficiaire}
           </div>
-          {sousTitre && (
-            <div className="text-[8.5pt] text-slate-600 mt-[0.8mm]">{sousTitre}</div>
-          )}
           <div
             className="h-px w-[88mm] mt-[1.8mm]"
             style={{ background: `linear-gradient(90deg, ${OR}, transparent)` }}
@@ -260,13 +252,16 @@ export async function AttestationTierce({
           )}
 
           {/* L'ampleur de l'événement : ce qui donne sa portée à la référence
-              quand un fournisseur la joindra à un appel d'offres. */}
+              quand un fournisseur la joindra à un appel d'offres. Ce sont les
+              effectifs réellement présents, arrêtés par le couple à la
+              clôture — pas les inscrits. Pour un traiteur, 503 est le nombre
+              de repas qu'il a servis : c'est ce chiffre-là qu'il défendra. */}
           <div className="flex items-stretch gap-[6mm] mt-[3.5mm] max-w-[150mm]">
             {(
               [
-                [String(a.participants), "participants encadrés"],
+                [String(a.total), "personnes rassemblées"],
+                [String(a.jeunes), "jeunes de 14 à 18 ans"],
                 [String(CONFERENCE.jours), "jours de conférence"],
-                [String(a.encadrants), "encadrants mobilisés"],
               ] as [string, string][]
             ).map(([valeur, label], i) => (
               <div

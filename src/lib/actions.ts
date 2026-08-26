@@ -63,6 +63,7 @@ import {
   modeleValide,
 } from "./attestations";
 import {
+  EFFECTIFS_FINAUX,
   PERIODE_CONFERENCE,
   genreValide,
   lignesPrecisions,
@@ -3038,15 +3039,6 @@ export async function delivrerAttestationTierce(saisie: SaisieAttestationTierce)
   const prepare = preparerFaitsTiers(saisie);
   if (!prepare.ok) return prepare;
 
-  // L'ampleur de la conférence est relevée maintenant et figée avec le reste :
-  // c'est elle qui donne sa portée à la référence, des années plus tard.
-  const [participants, encadrants] = await Promise.all([
-    prisma.jeune.count({ where: { statutInscription: { not: STATUT_ANNULE } } }),
-    prisma.user.count({
-      where: { role: { in: [...ROLES_ATTESTABLES] }, actif: true, valide: true },
-    }),
-  ]);
-
   let code = codeDepuisOctets(randomBytes(8));
   for (let essai = 0; essai < 5; essai++) {
     const [a, b] = await Promise.all([
@@ -3062,7 +3054,10 @@ export async function delivrerAttestationTierce(saisie: SaisieAttestationTierce)
       code,
       genre: prepare.genre,
       nature: prepare.nature,
-      faits: JSON.stringify({ ...prepare.faits, participants, encadrants }),
+      // L'effectif définitif est figé avec le reste : si le couple corrigeait
+      // plus tard le chiffre de référence, les documents déjà remis ne
+      // changeraient pas d'un mot.
+      faits: JSON.stringify({ ...prepare.faits, ...EFFECTIFS_FINAUX }),
       delivreeParId: user.id,
     },
   });
@@ -3095,19 +3090,16 @@ export async function corrigerAttestationTierce(id: string, saisie: SaisieAttest
     };
   }
 
-  // Les chiffres de la conférence figés à la délivrance ne bougent pas : la
-  // correction porte sur ce que le couple a écrit, pas sur ce qui a été relevé.
+  // La correction reprend aussi l'effectif de référence en vigueur : c'est ce
+  // qui permet de rattraper une attestation délivrée avant que le couple
+  // n'arrête les chiffres définitifs, sans la révoquer.
   const ancien = lireFaitsTiers(avant.faits);
   await prisma.attestationTierce.update({
     where: { id },
     data: {
       genre: prepare.genre,
       nature: prepare.nature,
-      faits: JSON.stringify({
-        ...prepare.faits,
-        participants: ancien.participants,
-        encadrants: ancien.encadrants,
-      }),
+      faits: JSON.stringify({ ...prepare.faits, ...EFFECTIFS_FINAUX }),
       modifieeLe: new Date(),
     },
   });
