@@ -7,10 +7,19 @@
 // retenir. L'application sert donc de raccourci : fsy.ci/souvenir2026 renvoie
 // dessus.
 //
-// Un chemin, pas un sous-domaine : souvenir2026.fsy.ci retomberait exactement
-// dans le piège qui a fait disparaître 2026.fsy.ci du DNS (voir site.ts) — un
-// nœud vide de la zone que le caractère générique cesse de servir. Un chemin
-// ne dépend de rien d'autre que du site lui-même.
+// Deux portes vers le même album, à la demande du couple dirigeant :
+//
+//   • le chemin fsy.ci/souvenir2026, qui ne dépend que du site lui-même et
+//     marche dès le déploiement ;
+//   • le sous-domaine souvenir2026.fsy.ci, plus court à dicter, mais qui
+//     demande que le DNS le résolve et que Vercel connaisse le domaine.
+//
+// Le sous-domaine mérite une précaution, apprise de 2026.fsy.ci (voir
+// site.ts) : ne jamais rien créer SOUS lui — pas de send.souvenir2026.fsy.ci,
+// pas de _dmarc — sinon il devient un nœud vide de la zone, le caractère
+// générique cesse de le servir (RFC 4592), et il disparaît du jour au
+// lendemain. Un sous-domaine qui ne sert qu'à rediriger ne risque rien tant
+// qu'on ne lui accroche aucun service.
 //
 // La redirection est temporaire, jamais permanente : un 301 se grave dans les
 // navigateurs et l'album ne serait plus jamais changeable. Et la variable
@@ -20,6 +29,16 @@ const ALBUM_DEFAUT = "https://photos.app.goo.gl/xDKH1CtWAzUiZNav6";
 
 export const LIEN_ALBUM_SOUVENIRS =
   process.env.LIEN_ALBUM_SOUVENIRS?.trim() || ALBUM_DEFAUT;
+
+/**
+ * Les premières étiquettes d'hôte qui ne servent que l'album.
+ *
+ * Le middleware compare la première étiquette du nom demandé : tout ce qui
+ * arrive sur souvenir2026.fsy.ci (ou souvenirs.fsy.ci) repart vers l'album,
+ * quel que soit le chemin. Le site lui-même, sur fsy.ci ou www.fsy.ci, n'est
+ * jamais concerné.
+ */
+export const SOUS_DOMAINES_ALBUM = ["souvenir2026", "souvenirs"];
 
 // Qui peut emporter toute la galerie d'un coup ?
 //
