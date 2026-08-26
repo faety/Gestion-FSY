@@ -1,3 +1,26 @@
+// ════════════════════════════════════════════════════════════════════════════
+//  L'album partagé — le lien court de la conférence
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Les photos de la conférence vivent aussi dans un album Google Photos, dont
+// l'adresse est un identifiant illisible que personne ne peut dicter ni
+// retenir. L'application sert donc de raccourci : fsy.ci/souvenir2026 renvoie
+// dessus.
+//
+// Un chemin, pas un sous-domaine : souvenir2026.fsy.ci retomberait exactement
+// dans le piège qui a fait disparaître 2026.fsy.ci du DNS (voir site.ts) — un
+// nœud vide de la zone que le caractère générique cesse de servir. Un chemin
+// ne dépend de rien d'autre que du site lui-même.
+//
+// La redirection est temporaire, jamais permanente : un 301 se grave dans les
+// navigateurs et l'album ne serait plus jamais changeable. Et la variable
+// d'environnement LIEN_ALBUM_SOUVENIRS prime sur la valeur ci-dessous — de
+// quoi changer d'album sans rien redéployer.
+const ALBUM_DEFAUT = "https://photos.app.goo.gl/xDKH1CtWAzUiZNav6";
+
+export const LIEN_ALBUM_SOUVENIRS =
+  process.env.LIEN_ALBUM_SOUVENIRS?.trim() || ALBUM_DEFAUT;
+
 // Qui peut emporter toute la galerie d'un coup ?
 //
 // Pour l'instant : personne d'autre que Bérenger, à sa demande. Une archive

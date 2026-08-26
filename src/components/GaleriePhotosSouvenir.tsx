@@ -11,6 +11,7 @@ export function GaleriePhotosSouvenir({
   photos,
   direction,
   lots,
+  lienAlbum,
 }: {
   photos: { id: string; url: string | null; pleine: string | null; cadre: string; date: string }[];
   /** Couple dirigeant et coordinateurs principaux : toutes les photos, et la suppression. */
@@ -19,6 +20,8 @@ export function GaleriePhotosSouvenir({
    *  téléchargement groupé. Au-delà d'une centaine de photos, on télécharge en
    *  plusieurs fois plutôt qu'un seul fichier géant et fragile. */
   lots: number;
+  /** L'album partagé de la conférence, derrière le lien court fsy.ci/souvenir2026. */
+  lienAlbum: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -80,6 +83,21 @@ export function GaleriePhotosSouvenir({
           </Link>
         </div>
       </div>
+
+      {/* Le lien court : celui qu'on dicte au micro et qu'on met dans un
+          message. Il est ici pour que personne n'ait à le chercher. */}
+      <a
+        href={lienAlbum}
+        target="_blank"
+        rel="noreferrer"
+        className="block bg-white rounded-xl shadow-sm p-3 hover:bg-slate-50 transition"
+      >
+        <div className="text-sm font-medium">🖼️ L&apos;album partagé de la conférence</div>
+        <div className="text-xs text-slate-500 mt-0.5">
+          Toutes les photos de FSY 2026, à partager par ce lien court :{" "}
+          <span className="font-mono text-fsy">fsy.ci/souvenir2026</span>
+        </div>
+      </a>
 
       {photos.length > 0 && lots > 1 && (
         <p className="text-xs text-slate-500 -mt-2">
