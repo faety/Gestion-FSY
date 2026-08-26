@@ -55,6 +55,9 @@ model User {
   compagnie   Compagnie? @relation("DirigeantsCompagnie", fields: [compagnieId], references: [id])
   compagnieId String?
 
+  // Compagnies suivies en tant que coordonnateur adjoint (binôme de secteur)
+  compagniesCoordonnees Compagnie[] @relation("CoordinationCompagnies")
+
   groupesDiriges     Groupe[]
   affectationsCars   AffectationCar[]
   mouvementsValides  Mouvement[]
@@ -93,6 +96,10 @@ model Compagnie {
   trancheAge String?
   groupes    Groupe[]
   dirigeants User[]   @relation("DirigeantsCompagnie")
+  // Le binôme de coordonnateurs adjoints qui suit cette compagnie. Distinct du
+  // rattachement historique (User.compagnieId) : sur le terrain, un binôme
+  // couvre un secteur de huit ou neuf compagnies, pas une seule.
+  coordonnateurs User[] @relation("CoordinationCompagnies")
   activites  Activite[]
 }
 

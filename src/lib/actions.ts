@@ -2003,6 +2003,7 @@ export async function restaurerOrganisation(instantaneId: string) {
     groupes: { id: string; nom: string; sexe: string; conseillerId: string | null; compagnieId: string | null }[];
     compagnies: { id: string; nom: string; numero: number | null }[];
     adjoints: { id: string; compagnieId: string | null }[];
+    coordinations?: { id: string; coordonnateurIds: string[] }[];
   };
 
   await prisma.$transaction(async (tx) => {
@@ -2022,6 +2023,22 @@ export async function restaurerOrganisation(instantaneId: string) {
     }
     for (const a of donnees.adjoints) {
       await tx.user.update({ where: { id: a.id }, data: { compagnieId: a.compagnieId } }).catch(() => {});
+    }
+    // Les liens de coordination, si l'instantané les connaissait : remis tels
+    // quels, et retirés des compagnies créées depuis.
+    if (donnees.coordinations) {
+      const connues = new Set(donnees.coordinations.map((c) => c.id));
+      const toutes = await tx.compagnie.findMany({ select: { id: true } });
+      for (const c of toutes) {
+        if (!connues.has(c.id)) {
+          await tx.compagnie.update({ where: { id: c.id }, data: { coordonnateurs: { set: [] } } }).catch(() => {});
+        }
+      }
+      for (const c of donnees.coordinations) {
+        await tx.compagnie
+          .update({ where: { id: c.id }, data: { coordonnateurs: { set: c.coordonnateurIds.map((id) => ({ id })) } } })
+          .catch(() => {});
+      }
     }
   });
 
@@ -2093,7 +2110,9 @@ export async function appliquerFichesPapier() {
     prisma.groupe.findMany({
       select: { id: true, nom: true, sexe: true, conseillerId: true, compagnieId: true, numeroDansCompagnie: true },
     }),
-    prisma.compagnie.findMany({ select: { id: true, nom: true, numero: true } }),
+    prisma.compagnie.findMany({
+      select: { id: true, nom: true, numero: true, coordonnateurs: { select: { id: true } } },
+    }),
     prisma.user.findMany({ where: { role: "ADJOINT" }, select: { id: true, compagnieId: true } }),
   ]);
 
@@ -2104,8 +2123,12 @@ export async function appliquerFichesPapier() {
       donnees: JSON.stringify({
         jeunes: jeunesTous.map((j) => ({ id: j.id, groupeId: j.groupeId })),
         groupes: groupesTous.map(({ numeroDansCompagnie, ...g }) => (void numeroDansCompagnie, g)),
-        compagnies: compagniesToutes,
+        compagnies: compagniesToutes.map((c) => ({ id: c.id, nom: c.nom, numero: c.numero })),
         adjoints: adjointsTous,
+        coordinations: compagniesToutes.map((c) => ({
+          id: c.id,
+          coordonnateurIds: c.coordonnateurs.map((u) => u.id),
+        })),
       }),
     },
   });
@@ -2195,6 +2218,22 @@ export async function appliquerFichesPapier() {
         where: { id: { notIn: [...gardes] } },
         data: { conseillerId: null, compagnieId: null },
       });
+
+      // 5. Les binômes de coordonnateurs adjoints, rattachés à leur secteur :
+      //    chaque compagnie reçoit les comptes retrouvés de ses deux noms.
+      const parCompagnie = new Map<number, string[]>();
+      for (const c of plan.coordinations) {
+        if (!c.userId) continue;
+        for (const n of c.compagnies) {
+          parCompagnie.set(n, [...(parCompagnie.get(n) ?? []), c.userId]);
+        }
+      }
+      for (const n of numeros) {
+        await tx.compagnie.update({
+          where: { id: compagnieParNumero.get(n)! },
+          data: { coordonnateurs: { set: (parCompagnie.get(n) ?? []).map((id) => ({ id })) } },
+        });
+      }
     },
     { timeout: 60_000 }
   );

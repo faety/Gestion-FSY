@@ -23,13 +23,22 @@ export function porteeJeunes(user: {
   compagnieId: string | null;
   compagnie: { nom: string } | null;
   groupesDiriges: { id: string }[];
+  /** Compagnies suivies en tant que coordonnateur adjoint de secteur. */
+  compagniesCoordonnees?: { id: string; nom: string }[];
 }): PorteeJeunes {
   if (user.role === "DIRIGEANT" || user.role === "COORDINATEUR") {
     return { where: {}, libelle: "Tous les jeunes", vide: false };
   }
 
   if (user.role === "ADJOINT") {
-    if (!user.compagnieId) {
+    // Le rattachement historique (une compagnie) et le secteur de coordination
+    // (huit ou neuf, depuis les fiches papier) se cumulent : on voit ce dont
+    // on répond, ni plus ni moins.
+    const secteur = user.compagniesCoordonnees ?? [];
+    const ids = [
+      ...new Set([...(user.compagnieId ? [user.compagnieId] : []), ...secteur.map((c) => c.id)]),
+    ];
+    if (ids.length === 0) {
       return {
         where: { id: "-" }, // ne correspond à aucun identifiant
         libelle: "Aucune compagnie ne vous est encore attribuée",
@@ -37,8 +46,11 @@ export function porteeJeunes(user: {
       };
     }
     return {
-      where: { groupe: { compagnieId: user.compagnieId } },
-      libelle: `Les jeunes de votre compagnie (${user.compagnie?.nom ?? "—"})`,
+      where: { groupe: { compagnieId: { in: ids } } },
+      libelle:
+        ids.length === 1
+          ? `Les jeunes de votre compagnie (${user.compagnie?.nom ?? secteur[0]?.nom ?? "—"})`
+          : `Les jeunes de vos ${ids.length} compagnies`,
       vide: false,
     };
   }

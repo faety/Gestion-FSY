@@ -103,8 +103,18 @@ export type FichePlan = {
   introuvables: string[];
 };
 
+export type Coordination = {
+  /** Le nom tel qu'écrit sur les fiches. */
+  nomSaisi: string;
+  userId: string | null;
+  userNom: string | null;
+  motif: string | null;
+  compagnies: number[];
+};
+
 export type PlanFiches = {
   fiches: FichePlan[];
+  coordinations: Coordination[];
   stats: {
     noms: number;
     places: number;
@@ -153,6 +163,45 @@ export function construirePlanFiches(
 ): PlanFiches {
   const motsBase = new Map(jeunes.map((j) => [j.id, jetons(j.prenom, j.nom)]));
   const motsConseillers = new Map(conseillers.map((c) => [c.id, jetons(c.prenom, c.nom)]));
+
+  // Les coordonnateurs adjoints des fiches : chaque binôme suit un secteur de
+  // huit ou neuf compagnies. Le rapprochement se fait sans filtre de sexe —
+  // le nom seul le dit rarement — mais avec les mêmes garde-fous.
+  const coordinations = new Map<string, Coordination>();
+  for (const f of fiches) {
+    for (const nomSaisi of f.coordonnateurs) {
+      const cle = jetons(nomSaisi, "").join(" ");
+      let c = coordinations.get(cle);
+      if (!c) {
+        c = { nomSaisi, userId: null, userNom: null, motif: null, compagnies: [] };
+        const mots = jetons(nomSaisi, "");
+        const cands = conseillers
+          .map((x) => {
+            const { total, forts } = communsFlous(mots, motsConseillers.get(x.id)!);
+            return { x, total, forts, score: total / Math.min(mots.length, motsConseillers.get(x.id)!.length) };
+          })
+          .filter((y) => y.total >= (mots.length >= 2 ? 2 : 1) && y.forts >= 1 && y.score >= 0.6)
+          .sort((a, b) => b.score - a.score || b.total - a.total);
+        if (cands.length === 0) {
+          c.motif = "aucun compte trouvé";
+        } else if (
+          cands.length > 1 &&
+          cands[1].score === cands[0].score &&
+          cands[1].total === cands[0].total
+        ) {
+          c.motif =
+            "plusieurs comptes possibles : " +
+            cands.slice(0, 3).map((y) => `${y.x.prenom} ${y.x.nom}`).join(", ");
+        } else {
+          c.userId = cands[0].x.id;
+          c.userNom = `${cands[0].x.prenom} ${cands[0].x.nom}`;
+        }
+        coordinations.set(cle, c);
+      }
+      if (!c.compagnies.includes(f.compagnie)) c.compagnies.push(f.compagnie);
+    }
+  }
+  for (const c of coordinations.values()) c.compagnies.sort((a, b) => a - b);
 
   type Pretendant = { fiche: FichePlan; placement: Placement; score: number; total: number };
   const pretendants = new Map<string, Pretendant[]>();
@@ -281,5 +330,5 @@ export function construirePlanFiches(
       if (x.reactiver) stats.reactives++;
     }
   }
-  return { fiches: plans, stats };
+  return { fiches: plans, coordinations: [...coordinations.values()], stats };
 }

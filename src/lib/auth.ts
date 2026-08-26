@@ -102,7 +102,12 @@ export const getUtilisateur = cache(async () => {
     if (!payload.sub) return null;
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { pieu: true, compagnie: true, groupesDiriges: true },
+      include: {
+        pieu: true,
+        compagnie: true,
+        groupesDiriges: true,
+        compagniesCoordonnees: { select: { id: true, nom: true, numero: true } },
+      },
     });
     if (!user || !user.actif) return null;
 
@@ -117,6 +122,7 @@ export const getUtilisateur = cache(async () => {
         role: demande,
         droitsSupplementaires: "[]",
         groupesDiriges: [],
+        compagniesCoordonnees: [],
         compagnie: null,
         compagnieId: null,
         apercu: demande as RoleApercu,

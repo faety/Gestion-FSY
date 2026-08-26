@@ -73,6 +73,32 @@ export default async function FichesPapierPage() {
         <AppliquerFiches nbSansFiche={Math.max(0, nbJeunesBase - s.places)} />
       </section>
 
+      <section className="bg-white rounded-xl shadow-sm p-4">
+        <h2 className="font-bold">Les binômes de coordonnateurs adjoints</h2>
+        <p className="text-sm text-slate-500 mb-2">
+          Chaque binôme sera rattaché aux compagnies de son secteur : leurs membres verront les
+          jeunes de toutes ces compagnies dans leur page Jeunes.
+        </p>
+        <ul className="text-sm space-y-1">
+          {plan.coordinations.map((c) => (
+            <li key={c.nomSaisi}>
+              {c.userId ? "✓" : "✗"} « {c.nomSaisi} »{" "}
+              {c.userId ? (
+                <>
+                  → <strong>{c.userNom}</strong>
+                </>
+              ) : (
+                <span className="text-red-700">— {c.motif} : à créer puis revenir ici</span>
+              )}{" "}
+              <span className="text-slate-500">
+                · compagnies {c.compagnies[0]} à {c.compagnies[c.compagnies.length - 1]} (
+                {c.compagnies.length})
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       {conseillersManquants.length > 0 && (
         <section className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
           <h2 className="font-bold">
