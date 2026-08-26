@@ -85,6 +85,11 @@ export function AssistantReorganisation({
           Recomposer groupes et compagnies d&apos;après ceux qui sont réellement là — les jeunes
           gardent leur conseiller chaque fois que c&apos;est possible, et tout peut se défaire.
         </p>
+        <p className="text-sm mt-1.5">
+          <a href="/reorganisation/fiches" className="text-fsy underline font-medium">
+            📋 Les conseillers ont rempli des fiches papier ? Appliquer leur organisation →
+          </a>
+        </p>
       </div>
 
       {/* ---------- 1. Qui est là ---------- */}

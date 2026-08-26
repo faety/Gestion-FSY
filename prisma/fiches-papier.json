@@ -1,0 +1,1057 @@
+[
+ {
+  "compagnie": 1,
+  "sexe": "F",
+  "conseiller": "GUE ANASTASIE MIREILLE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "WAYITO GRACE",
+   "GNONHOU MOCESSI ANGE",
+   "MAKESSEU GORE NAOMIE",
+   "DEDI EMMANUELLA",
+   "TIECOURA GNONSIEKAN JOELLA YASMINE",
+   "GLE VICTORIA"
+  ]
+ },
+ {
+  "compagnie": 1,
+  "sexe": "M",
+  "conseiller": "TEHE HERMAN",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "KONAN ARIANE DAVID",
+   "ANTONI ESPOIR",
+   "GOUAGON EMMANUEL",
+   "BAZIE FREDERIC",
+   "TIZIE JEAN JOURDAIN"
+  ]
+ },
+ {
+  "compagnie": 2,
+  "sexe": "F",
+  "conseiller": "OUME MEAGUISSEU GRACE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "GONDO DERY LILA MARIE ANGE",
+   "ABOYA AMOIN LINDA",
+   "TAHA MIREILLE",
+   "BAHOULI ESTER EUNICE",
+   "KOUSSI CHARLENE"
+  ]
+ },
+ {
+  "compagnie": 2,
+  "sexe": "M",
+  "conseiller": "FAHE PIERRE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "YOBOUE OJOCO LAURENT",
+   "DOGBO WOTEIH MAX EVANS",
+   "GORE GUY DALLO",
+   "OGBENUDIA POWELL",
+   "IBO MOREL",
+   "OULA CHANCE"
+  ]
+ },
+ {
+  "compagnie": 3,
+  "sexe": "F",
+  "conseiller": "TRAORE NASSIRA",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "MILATE EMMA VICTOIRE",
+   "KONAN AMENAN GRACE MONDESIR",
+   "CISSE FITINI AMA",
+   "IRIE LOU AUDREY RACHEL",
+   "KOUADIO MARIE ANGE JOELLE",
+   "GNANGBO MIRYOADE"
+  ]
+ },
+ {
+  "compagnie": 3,
+  "sexe": "M",
+  "conseiller": "GORE YANNICK STEPHANE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "CLASH KOSSAN MOSES",
+   "KONAN KOUAKOU ALAIN",
+   "SODJI AUREL",
+   "KOUAME DAVID ZIDANE",
+   "ATONI KOSSI CHRIST HERVE",
+   "LEHI BOYA SMITH MELCHISEDEK"
+  ]
+ },
+ {
+  "compagnie": 4,
+  "sexe": "F",
+  "conseiller": "MAHAN THEODORA",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "MANE STELLAORIANE",
+   "TIBE PHANUELLE NOELLY",
+   "DJI TCHESSIA A. ERICA",
+   "BALLE LUCRECE REBECA",
+   "BAH ANGELIQUE",
+   "ILBOUDO ROXANE",
+   "TAPE YASSI KAROLE",
+   "OKJEKON GRACE ARIELLE"
+  ]
+ },
+ {
+  "compagnie": 4,
+  "sexe": "M",
+  "conseiller": "LECODE STEVE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "TAH ZOROBI CHRIST",
+   "YORO NATHAN",
+   "IBO JUNIOR",
+   "N’GUESSAN YAO",
+   "ZIE GNEBO"
+  ]
+ },
+ {
+  "compagnie": 5,
+  "sexe": "F",
+  "conseiller": "LOHOVES LAURE THANIA",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "GRAHOU MONIA",
+   "TRA LOU VICTOIRE",
+   "ABOUO BERENICE",
+   "GBATO AUDE"
+  ]
+ },
+ {
+  "compagnie": 5,
+  "sexe": "M",
+  "conseiller": "KOUADIO",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "N’GUESSAN CHIST CYRILLE",
+   "ZAMBLE BI BOTTI ROMARIC",
+   "BINGO JOEL",
+   "TIHE ISAAC",
+   "SAKO LAMINE SAKURA",
+   "SONNY OWEN"
+  ]
+ },
+ {
+  "compagnie": 6,
+  "sexe": "F",
+  "conseiller": "JEMIMA",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "MAHON TAHOU GRACE",
+   "BLEUSATY ASHELEY",
+   "ACHI PRISCILE GUE",
+   "GUE LIEH SEPHORA",
+   "DOSSO NOURA JULIANA",
+   "DJE LOU YOHANA"
+  ]
+ },
+ {
+  "compagnie": 6,
+  "sexe": "M",
+  "conseiller": "IRIE BI TRAZIE MICKAEL",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "KOUAMENAN ABRAHAM",
+   "GNAHEVI TRESOR SEA",
+   "N’GUESSAN KONAN CHISLAIN"
+  ]
+ },
+ {
+  "compagnie": 7,
+  "sexe": "F",
+  "conseiller": "BLESSON YASMINE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "YOUAN LOU PRISCILLE LYLLI",
+   "DOUA GROUSSI EVA BENIE",
+   "GBATO MONSIAH CLAUDE AURELIE"
+  ]
+ },
+ {
+  "compagnie": 7,
+  "sexe": "M",
+  "conseiller": "KOKO KOUADIO GUY ARTHUR",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "KIPRE OLSEN",
+   "AMANE YOAN",
+   "ZIE URIEL",
+   "CAMARA FABRICE",
+   "GUEU CHRIST",
+   "TEHE DAVID"
+  ]
+ },
+ {
+  "compagnie": 8,
+  "sexe": "F",
+  "conseiller": "AMANE AUDE",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "DAHAKPOIN FAELLE",
+   "GLABA BERENICE",
+   "MIKAMOIVA FRIDA"
+  ]
+ },
+ {
+  "compagnie": 8,
+  "sexe": "M",
+  "conseiller": "COMLANVI YAO ROMEO",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "N’GUESSAN ASROH MELVYN",
+   "KOUAKOU KOFFI JARED",
+   "TOMIN PRINCE OREL",
+   "LOBA PAUL",
+   "KOFFI SAMUEL"
+  ]
+ },
+ {
+  "compagnie": 9,
+  "sexe": "F",
+  "conseiller": "TAHO LYDIA",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "IRIE ROSELYNE MADRILINES",
+   "DJAWA JOSELINE GRACE",
+   "N’DA MARIE NATACHA FLORE",
+   "YASMINE KARELLE TAPE",
+   "DIOMANDE GRACE COULIBALY"
+  ]
+ },
+ {
+  "compagnie": 9,
+  "sexe": "M",
+  "conseiller": "DIARRA ARMEL",
+  "coordonnateurs": [
+   "KOKO ARTHUR",
+   "COMLANVI SAGESSE"
+  ],
+  "jeunes": [
+   "IRIE BI JEAN EUDES",
+   "N’GUESSAN ELISHAMA ELIE",
+   "YAO KOFFI CHRIST LANBAIR",
+   "BAGNON ISAAC",
+   "KONE MICHEL"
+  ]
+ },
+ {
+  "compagnie": 10,
+  "sexe": "F",
+  "conseiller": "GBALO EMMANUELLA",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "DALE BOHI AMI FABIOLA",
+   "GNANGA LA FELICITE AMANI",
+   "BONNY BRITHNEY MAEVA LYSIANE",
+   "IRIE AFFOUE EMMA OCEANE"
+  ]
+ },
+ {
+  "compagnie": 10,
+  "sexe": "M",
+  "conseiller": "DION",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "AKA ANGE MICKAEL",
+   "KOUADIO",
+   "IBO SIMON PIERRE",
+   "TRA BI TIZIE",
+   "KOFFI KONAN ANGE"
+  ]
+ },
+ {
+  "compagnie": 11,
+  "sexe": "F",
+  "conseiller": "KOUDOU DORCAS",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "GBALO CLAVERIE",
+   "KONE MARIAME",
+   "BAHLOU MARIE DEBORAH",
+   "ASSAI SOPIE LESLIE AURELIA",
+   "GONDO KARINE SENY"
+  ]
+ },
+ {
+  "compagnie": 11,
+  "sexe": "M",
+  "conseiller": "KOUADIO ANGE K. SYLVAIN",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "LOGBO MARC EMMANUEL",
+   "AKA HILANE MELVYNN",
+   "KLA BOGBE GUY ESDRAS",
+   "COULIBALY DAVID"
+  ]
+ },
+ {
+  "compagnie": 12,
+  "sexe": "F",
+  "conseiller": "SEA LAURAINE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "TIEMOKO ANELINE",
+   "BENE LAURE KETHIANE",
+   "KONAN MODJOU JEMIMA",
+   "DOUOGUI TCHINOUAN LOISE"
+  ]
+ },
+ {
+  "compagnie": 13,
+  "sexe": "F",
+  "conseiller": "DIPLEI ANDRE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "BROU ADJOUA VICTOIRE",
+   "DEA DEHAHON LARISSA",
+   "GUEPIE ODJO CYNTHIA",
+   "BODIE KENDRA LESLIE",
+   "KOFFI VELLY AMA",
+   "GBEULY AKIFFIA VICTOIRE"
+  ]
+ },
+ {
+  "compagnie": 13,
+  "sexe": "M",
+  "conseiller": "KOUAME ROGER",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "TONGA AIME YVES MOISE",
+   "AKOCHI COLOMBE JEREMI ENRIQUE",
+   "MEL CHRISTIAN JOSUE MELAGNE",
+   "ZAMBLE BRITUS ASTRIDE",
+   "DJIDJI ANGE DANIEL ANZIAN"
+  ]
+ },
+ {
+  "compagnie": 14,
+  "sexe": "F",
+  "conseiller": "COMLANVI GRACE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "BIHI GUEASSE GERALDINE",
+   "ZONSEHI DEBORAH",
+   "IRIE LOU FERNANDEZ",
+   "ZIGBRE SAMUELLA GRACE"
+  ]
+ },
+ {
+  "compagnie": 14,
+  "sexe": "M",
+  "conseiller": "ATONI BERENGER",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "IRIE URIEL",
+   "KOUAKOU DAVID",
+   "LAGO ABRAHAM NOA",
+   "ATCHA OFOSSEY EMMANUEL",
+   "TABI DAVID LEVI"
+  ]
+ },
+ {
+  "compagnie": 15,
+  "sexe": "F",
+  "conseiller": "ADJA KEVINE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "GUEYE CALLE AMY",
+   "DOUE ANEOGNAN VICTOIRE",
+   "BAHESSEU NAOMI CAMBELLE",
+   "GUELASIEMON RUTH ESTHER",
+   "KZAHI DOH PRUNELLE",
+   "KAWANA MANAN AUDE",
+   "LIA EPIPHANIE LINDA"
+  ]
+ },
+ {
+  "compagnie": 15,
+  "sexe": "M",
+  "conseiller": "KOUAKOU ERIC",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "ZOH NEPHI BRAYAN MONDESIR",
+   "SIDIBE HONI DILANE",
+   "KOUASSI N’DOUMI",
+   "GOUE DEDY YANN",
+   "ADOU COUA IVANN",
+   "BAHI BOUAZO CHRIST",
+   "LOKPO AMON PAUL"
+  ]
+ },
+ {
+  "compagnie": 16,
+  "sexe": "F",
+  "conseiller": "TIBE ELVIRE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "TOH DOUALEY YASMINE",
+   "AMOUSSOU MARIE AIMEE",
+   "KLAI SEMAPON EMMANUELLA",
+   "GIBLI GIFTY"
+  ]
+ },
+ {
+  "compagnie": 16,
+  "sexe": "M",
+  "conseiller": "FATIGA KARIM DIT GERARD",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "TAPE BERTRAND JOEL",
+   "KRAGBA YOANN OTHNIEL",
+   "SAI TONGA SCOTT LIONEL",
+   "TRA BI TRA JUSTIN",
+   "AHUA ASSA MARIE VIANNEZ"
+  ]
+ },
+ {
+  "compagnie": 17,
+  "sexe": "F",
+  "conseiller": "DEA GRACE",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "KOFFI BENI KIMORA",
+   "TIBE LYNE",
+   "MOREL RACHELLE",
+   "AKA TRESSIA EMMANUELLE",
+   "NAOUNOU LESLIE",
+   "GNOUGNOU FLORENCE",
+   "DJAKALE VICTOIRE",
+   "TIE LOU SEPHORA"
+  ]
+ },
+ {
+  "compagnie": 17,
+  "sexe": "M",
+  "conseiller": "AHLEY DESMON",
+  "coordonnateurs": [
+   "FAHE GEDEON",
+   "KASSO INES DIVINE"
+  ],
+  "jeunes": [
+   "KIPRE ISMAEL",
+   "KOUA KOU PRINCE",
+   "TIOMIN TRESOR",
+   "SOUEMY EVARISTE"
+  ]
+ },
+ {
+  "compagnie": 18,
+  "sexe": "F",
+  "conseiller": "AKE AUDREY",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "GUEU RUTH SARAH",
+   "YAO AHOU ABISH",
+   "GOLE LOU ASHLEY"
+  ]
+ },
+ {
+  "compagnie": 18,
+  "sexe": "M",
+  "conseiller": "ATTA FOU KEVIN",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KOUASSI MARC HURAN",
+   "KOFFI KOUASSI CHRIST A",
+   "ASSOUKOU YANNE"
+  ]
+ },
+ {
+  "compagnie": 19,
+  "sexe": "F",
+  "conseiller": "BANHAN GRACE",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KOUASSI DANIELLE",
+   "GOGONE ANGE LAURA",
+   "ZONSEHI REBECA"
+  ]
+ },
+ {
+  "compagnie": 19,
+  "sexe": "M",
+  "conseiller": "MINTO CHRIS",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "MAMDOU RICHARD",
+   "BINGO ALMA",
+   "DOUAGUI YVANN",
+   "SAI ANGE"
+  ]
+ },
+ {
+  "compagnie": 20,
+  "sexe": "F",
+  "conseiller": "MELLY",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KIPRE GBATTE ABIGAELLE",
+   "KOFFI N’FESSOH IRIS MARIE",
+   "TRAORE POWA MARIE",
+   "TRAORE MARIE ESLIE IVANNA"
+  ]
+ },
+ {
+  "compagnie": 20,
+  "sexe": "M",
+  "conseiller": "ADOMBI ATTA FREDERIC",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "BENIE YANN STEPHANE",
+   "YONTEMAIN SAMUEL ALVINE",
+   "GOURO CHRIST EMMANUEL"
+  ]
+ },
+ {
+  "compagnie": 21,
+  "sexe": "F",
+  "conseiller": "DJIRO CHARLENE",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "BONI ETTIEN IMANE ESTHER",
+   "ABOUA ANICK SEPHORA",
+   "BENIE ALVINE KAMELLE",
+   "ZROH EUNICE",
+   "KONAN AYA RUTH PARFAITE"
+  ]
+ },
+ {
+  "compagnie": 21,
+  "sexe": "M",
+  "conseiller": "KIPRE KENEL",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "DOUE GEDEON",
+   "GBOGOU YLIANE",
+   "BOTI NATHAN CHRIS",
+   "GBOTO CEDRIC",
+   "SIBALLY JASON"
+  ]
+ },
+ {
+  "compagnie": 22,
+  "sexe": "F",
+  "conseiller": "KONE MARIAM",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KOUASSI ZOUKOUA PRINCILIA",
+   "KODJO AMANI JOCELINE VICTOIRE",
+   "GNOHOU ELORA PRINCESSE",
+   "OLETO BAHONON",
+   "TEHE MARIE NOELA",
+   "OULA GUEHO PRINCIA FABIOLA",
+   "KOUAME KOSSIA EMILIENNE"
+  ]
+ },
+ {
+  "compagnie": 22,
+  "sexe": "M",
+  "conseiller": "DADI AXEL",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "OULAI JOSUE",
+   "KOUASSI KOFFI CHRIST",
+   "GOME BI BROU HENRY",
+   "ABE YAPO SCHADRAC OREL",
+   "DEHI ISRAEL"
+  ]
+ },
+ {
+  "compagnie": 23,
+  "sexe": "F",
+  "conseiller": "TEA GRACE",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KOFFI MOAYE SONALI",
+   "AKA ANGE EMMANUELLE",
+   "LOULOU BLILA GRACE"
+  ]
+ },
+ {
+  "compagnie": 23,
+  "sexe": "M",
+  "conseiller": "DOUBI JOCELIN",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "PEREZ ALMA",
+   "GOGOUE JEAN YVAN",
+   "DOUBE LANGEVEN",
+   "YAO MAXWELL",
+   "LOGBO MARC ARTHUR",
+   "ANGAMAN EWRAN"
+  ]
+ },
+ {
+  "compagnie": 24,
+  "sexe": "F",
+  "conseiller": "DEA ANGE VICTOIRE",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "TAHIGBA ASHLEY",
+   "KELLY PRISCILLE",
+   "MAH FIDELE"
+  ]
+ },
+ {
+  "compagnie": 24,
+  "sexe": "M",
+  "conseiller": "IRIE BI",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "DANHO AKRE",
+   "GNANMIEN YAO CHRIST",
+   "AKRA JEAN MARIZOLA",
+   "ZILE ARTHUR JUNIOR"
+  ]
+ },
+ {
+  "compagnie": 25,
+  "sexe": "F",
+  "conseiller": "ANGMAN",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "TAPITA DORCAS",
+   "DAHAKPOIN MARIE AIMEE"
+  ]
+ },
+ {
+  "compagnie": 25,
+  "sexe": "M",
+  "conseiller": "SAKOUA EVAN",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "ACHY ALLAPAUD KYLIAN",
+   "KOUADIO DON CHRIST",
+   "SEY GOSSON VIANNEY",
+   "ZILE HENRI JUNIOR",
+   "DOUMAN AUREL"
+  ]
+ },
+ {
+  "compagnie": 26,
+  "sexe": "F",
+  "conseiller": "ADJEHI",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "KOFFI AMENAN MENORA KOFFI",
+   "GOURINA DEBORAH MIRACLE",
+   "DIHIN JOELLE ROXANE",
+   "ZRANGLOUSSEU REINE ESTLLE"
+  ]
+ },
+ {
+  "compagnie": 26,
+  "sexe": "M",
+  "conseiller": "BLEY JACQUES",
+  "coordonnateurs": [
+   "OULAI FABRICE",
+   "ASSI SYLVIA"
+  ],
+  "jeunes": [
+   "AKANNI YANN",
+   "VAMA EUTYCHE",
+   "KONAN YAO"
+  ]
+ },
+ {
+  "compagnie": 27,
+  "sexe": "F",
+  "conseiller": "BAMBA JOELLE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "HUI ANGELA",
+   "LOU SIABA OCEANE",
+   "GONDO BENIE",
+   "SEMON CHLOE MAYRA",
+   "BOLE HANS PRUNELLE",
+   "BLEGNON REBECA"
+  ]
+ },
+ {
+  "compagnie": 27,
+  "sexe": "M",
+  "conseiller": "TAH ZORO BI ANGE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "TRAYE BI ARIEL",
+   "LOKPO CHARLES CHRIST",
+   "GBAZA NADRE SERGE",
+   "PEUHOUA MIGOUEL"
+  ]
+ },
+ {
+  "compagnie": 28,
+  "sexe": "F",
+  "conseiller": "ANGAMAN ROCH ARIELLE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "FAHE DEBORAH",
+   "DJE LOU IRIE MARIANA",
+   "GUELA DONATIENNE",
+   "IRIE LOU VICTOIRE",
+   "LOBOUO MARIE JOSEE",
+   "MDOH MARIE MECHELLE",
+   "AMOUN GRACE"
+  ]
+ },
+ {
+  "compagnie": 28,
+  "sexe": "M",
+  "conseiller": "BGOGOUA GUY JUNIOR",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "ZANBI MOH DIEUDONNE",
+   "KOUADIO KOUDIO PRINCE",
+   "TIA GONDO SAMUELA",
+   "TIHE GUELASSE MOISE PENIEL"
+  ]
+ },
+ {
+  "compagnie": 29,
+  "sexe": "F",
+  "conseiller": "DION RUTH ESTHER",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "KOUASSI ANNE",
+   "SIE DOH ARIELLE",
+   "GUELASSE SANDRINE",
+   "BROU EMMANUELLA",
+   "YONTEMAIN CARMELLE",
+   "ASSI CHRISTELLE"
+  ]
+ },
+ {
+  "compagnie": 29,
+  "sexe": "M",
+  "conseiller": "TAH BI TAH BORIS",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "TAH ZOROBI PATERNE",
+   "DIOMANDE TIEMOKO HOPHELY",
+   "KOUAME YAO FRANCK",
+   "GRAH JUNIOR",
+   "ALLOKO N’ZOUBA",
+   "KOTA SAMUEL"
+  ]
+ },
+ {
+  "compagnie": 30,
+  "sexe": "F",
+  "conseiller": "BOUHOUSSOU MARIE FRANCE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "SERY KIPRE",
+   "KIMINIMO GRACE",
+   "SAI TONGA MARLYSE"
+  ]
+ },
+ {
+  "compagnie": 30,
+  "sexe": "M",
+  "conseiller": "DETO",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "MONSIA PAUL MELOR",
+   "GNOUKURY JEAN CHARLES",
+   "KOUASSI PIERRE",
+   "GNAMBA AMSSAN"
+  ]
+ },
+ {
+  "compagnie": 31,
+  "sexe": "F",
+  "conseiller": "GOUDA ANNIE ANNETTE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "BOHI KAENOIN ESTELLE",
+   "KRAGBA MONIQUE",
+   "GUIRAUD PRECIOUS GLORIA",
+   "TAHA SARAH",
+   "TUO LEILA",
+   "YAPIRI DJELOU LAETICIA"
+  ]
+ },
+ {
+  "compagnie": 31,
+  "sexe": "M",
+  "conseiller": "JEAN JOEL",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "DOSSEY HILAIRE",
+   "OULAI EMMANUEL",
+   "KOUGBO EMMANUEL",
+   "TAPE HERMAN",
+   "TAHIDI OETINEL",
+   "ASSOUAN TIASS"
+  ]
+ },
+ {
+  "compagnie": 32,
+  "sexe": "F",
+  "conseiller": "COMLANVI DELPHINE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "DEZO ELVIRA EUNICE",
+   "DOH MARIE ESTHER",
+   "TABI KETHIA",
+   "KONAN BLEDIA CECILIA"
+  ]
+ },
+ {
+  "compagnie": 32,
+  "sexe": "M",
+  "conseiller": "TA BI TRAZIE CYRILLE",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "KOUAKOU",
+   "GOBLE CHERUBIN",
+   "ASSI CHRIST ISRAEL EMMANUEL"
+  ]
+ },
+ {
+  "compagnie": 33,
+  "sexe": "F",
+  "conseiller": "ANGAMAN LYS",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "BROU AHNE ALEXANDRE",
+   "BAMBA ORELY GRACE",
+   "BAH MORELLE LA CHOUANA",
+   "LOUAANE NAOMI"
+  ]
+ },
+ {
+  "compagnie": 33,
+  "sexe": "M",
+  "conseiller": "NEMAIOUN BOSSEMIN",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "KOFFI KOUAME ENOCK",
+   "ZOUE CHRIST YVANN",
+   "BODIO LIHALI ARMEL",
+   "TONGA DESIRE ERIC",
+   "DOUA EZECKIEL EVARD"
+  ]
+ },
+ {
+  "compagnie": 34,
+  "sexe": "F",
+  "conseiller": "NOELLI",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "KRA SEPHORA",
+   "ZAOURI LOU YASMINE",
+   "LOGO OCEANE BEATRICE"
+  ]
+ },
+ {
+  "compagnie": 34,
+  "sexe": "M",
+  "conseiller": "LEHI ALEX JUNIOR",
+  "coordonnateurs": [
+   "TAN JEAN LOUIS",
+   "ZILE PATRICIA"
+  ],
+  "jeunes": [
+   "BEHINAN MESSI DESTY",
+   "IRIE BI ZAMBLE PRINCE",
+   "KOUAKOU ELIE EPHRAIM",
+   "ODIOCHO EMMANUEL NATHAN",
+   "TIENGOGNAN DAVID"
+  ]
+ }
+]

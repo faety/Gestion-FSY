@@ -2032,6 +2032,185 @@ export async function restaurerOrganisation(instantaneId: string) {
   return { ok: true as const };
 }
 
+// ---------- Les fiches papier des conseillers ----------
+
+// L'état réel, tel que la page d'aperçu et l'application le lisent tous deux.
+export async function chargerPlanFichesPapier() {
+  const { construirePlanFiches } = await import("./fiches-papier");
+  const fichesJson = (await import("../../prisma/fiches-papier.json")).default;
+  const [jeunes, conseillers] = await Promise.all([
+    prisma.jeune.findMany({
+      select: {
+        id: true,
+        prenom: true,
+        nom: true,
+        sexe: true,
+        statutInscription: true,
+        ajouteSurPlace: true,
+      },
+    }),
+    prisma.user.findMany({
+      where: { valide: true, role: { in: ["CONSEILLER", "ADJOINT"] } },
+      select: { id: true, prenom: true, nom: true, sexe: true },
+    }),
+  ]);
+  const plan = construirePlanFiches(
+    fichesJson as { compagnie: number; sexe: "F" | "M"; conseiller: string | null; coordonnateurs: string[]; jeunes: string[] }[],
+    jeunes.map((j) => ({
+      id: j.id,
+      prenom: j.prenom,
+      nom: j.nom,
+      sexe: j.sexe,
+      annule: j.statutInscription === STATUT_ANNULE,
+      ajouteSurPlace: j.ajouteSurPlace,
+    })),
+    conseillers
+  );
+  return { plan, nbJeunesBase: jeunes.filter((j) => j.statutInscription !== STATUT_ANNULE).length };
+}
+
+/**
+ * Applique l'organisation des fiches papier : 34 compagnies, un groupe filles
+ * et un groupe garçons chacune, les conseillers des fiches, et chaque enfant
+ * rapproché placé dans son groupe — marqué présent, puisqu'un conseiller a
+ * écrit son nom sur place.
+ *
+ * Les enfants qu'aucune fiche ne réclame perdent leur affectation : ils
+ * passent « sans groupe », visibles dans l'onglet du même nom, et chaque
+ * conseiller peut les reprendre depuis son téléphone. Le plan est recalculé
+ * ici même, au moment du clic — jamais reçu du navigateur — et un instantané
+ * est pris d'abord : tout cela se défait d'un geste.
+ */
+export async function appliquerFichesPapier() {
+  const user = await exiger("COORDINATEUR");
+  const { plan } = await chargerPlanFichesPapier();
+  if (plan.stats.places === 0) {
+    return { ok: false as const, motif: "Aucun placement à appliquer." };
+  }
+
+  const [jeunesTous, groupesTous, compagniesToutes, adjointsTous] = await Promise.all([
+    prisma.jeune.findMany({ select: { id: true, groupeId: true } }),
+    prisma.groupe.findMany({
+      select: { id: true, nom: true, sexe: true, conseillerId: true, compagnieId: true, numeroDansCompagnie: true },
+    }),
+    prisma.compagnie.findMany({ select: { id: true, nom: true, numero: true } }),
+    prisma.user.findMany({ where: { role: "ADJOINT" }, select: { id: true, compagnieId: true } }),
+  ]);
+
+  const instantane = await prisma.instantaneOrganisation.create({
+    data: {
+      motif: `Avant application des fiches papier (${plan.stats.places} placés, ${plan.fiches.length} fiches)`,
+      creeParId: user.id,
+      donnees: JSON.stringify({
+        jeunes: jeunesTous.map((j) => ({ id: j.id, groupeId: j.groupeId })),
+        groupes: groupesTous.map(({ numeroDansCompagnie, ...g }) => (void numeroDansCompagnie, g)),
+        compagnies: compagniesToutes,
+        adjoints: adjointsTous,
+      }),
+    },
+  });
+
+  await prisma.$transaction(
+    async (tx) => {
+      // 1. Les 34 compagnies des fiches : retrouvées par leur numéro, sinon
+      //    par leur nom, sinon créées. Rien n'est supprimé.
+      const numeros = [...new Set(plan.fiches.map((f) => f.compagnie))].sort((a, b) => a - b);
+      const compagnieParNumero = new Map<number, string>();
+      for (const n of numeros) {
+        const nom = `Compagnie ${n}`;
+        const existante =
+          compagniesToutes.find((c) => c.numero === n) ??
+          compagniesToutes.find((c) => c.nom === nom);
+        if (existante) {
+          compagnieParNumero.set(n, existante.id);
+        } else {
+          const creee = await tx.compagnie.create({ data: { nom, numero: n } });
+          compagnieParNumero.set(n, creee.id);
+        }
+      }
+
+      // 2. Un groupe par fiche : la ligne (compagnie, 1|2) si elle existe,
+      //    sinon une ligne du bon nom, sinon une création.
+      const groupeParFiche = new Map<string, string>();
+      for (const f of plan.fiches) {
+        const numeroDans = f.sexe === "F" ? 1 : 2;
+        const compagnieId = compagnieParNumero.get(f.compagnie)!;
+        const nomVoulu = `Groupe ${f.compagnie}.${numeroDans}`;
+        const existant =
+          groupesTous.find(
+            (g) => g.compagnieId === compagnieId && g.numeroDansCompagnie === numeroDans
+          ) ?? groupesTous.find((g) => g.nom === nomVoulu);
+        let groupeId: string;
+        if (existant) {
+          groupeId = existant.id;
+          await tx.groupe.update({
+            where: { id: existant.id },
+            data: {
+              sexe: f.sexe,
+              numeroDansCompagnie: numeroDans,
+              compagnieId,
+              conseillerId: f.conseillerId,
+            },
+          });
+        } else {
+          const cree = await tx.groupe.create({
+            data: {
+              nom: nomVoulu,
+              sexe: f.sexe,
+              numeroDansCompagnie: numeroDans,
+              compagnieId,
+              conseillerId: f.conseillerId,
+            },
+          });
+          groupeId = cree.id;
+        }
+        groupeParFiche.set(`${f.compagnie}-${f.sexe}`, groupeId);
+      }
+
+      // 3. Tout le monde repart de zéro : les fiches sont LA référence.
+      //    Qui n'y figure pas devient « sans groupe » — et se reprend d'un
+      //    geste, par le conseiller lui-même ou par la direction.
+      await tx.jeune.updateMany({ data: { groupeId: null } });
+      for (const f of plan.fiches) {
+        const groupeId = groupeParFiche.get(`${f.compagnie}-${f.sexe}`)!;
+        const ids = f.placements.map((p) => p.jeuneId);
+        if (ids.length === 0) continue;
+        // Sur la fiche = vu sur place : présent, et plus barré. Une
+        // inscription annulée qui y figure est réactivée — l'enfant est là.
+        await tx.jeune.updateMany({
+          where: { id: { in: ids } },
+          data: {
+            groupeId,
+            presenceManuelle: true,
+            absenceConstatee: false,
+            statutInscription: "Approuvée",
+          },
+        });
+      }
+
+      // 4. Les groupes hors fiches deviennent des coquilles vides — jamais
+      //    supprimés, des activités peuvent les référencer.
+      const gardes = new Set(groupeParFiche.values());
+      await tx.groupe.updateMany({
+        where: { id: { notIn: [...gardes] } },
+        data: { conseillerId: null, compagnieId: null },
+      });
+    },
+    { timeout: 60_000 }
+  );
+
+  await journaliser(
+    user.id,
+    "FICHES_PAPIER_APPLIQUEES",
+    `${plan.stats.places} jeunes placés sur ${plan.stats.noms} noms · ${plan.fiches.length} fiches · ` +
+      `${plan.stats.introuvables} introuvables · ${plan.stats.ambigus} ambigus · instantané ${instantane.id}`
+  );
+  for (const p of ["/reorganisation", "/groupes", "/organigramme", "/jeunes", "/accueil"]) {
+    revalidatePath(p);
+  }
+  return { ok: true as const, stats: plan.stats, instantaneId: instantane.id };
+}
+
 // ---------- Réassignation dynamique ----------
 
 export async function deplacerJeune(jeuneId: string, nouveauGroupeId: string | null) {
