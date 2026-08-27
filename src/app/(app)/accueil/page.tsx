@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/Avatar";
 import { CLOUDINARY_ACTIF } from "@/lib/cloudinary";
 import { exigerUtilisateur } from "@/lib/auth";
+import { EFFECTIFS } from "@/lib/theme";
 import { activitePourMoi, annonceVisible, monRoleActivite, roleAuMoins } from "@/lib/roles";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 
@@ -45,11 +46,10 @@ export default async function Accueil() {
       include: inclureActivite,
     }),
     Promise.all([
-      // L'effectif de travail : les annulés ne comptent pas ici (la page
-      // publique, elle, annonce volontairement toutes les inscriptions).
+      // Le nombre d'inscriptions enregistrées, pour la note sous les pastilles.
+      // Les effectifs annoncés, eux, ne se comptent plus ici : voir EFFECTIFS.
       prisma.jeune.count({ where: { statutInscription: { not: "Annulé(e)" } } }),
       prisma.groupe.count(),
-      prisma.mouvement.count({ where: { type: "ARRIVEE" } }),
       prisma.user.count({ where: { role: "CONSEILLER", actif: true } }),
     ]),
     roleAuMoins(user.role, "COORDINATEUR")
@@ -68,7 +68,7 @@ export default async function Accueil() {
       })
     : null;
 
-  const [nbJeunes, nbGroupes, nbArrives, nbConseillers] = stats;
+  const [nbInscriptions, nbGroupes, nbConseillers] = stats;
   const annoncesVisibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
 
   // Avant (ou après) la conférence, il n'y a rien « aujourd'hui » : on affiche
@@ -257,10 +257,22 @@ export default async function Accueil() {
         </Link>
       )}
 
+      {/* Les deux premières pastilles portent l'effectif arrêté par la
+          direction, plus les comptages de l'application.
+
+          « Arrivés au site » a disparu : il comptait les pointages de cars, et
+          tous n'ont pas été faits — il affichait 256 quand 382 jeunes étaient
+          là. Un chiffre faux sur la première page est pire que pas de chiffre
+          du tout, et celui-là n'a plus d'usage maintenant que le compte est
+          fait à la main.
+
+          La pastille des jeunes reste un lien vers la liste, qui contient
+          toutes les inscriptions : la note en dessous dit pourquoi les deux
+          nombres diffèrent, plutôt que de laisser l'écart intriguer. */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Jeunes inscrits", valeur: nbJeunes, href: "/jeunes" },
-          { label: "Arrivés au site", valeur: nbArrives, href: "/cars" },
+          { label: "Jeunes présents", valeur: EFFECTIFS.jeunes, href: "/jeunes" },
+          { label: "Personnes au total", valeur: EFFECTIFS.total, href: "/rapports" },
           { label: "Groupes", valeur: nbGroupes, href: "/groupes" },
           { label: "Conseillers actifs", valeur: nbConseillers, href: "/organigramme" },
         ].map((s) => (
@@ -270,6 +282,11 @@ export default async function Accueil() {
           </Link>
         ))}
       </div>
+      <p className="text-xs text-slate-500 -mt-1">
+        Effectif arrêté par la direction : {EFFECTIFS.jeunes} jeunes sur les {EFFECTIFS.total}{" "}
+        personnes réunies. La liste des jeunes garde, elle, les{" "}
+        {nbInscriptions} inscriptions enregistrées avant la conférence.
+      </p>
 
       <section className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
