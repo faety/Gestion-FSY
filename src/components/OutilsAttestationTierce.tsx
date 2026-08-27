@@ -179,17 +179,20 @@ export function FormulaireAttestationTierce({
         )}
         <div>
           <label className={etiquette} htmlFor={`${pre}-periode`}>
-            Période <span className="text-slate-400">(facultatif)</span>
+            {personne ? "Quand est-il intervenu ?" : "Quand a-t-il travaillé ?"}{" "}
+            <span className="text-slate-400">(facultatif)</span>
           </label>
           <input
             id={`${pre}-periode`}
             value={v.periode}
             onChange={maj("periode")}
-            placeholder={PERIODE_CONFERENCE}
+            placeholder="Ex. : du 23 au 26 août 2026"
             className={champ}
           />
           <p className="text-[11px] text-slate-400 mt-1">
-            Vide = « {PERIODE_CONFERENCE} ».
+            À remplir seulement si ce n&apos;est pas toute la conférence — un traiteur qui
+            commence la veille, une équipe qui reste démonter. Les dates de la conférence («{" "}
+            {PERIODE_CONFERENCE} ») ne bougent pas.
           </p>
         </div>
       </div>

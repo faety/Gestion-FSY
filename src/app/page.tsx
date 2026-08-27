@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getUtilisateur } from "@/lib/auth";
-import { CONFERENCE, LIEU, THEME_FSY } from "@/lib/theme";
+import { CONFERENCE, EFFECTIFS, LIEU, THEME_FSY } from "@/lib/theme";
 import { Logo } from "@/components/Logo";
 import { SITE_AFFICHE } from "@/lib/site";
 import { A_ANNONCER, QUAND, TITRE } from "@/lib/report";
@@ -144,13 +144,14 @@ export default async function LandingPage() {
 
   // Chiffres agrégés uniquement : aucune donnée personnelle sur la page publique.
   //
-  // Le nombre annoncé est celui des inscriptions, toutes comptées : c'est le
-  // chiffre de la zone, celui que le couple dirigeant et les pieux donnent, et
-  // celui auquel les familles se reconnaissent. Retrancher les annulations
-  // aurait été une nuance d'organisation interne — juste, mais pas la réponse
-  // à « combien de jeunes ? ».
-  const [nbJeunes, nbCompagnies, nbGroupes, nbPieux, nbActivites] = await Promise.all([
-    prisma.jeune.count(),
+  // Le nombre de jeunes n'est plus celui des inscriptions mais celui des
+  // présents, arrêté à la main par le couple dirigeant (EFFECTIFS, theme.ts).
+  // Avant la conférence, « inscrits » était la seule réponse possible à
+  // « combien de jeunes ? » ; maintenant qu'elle a eu lieu, annoncer les
+  // inscrits reviendrait à gonfler un chiffre que 382 familles ont vécu
+  // autrement. Le reste — pieux, compagnies, groupes — continue de se compter
+  // en base : ce sont des structures, elles n'ont pas manqué à l'appel.
+  const [nbCompagnies, nbGroupes, nbPieux, nbActivites] = await Promise.all([
     prisma.compagnie.count(),
     prisma.groupe.count(),
     prisma.pieu.count(),
@@ -158,7 +159,8 @@ export default async function LandingPage() {
   ]);
 
   const chiffres = [
-    { valeur: fmtNombre.format(nbJeunes), label: "jeunes inscrits" },
+    { valeur: fmtNombre.format(EFFECTIFS.jeunes), label: "jeunes réunis" },
+    { valeur: fmtNombre.format(EFFECTIFS.total), label: "personnes au total" },
     { valeur: nbPieux, label: "pieux et districts" },
     { valeur: nbCompagnies, label: "compagnies" },
     { valeur: nbGroupes, label: "groupes" },
@@ -202,7 +204,7 @@ export default async function LandingPage() {
           </h1>
           <p className="mt-5 text-lg sm:text-xl text-blue-50">
             <strong>{CONFERENCE.duAuComplet.replace(/^du /, "Du ")}</strong> — six jours pour{" "}
-            {fmtNombre.format(nbJeunes)} jeunes de {nbPieux} pieux et districts.
+            {fmtNombre.format(EFFECTIFS.jeunes)} jeunes de {nbPieux} pieux et districts.
           </p>
           <p className="mt-1 text-lg text-blue-100">
             Au <strong>{LIEU.nom}</strong>, à {LIEU.ville}.

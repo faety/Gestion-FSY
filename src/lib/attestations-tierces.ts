@@ -29,7 +29,7 @@
 // l'encadrement : un document qui ne se vérifie pas ne vaut rien.
 
 import { CONFERENCE } from "./attestations";
-import { LIEU } from "./theme";
+import { EFFECTIFS, LIEU } from "./theme";
 
 export const GENRES = {
   FOURNISSEUR: {
@@ -186,33 +186,27 @@ export type FaitsTiers = {
   objet: string;
   /** Un fait constaté par ligne : « 4 200 repas servis ». */
   precisions: string[];
-  /** Période réellement couverte, en clair. Par défaut celle de la conférence. */
+  /**
+   * La période d'intervention du bénéficiaire, quand elle diffère de celle de
+   * la conférence — un traiteur qui commence la veille, une équipe qui reste
+   * démonter le lendemain. Vide le plus souvent.
+   *
+   * Ce champ ne touche jamais aux dates de la conférence, qui sont fixes. La
+   * première version les confondait : saisir « du 23 au 26 août » pour dire
+   * quand le traiteur avait travaillé déplaçait la conférence elle-même sur le
+   * document, sous les yeux de son fournisseur.
+   */
   periode: string;
   /** Effectif définitif figé sur le document (voir EFFECTIFS_FINAUX). */
   total?: number;
   jeunes?: number;
 };
 
-// ---------- L'effectif définitif ----------
-//
-// Les chiffres arrêtés par le couple dirigeant à la clôture : ce sont les
-// personnes réellement venues, pas les inscrits.
-//
-// Ils ne se comptent pas en base, et c'est voulu. L'application connaît les
-// inscriptions ; elle n'a jamais su combien de personnes de la sono, de la
-// sécurité, de l'hygiène ou du séminaire de l'institut ont mangé sur place —
-// c'est précisément ce qui manquait dans les listes d'émargement papier. Le
-// couple a fait le compte à la main, il fait foi.
-//
-// Ce chiffre est celui qui compte pour un traiteur : 503, c'est le nombre de
-// repas à servir. Écrire 645 « participants inscrits » sur son attestation lui
-// donnerait une référence qu'il ne pourrait pas défendre.
-export const EFFECTIFS_FINAUX = {
-  /** Toutes les personnes présentes : jeunes, encadrement, équipes, invités. */
-  total: 503,
-  /** Dont adolescents de 14 à 18 ans. */
-  jeunes: 382,
-};
+// L'effectif définitif vient de theme.ts, avec le reste de ce qui décrit la
+// conférence. C'est le chiffre qui compte pour un traiteur : 503, c'est le
+// nombre de repas qu'il a servis. Écrire 645 « participants inscrits » sur son
+// attestation lui donnerait une référence qu'il ne pourrait pas défendre.
+export const EFFECTIFS_FINAUX = EFFECTIFS;
 
 export const PERIODE_CONFERENCE = `du ${CONFERENCE.du} au ${CONFERENCE.au}`;
 
@@ -222,10 +216,10 @@ export function lireFaitsTiers(json: string): FaitsTiers {
     return {
       ...f,
       precisions: Array.isArray(f.precisions) ? f.precisions : [],
-      periode: f.periode || PERIODE_CONFERENCE,
+      periode: f.periode ?? "",
     };
   } catch {
-    return { beneficiaire: "", objet: "", precisions: [], periode: PERIODE_CONFERENCE };
+    return { beneficiaire: "", objet: "", precisions: [], periode: "" };
   }
 }
 
@@ -249,29 +243,62 @@ export const ampleurTiers = (f: FaitsTiers) => ({
   jeunes: f.jeunes ?? EFFECTIFS_FINAUX.jeunes,
 });
 
+/**
+ * L'objet, prêt à s'insérer au milieu d'une phrase.
+ *
+ * Le champ se remplit debout, un samedi soir, et il en sort ce qu'on tape
+ * naturellement : « La fourniture du service et les repas. » — majuscule de
+ * début de phrase et point final. Inséré tel quel, cela donnait « a assuré, La
+ * fourniture … de la Coordination Abidjan Ouest. dans le cadre de … ». On
+ * enlève donc le point, et la majuscule quand le premier mot est un simple
+ * article : « La fourniture » redevient « la fourniture », tandis qu'un nom
+ * propre — « Shelem », « Orange » — garde la sienne.
+ */
+const ARTICLES = ["le", "la", "les", "l'", "un", "une", "des", "du", "de", "d'"];
+
+export function objetEnChaine(objet: string): string {
+  const t = objet.trim().replace(/[.;,\s]+$/, "");
+  if (!t) return "";
+  const premier = t.split(/[\s']/)[0].toLowerCase();
+  const avecApostrophe = t.slice(0, 2).toLowerCase();
+  const estArticle =
+    ARTICLES.includes(premier) || ARTICLES.includes(avecApostrophe.replace(/[’']/, "'"));
+  return estArticle ? t[0].toLowerCase() + t.slice(1) : t;
+}
+
 /** Le premier paragraphe : qui, quoi, quand, pour quel événement. */
 export function corpsTiers(genre: string, f: FaitsTiers): string {
   const a = ampleurTiers(f);
+  const objet = objetEnChaine(f.objet);
+
+  // Les dates de la conférence sont fixes. Ce que le couple saisit dans
+  // « période » décrit l'intervention du bénéficiaire, jamais la conférence :
+  // un traiteur qui commence la veille ne la fait pas commencer la veille.
+  const quand =
+    f.periode.trim() && f.periode.trim() !== PERIODE_CONFERENCE ? ` ${f.periode.trim()}` : "";
+
   // « au Foyer des Jeunes de Jacqueville, en Côte d'Ivoire » — et non
   // CONFERENCE.lieu, qui écrirait « Jacqueville, Jacqueville, Côte d'Ivoire ».
   const cadre =
-    `la conférence pour la jeunesse ${CONFERENCE.nom}, tenue ${f.periode} ` +
+    `la conférence pour la jeunesse ${CONFERENCE.nom}, tenue ${PERIODE_CONFERENCE} ` +
     `au ${LIEU.nom}, en ${LIEU.pays}, qui a rassemblé ${a.total} personnes, ` +
     `dont ${a.jeunes} adolescents de 14 à 18 ans`;
 
   if (genre === "PERSONNE") {
     const enQualite = f.fonction ? `, en qualité de ${f.fonction.toLowerCase()},` : "";
     return (
-      `a apporté bénévolement son concours${enQualite} à ${cadre}.\n\n` +
-      `À ce titre : ${f.objet}. Ce service a été rendu à titre entièrement bénévole, ` +
+      `a apporté bénévolement son concours${enQualite}${quand} à ${cadre}.\n\n` +
+      `À ce titre : ${objet}. Ce service a été rendu à titre entièrement bénévole, ` +
       `sans contrepartie ni lien de subordination, et à l'entière satisfaction de la direction ` +
       `de la conférence, qui lui exprime ici sa reconnaissance.`
     );
   }
 
-  const par = f.representant ? `, représenté par ${f.representant},` : "";
+  // « représenté par X, a assuré du 23 au 26 août 2026 la fourniture … » : le
+  // représentant se rattache au nom qui précède, dans le bandeau du document.
+  const par = f.representant ? `représenté par ${f.representant}, ` : "";
   return (
-    `a assuré${par} ${f.objet} dans le cadre de ${cadre}.\n\n` +
+    `${par}a assuré${quand} ${objet} dans le cadre de ${cadre}.\n\n` +
     `La direction de la conférence atteste que cette prestation a été exécutée ` +
     `conformément à ce qui avait été convenu, dans les délais et à sa satisfaction. ` +
     `La présente attestation est délivrée pour servir et valoir ce que de droit.`

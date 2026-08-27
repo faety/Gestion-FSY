@@ -40,6 +40,26 @@ export const LIEU = {
   villePaysEn: "Jacqueville, Ivory Coast",
 };
 
+// ---------- L'effectif réellement venu ----------
+//
+// Les chiffres arrêtés à la main par le couple dirigeant, et non comptés en
+// base. L'application connaît les inscriptions ; elle n'a jamais su combien de
+// personnes de la sono, de la sécurité, de l'hygiène ou du séminaire de
+// l'institut étaient sur place — c'est exactement ce qui manquait dans les
+// listes d'émargement papier, et la raison pour laquelle le compte a été fait
+// à la main. Ces chiffres-là font foi.
+//
+// Ils servent à deux endroits, et à deux endroits seulement : la page publique
+// et les attestations des fournisseurs et bénévoles. Partout ailleurs
+// l'application continue de compter ses inscrits — une pastille « Jeunes
+// inscrits » qui mènerait à une liste d'un autre effectif serait un piège.
+export const EFFECTIFS = {
+  /** Toutes les personnes présentes : jeunes, encadrement, équipes, invités. */
+  total: 503,
+  /** Dont adolescents de 14 à 18 ans. */
+  jeunes: 382,
+};
+
 /** Date d'un jour de la conférence. Jour 0 = veille, jour 1 = premier jour. */
 export function dateDuJour(jour: number, heure = "00:00"): Date {
   const [h, m] = heure.split(":").map(Number);

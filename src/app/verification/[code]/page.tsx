@@ -4,6 +4,7 @@ import { ROLE_LABELS, type Role } from "@/lib/roles";
 import { CODE_SPECIMEN, CONFERENCE, SIGNATAIRES, lireFaits, mention } from "@/lib/attestations";
 import {
   GENRES,
+  PERIODE_CONFERENCE,
   ampleurTiers as ampleurTierce,
   lireFaitsTiers,
   nature as natureTierce,
@@ -170,7 +171,11 @@ export default async function VerificationPage({
       ...(f.representant ? ([["Représenté par", f.representant]] as [string, string][]) : []),
       ...(f.fonction ? ([["Fonction exercée", f.fonction]] as [string, string][]) : []),
       ["Objet", f.objet],
-      ["Conférence", `${CONFERENCE.nom}, ${f.periode}`],
+      ["Conférence", `${CONFERENCE.nom}, ${PERIODE_CONFERENCE}`],
+      // Seulement quand elle diffère : sinon la ligne répéterait celle du dessus.
+      ...(f.periode.trim() && f.periode.trim() !== PERIODE_CONFERENCE
+        ? ([["Période d'intervention", f.periode.trim()]] as [string, string][])
+        : []),
       // Le chiffre que vérifiera un donneur d'ordre : c'est l'ampleur de la
       // prestation, pas une décoration.
       [

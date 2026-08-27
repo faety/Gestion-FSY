@@ -64,11 +64,11 @@ import {
 } from "./attestations";
 import {
   EFFECTIFS_FINAUX,
-  PERIODE_CONFERENCE,
   genreValide,
   lignesPrecisions,
   lireFaitsTiers,
   natureValide,
+  objetEnChaine as objetEnChaineTiers,
   objetPropose as objetProposeTiers,
 } from "./attestations-tierces";
 
@@ -3008,8 +3008,9 @@ function preparerFaitsTiers(saisie: SaisieAttestationTierce) {
   // convient au genre : un fournisseur met à disposition, un bénévole prête
   // main-forte. « Autre prestation » n'en a pas : là, il faut écrire quelque
   // chose.
-  const objet =
-    coupe(saisie.objet, LIMITES.objet) || objetProposeTiers(saisie.genre, saisie.nature);
+  const objet = objetEnChaineTiers(
+    coupe(saisie.objet, LIMITES.objet) || objetProposeTiers(saisie.genre, saisie.nature)
+  );
   if (!objet) {
     return {
       ok: false as const,
@@ -3029,7 +3030,9 @@ function preparerFaitsTiers(saisie: SaisieAttestationTierce) {
       precisions: lignesPrecisions(saisie.precisions ?? "").map((l) =>
         l.slice(0, LIMITES.precision)
       ),
-      periode: coupe(saisie.periode, LIMITES.periode) || PERIODE_CONFERENCE,
+      // Vide le plus souvent : la prestation couvre la conférence entière, et
+      // le document n'a alors pas à répéter des dates qu'il donne déjà.
+      periode: coupe(saisie.periode, LIMITES.periode),
     },
   };
 }
