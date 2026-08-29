@@ -12,6 +12,7 @@
 // proposés, volontairement courts.
 
 import { ROLES, type Role } from "./roles";
+import { CLOTURE_RAPPORTS } from "./theme";
 
 export type TypeQuestion =
   | "ECHELLE" // une seule option parmi une échelle illustrée
@@ -398,6 +399,37 @@ export function niveau(points: number) {
 // pour les encadrants, on l'écrit partout de la même façon.
 export const libelleJour = (numero: number) => (numero === 0 ? "Veille" : `Jour ${numero}`);
 export const libelleJourCourt = (numero: number) => (numero === 0 ? "Veille" : `J${numero}`);
+
+// ---------- Clôture de la remise ----------
+//
+// À l'heure dite, les conseillers et les coordinateurs adjoints ne remettent
+// plus rien : ni nouveau rapport, ni correction, ni suppression. La raison
+// n'est pas administrative. Les attestations figent le nombre de rapports
+// remis au moment de la délivrance ; un rapport qui apparaîtrait ou
+// disparaîtrait après coup ferait mentir un document déjà signé, imprimé et
+// remis en main propre — et c'est ce document qu'un employeur vérifiera dans
+// cinq ans.
+//
+// La coordination principale et le couple dirigeant gardent la main : c'est à
+// eux qu'on s'adresse si quelque chose doit encore être corrigé, et il faut
+// bien que quelqu'un puisse le faire.
+
+export const ROLES_CLOTURES: readonly Role[] = ["CONSEILLER", "ADJOINT"];
+
+export function rapportsClos(role: string, maintenant: Date | number = Date.now()): boolean {
+  if (!ROLES_CLOTURES.includes(role as Role)) return false;
+  return Number(maintenant) >= CLOTURE_RAPPORTS.getTime();
+}
+
+/** « samedi 29 août 2026 à 10:00 », pour l'annoncer partout de la même façon. */
+export const LIBELLE_CLOTURE = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+}).format(CLOTURE_RAPPORTS);
 
 // ---------- Lecture des réponses ----------
 

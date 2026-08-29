@@ -70,6 +70,21 @@ export const DATE_DEBUT = dateDuJour(1);
 export const DATE_FIN = dateDuJour(NB_JOURS);
 export const DATE_VEILLE = dateDuJour(0);
 
+/**
+ * Fin de la remise des rapports : le dernier jour à 10 h.
+ *
+ * Passé cette heure, les conseillers et les coordinateurs adjoints ne peuvent
+ * plus rien envoyer ni modifier. Ce n'est pas une commodité d'affichage : les
+ * attestations figent le nombre de rapports remis, et un rapport ajouté après
+ * la remise ferait mentir un document déjà signé et distribué.
+ *
+ * Dérivée du programme, pas écrite en dur : si la conférence se déplaçait, la
+ * clôture suivrait. Les dates de l'application sont construites en heure
+ * locale du serveur, qui est à l'heure d'Abidjan (UTC, sans heure d'été) — ce
+ * 10 h est donc bien 10 h sur place.
+ */
+export const CLOTURE_RAPPORTS = dateDuJour(NB_JOURS, "10:00");
+
 const fr = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("fr-FR", options);
 const en = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", options);
 

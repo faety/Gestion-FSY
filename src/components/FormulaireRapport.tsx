@@ -219,6 +219,12 @@ export function FormulaireRapport({
     startTransition(async () => {
       try {
         const res = await soumettreRapport(data);
+        // La remise a été close entre le chargement de la page et l'envoi :
+        // on l'explique au lieu d'afficher une erreur technique.
+        if (!res.ok) {
+          setErreur(res.motif);
+          return;
+        }
         setResultat({ points: res.points, total: res.total, cree: res.cree });
       } catch (e) {
         setErreur(e instanceof Error ? e.message : "Erreur à l'enregistrement.");

@@ -3,11 +3,13 @@ import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
 import { ROLE_LABELS, roleAuMoins, type Role } from "@/lib/roles";
 import {
+  LIBELLE_CLOTURE,
   ambiance,
   libelleJour,
   libelleJourCourt,
   lireReponses,
   niveau,
+  rapportsClos,
   sectionsPour,
 } from "@/lib/rapports";
 import { CLOUDINARY_ACTIF, urlPhoto } from "@/lib/cloudinary";
@@ -75,6 +77,10 @@ export default async function RapportsPage({
       ? prisma.user.count({ where: { actif: true } })
       : 0,
   ]);
+
+  // Passé l'heure, les conseillers et les adjoints ne remettent plus rien : la
+  // coordination principale, si — c'est à elle qu'on s'adresse pour corriger.
+  const clos = rapportsClos(user.role);
 
   const mesPoints = mesRapports.reduce((n, r) => n + r.points, 0);
   const monNiveau = niveau(mesPoints);
@@ -160,6 +166,32 @@ export default async function RapportsPage({
         </div>
       )}
 
+      {/* La remise est close : le formulaire disparaît, ce qui a été remis
+          reste visible, et l'attestation prend le relais — c'est ce qu'on
+          vient chercher ici à partir de maintenant. */}
+      {clos ? (
+        <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+          <div>
+            <h2 className="font-bold">🔒 La remise des rapports est close</h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Depuis le {LIBELLE_CLOTURE}. Vos {mesRapports.length} rapport
+              {mesRapports.length > 1 ? "s" : ""} sont enregistrés et comptent pour votre
+              attestation ; ils restent consultables plus bas. Rien ne peut plus être ajouté,
+              corrigé ni supprimé — les attestations ont figé ces chiffres, et un document déjà
+              signé ne doit pas se mettre à dire autre chose.
+            </p>
+          </div>
+          <Link
+            href="/attestation"
+            className="inline-block bg-fsy hover:bg-fsy-dark text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition"
+          >
+            🎓 Voir mon attestation
+          </Link>
+          <p className="text-xs text-slate-500">
+            Une correction reste possible en passant par la coordination.
+          </p>
+        </section>
+      ) : (
       <FormulaireRapport
         jour={journee.numero}
         libelleJour={libelleJournee(journee.numero, journee.date)}
@@ -187,6 +219,7 @@ export default async function RapportsPage({
             : null
         }
       />
+      )}
 
       {/* Mon historique */}
       {mesRapports.length > 0 && (

@@ -25,7 +25,14 @@ import {
   type Role,
 } from "./roles";
 import { ETAPES_VALIDES, etapeCar } from "./etapes-car";
-import { AMBIANCES, calculerPoints, lireReponses, sectionsPour } from "./rapports";
+import {
+  AMBIANCES,
+  LIBELLE_CLOTURE,
+  calculerPoints,
+  lireReponses,
+  rapportsClos,
+  sectionsPour,
+} from "./rapports";
 import { publicIdValide, signerEnvoi, supprimerPhotos } from "./cloudinary";
 import { CHOSES_A_EFFACER, type ChoseAEffacer } from "./remise-a-zero";
 import { STATUT_ANNULE } from "./criteres";
@@ -2535,6 +2542,24 @@ export async function supprimerAnnonce(annonceId: string) {
 export async function soumettreRapport(formData: FormData) {
   const user = await exiger("CONSEILLER");
 
+  // La remise est close pour les conseillers et les adjoints : les
+  // attestations ont figé le nombre de rapports, et un rapport de plus ferait
+  // mentir un document déjà signé. Le contrôle est ici et pas seulement dans
+  // le formulaire — une page restée ouverte depuis la veille enverrait encore.
+  //
+  // Refus retourné, jamais jeté : en production, Next remplace le message
+  // d'une erreur lancée par un texte générique, et c'est précisément dans ce
+  // cas-là — une page ouverte depuis des heures — qu'il faut expliquer.
+  if (rapportsClos(user.role)) {
+    return {
+      ok: false as const,
+      motif:
+        `La remise des rapports est close depuis le ${LIBELLE_CLOTURE}. ` +
+        `Les attestations sont établies à partir des rapports reçus avant cette heure. ` +
+        `Adressez-vous à la coordination si quelque chose doit être corrigé.`,
+    };
+  }
+
   const jour = Number(formData.get("jour"));
   const journee = await prisma.journeeConference.findUnique({ where: { numero: jour } });
   if (!journee) throw new Error("Journée de conférence inconnue.");
@@ -2681,6 +2706,7 @@ export async function soumettreRapport(formData: FormData) {
   // Renvoyé au formulaire pour la fenêtre de félicitations : calculé ici, car
   // la revalidation rend les props du composant obsolètes au même instant.
   return {
+    ok: true as const,
     points: total,
     jour,
     cree: precedent === null,
@@ -2690,6 +2716,15 @@ export async function soumettreRapport(formData: FormData) {
 
 export async function supprimerRapport(rapportId: string) {
   const user = await exiger("CONSEILLER");
+  // Symétrique de la remise : après la clôture, un rapport ne disparaît pas
+  // plus qu'il n'apparaît. Retirer le sien ferait tomber le compte imprimé sur
+  // une attestation déjà remise.
+  if (rapportsClos(user.role)) {
+    throw new Error(
+      `La remise des rapports est close depuis le ${LIBELLE_CLOTURE} : ` +
+        `ils ne peuvent plus être supprimés. Adressez-vous à la coordination.`
+    );
+  }
   const rapport = await prisma.rapportQuotidien.findUniqueOrThrow({
     where: { id: rapportId },
     include: { photos: { select: { publicId: true } } },

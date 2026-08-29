@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { CLOUDINARY_ACTIF } from "@/lib/cloudinary";
 import { exigerUtilisateur } from "@/lib/auth";
 import { EFFECTIFS } from "@/lib/theme";
+import { rapportsClos } from "@/lib/rapports";
 import { activitePourMoi, annonceVisible, monRoleActivite, roleAuMoins } from "@/lib/roles";
 import { Horaire, BadgesActivite, BadgeRole } from "@/components/StatutActivite";
 
@@ -69,6 +70,8 @@ export default async function Accueil() {
     : null;
 
   const [nbInscriptions, nbGroupes, nbConseillers] = stats;
+  // Conseillers et adjoints ne remettent plus rien après l'heure de clôture.
+  const rapportsFermes = rapportsClos(user.role);
   const annoncesVisibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
 
   // Avant (ou après) la conférence, il n'y a rien « aujourd'hui » : on affiche
@@ -220,8 +223,29 @@ export default async function Accueil() {
         </div>
       )}
 
+      {/* La remise close, c'est l'attestation qu'on vient chercher : le grand
+          bouton change de destination plutôt que de disparaître, sinon chacun
+          irait la chercher dans le menu — et beaucoup ne la trouveraient
+          jamais. */}
+      {rapportsFermes && (
+        <Link
+          href="/attestation"
+          className="block rounded-xl p-4 bg-fsy text-white hover:bg-fsy-dark shadow transition"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-bold">🎓 Votre attestation</div>
+              <p className="text-sm text-blue-100">
+                La remise des rapports est close. Votre attestation vous attend, signée.
+              </p>
+            </div>
+            <span className="text-2xl shrink-0">→</span>
+          </div>
+        </Link>
+      )}
+
       {/* Rapport du jour : un seul appui pour y aller */}
-      {journeeDuJour && (
+      {journeeDuJour && !rapportsFermes && (
         <Link
           href="/rapports"
           className={`block rounded-xl p-4 transition ${
