@@ -691,6 +691,43 @@ async function main() {
     console.log("   📣 Annonce attestation + photo de profil publiée (cible : tous).");
   }
 
+  // ---------- Remerciements de la clôture ----------
+  //
+  // Le message du couple dirigeant à tout l'encadrement, validé mot pour mot
+  // par Bérenger le 29 août. Même mécanisme de jalon que les annonces
+  // précédentes : publié une seule fois, supprimable sans qu'il revienne.
+  const jalonMerci = "annonce-remerciements-cloture-2026";
+  if (
+    dirigeant &&
+    !(await prisma.auditLog.findFirst({
+      where: { action: "ANNONCE_SEMEE", details: jalonMerci },
+    }))
+  ) {
+    await prisma.annonce.create({
+      data: {
+        titre: "Merci — du fond du cœur",
+        contenu:
+          "Chers coordonnateurs principaux, coordonnateurs adjoints et conseillers,\n\n" +
+          "La conférence s'achève, les cars sont partis, et il nous reste l'essentiel à faire : vous dire merci.\n\n" +
+          "Vous avez été pour nous une aide providentielle. Nous savons ce que ces six jours vous ont coûté — les nuits courtes de Jacqueville, les appels comptés et recomptés, les journées commencées avant les jeunes et finies après eux. Et malgré la fatigue, c'est de l'amour que les jeunes ont reçu de vous, chaque jour, sans mesure.\n\n" +
+          "Pour beaucoup d'entre eux, vous êtes devenus une référence. Un jeune n'oublie pas celui qui a veillé sur lui, qui l'a écouté, qui a cru en lui une semaine entière. Ce que vous avez semé du 24 au 29 août les accompagnera bien plus longtemps que la conférence.\n\n" +
+          "C'est pourquoi nous vous encourageons, mon épouse et moi, à rester en contact avec vos jeunes. Prenez de leurs nouvelles. Encouragez-les à rester fidèles aux impressions qu'ils ont reçues et aux décisions qu'ils ont prises pendant le FSY — c'est dans les semaines qui viennent que ces résolutions ont besoin d'être soutenues.\n\n" +
+          "Nous vous aimons, et nous prions pour chacun de vous, nommément. Nous savons que le Seigneur vous bénira pour ce service, spirituellement comme temporellement, et nous prions pour que ces bénédictions soient abondantes sur vous et sur vos familles.\n\n" +
+          "Avec toute notre reconnaissance et notre affection,\n\n" +
+          "Armande et Bérenger Dahakpoin — Couple dirigeant la conférence",
+        cible: "TOUS",
+        // Publiée à l'instant du semis, comme l'annonce des attestations : une
+        // date programmée resterait invisible jusqu'à son heure.
+        datePublication: new Date(),
+        creeParId: dirigeant.id,
+      },
+    });
+    await prisma.auditLog.create({
+      data: { userId: dirigeant.id, action: "ANNONCE_SEMEE", details: jalonMerci },
+    });
+    console.log("   📣 Remerciements de la clôture publiés (cible : tous).");
+  }
+
   console.log("✅ Base initialisée.");
   console.log("Comptes (mot de passe : fsy2026) :");
   console.log("  Couple dirigeant         : berenger@fsy2026.ci · armande@fsy2026.ci");
