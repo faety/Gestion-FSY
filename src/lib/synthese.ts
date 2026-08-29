@@ -5,6 +5,7 @@
 // se contredire.
 
 import { ROLE_LABELS, type Role } from "./roles";
+import { NB_JOURS } from "./theme";
 import {
   AMBIANCES,
   POINTS_INTENDANCE,
@@ -145,12 +146,17 @@ export function construireSynthese(
       const duJour = rapports.filter((r) => r.jour === j.numero);
       const conseillers = duJour.filter((r) => r.auteur.role === "CONSEILLER");
       const adjoints = duJour.filter((r) => r.auteur.role === "ADJOINT");
+      // Le dernier jour n'a ni appel de midi ni appel du soir : son
+      // questionnaire est celui du départ, et c'est le compte du départ qui
+      // occupe la ligne.
+      const depart = j.numero === NB_JOURS;
       return {
         numero: j.numero,
         libelle: libelleJour(j.numero),
-        midi: sommeDe(conseillers, "appelMidi"),
+        depart,
+        midi: sommeDe(conseillers, depart ? "compteDepart" : "appelMidi"),
         soir: sommeDe(conseillers, "appelSoir"),
-        perimetresAdjoints: sommeDe(adjoints, "effectifSoir"),
+        perimetresAdjoints: sommeDe(adjoints, depart ? "effectifDepart" : "effectifSoir"),
       };
     })
     .filter((a) => a.midi.rapports + a.soir.rapports + a.perimetresAdjoints.rapports > 0);
@@ -199,6 +205,10 @@ export function construireSynthese(
           ["presenceEncadrants", "Encadrants"],
           ["appelsRecus", "Rapports d'appel des conseillers"],
           ["rapportsAdjoints", "Rapports d'appel des adjoints"],
+          // Le questionnaire du départ : un « Non » ici est l'alerte la plus
+          // grave de la conférence — un jeune non retrouvé au moment des cars.
+          ["compteConfirme", "Compte du départ"],
+          ["comptesDepartRecus", "Comptes du départ des conseillers"],
         ] as const
       ).map(([cle, quoi]) => ({
         jour: r.jour,
@@ -219,6 +229,17 @@ export function construireSynthese(
     }))
     .filter((t) => t.texte.trim())
     .sort((a, b) => a.jour - b.jour);
+
+  // Les impressions générales du dernier jour — le questionnaire du départ les
+  // recueille pendant qu'elles sont fraîches, le rapport final les restitue.
+  const bilans = rapports
+    .map((r) => ({
+      jour: r.jour,
+      auteur: nomComplet(r.auteur),
+      role: ROLE_LABELS[r.auteur.role as Role],
+      texte: enTexte(lireReponses(r.reponses).bilanConference),
+    }))
+    .filter((t) => t.texte.trim());
 
   const decisions = rapports
     .flatMap((r) =>
@@ -285,6 +306,7 @@ export function construireSynthese(
     absences,
     verbatim,
     temoignages,
+    bilans,
     decisions,
     conseils,
     photos,
@@ -336,7 +358,7 @@ export function syntheseEnTexte(s: Synthese, titre: string): string {
           ? [`soir : ${a.soir.total} jeunes comptés par ${a.soir.rapports} conseiller(s)`]
           : []),
         ...(a.midi.rapports > 0
-          ? [`midi : ${a.midi.total} par ${a.midi.rapports} conseiller(s)`]
+          ? [`${a.depart ? "départ" : "midi"} : ${a.midi.total} par ${a.midi.rapports} conseiller(s)`]
           : []),
         ...(a.perimetresAdjoints.rapports > 0
           ? [
@@ -396,6 +418,11 @@ export function syntheseEnTexte(s: Synthese, titre: string): string {
   bloc(
     "Moments marquants rapportés",
     s.temoignages.map((t) => `- ${libelleJour(t.jour)} — ${t.auteur} : ${t.texte}`)
+  );
+
+  bloc(
+    "Impressions générales, recueillies au départ",
+    s.bilans.map((t) => `- ${t.auteur} (${t.role}) : ${t.texte}`)
   );
 
   bloc(

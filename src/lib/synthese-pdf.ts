@@ -132,7 +132,7 @@ export async function genererRapportFinalPdf(editeur: {
             ? [`soir : ${a.soir.total} jeunes comptés par ${a.soir.rapports} conseiller(s)`]
             : []),
           ...(a.midi.rapports > 0
-            ? [`midi : ${a.midi.total} par ${a.midi.rapports} conseiller(s)`]
+            ? [`${a.depart ? "départ" : "midi"} : ${a.midi.total} par ${a.midi.rapports} conseiller(s)`]
             : []),
           ...(a.perimetresAdjoints.rapports > 0
             ? [`périmètres des adjoints : ${a.perimetresAdjoints.total} sur ${a.perimetresAdjoints.rapports} rapport(s)`]
@@ -196,11 +196,15 @@ export async function genererRapportFinalPdf(editeur: {
   }
 
   // ---------- Signalements et arbitrages ----------
-  if (s.absences.length > 0 || s.decisions.length > 0 || s.temoignages.length > 0) {
+  if (s.absences.length > 0 || s.decisions.length > 0 || s.temoignages.length > 0 || s.bilans.length > 0) {
     section("Faits marquants, décisions et signalements");
     if (s.temoignages.length > 0) {
       sousTitre("Moments marquants");
       puces(s.temoignages.map((t) => `${libelleJour(t.jour)} — ${t.auteur} : ${t.texte}`));
+    }
+    if (s.bilans.length > 0) {
+      sousTitre("Impressions générales, recueillies au départ");
+      puces(s.bilans.map((t) => `${t.auteur} (${t.role}) : ${t.texte}`));
     }
     if (s.decisions.length > 0) {
       sousTitre("Décisions et arbitrages");

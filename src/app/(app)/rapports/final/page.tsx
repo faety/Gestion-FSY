@@ -161,7 +161,7 @@ export default async function RapportFinalPage() {
                 )}
                 {a.midi.rapports > 0 && (
                   <span>
-                    Midi : <strong>{a.midi.total}</strong>
+                    {a.depart ? "Départ" : "Midi"} : <strong>{a.midi.total}</strong>
                     <span className="text-slate-400"> · {a.midi.rapports} conseiller(s)</span>
                   </span>
                 )}
@@ -293,6 +293,25 @@ export default async function RapportFinalPage() {
                 {t.texte}
                 <span className="block text-xs text-slate-400">
                   {libelleJour(t.jour)} · {t.auteur}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {s.bilans.length > 0 && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold mb-2">🌅 Impressions générales de la conférence</h2>
+          <p className="text-sm text-slate-500 mb-2">
+            Recueillies le jour du départ, dans le rapport du dernier matin.
+          </p>
+          <ul className="space-y-2 text-sm">
+            {s.bilans.map((t, i) => (
+              <li key={i} className="border-l-4 border-amber-400 pl-3">
+                {t.texte}
+                <span className="block text-xs text-slate-400">
+                  {t.auteur} · {t.role}
                 </span>
               </li>
             ))}

@@ -195,7 +195,7 @@ export default async function RapportsPage({
       <FormulaireRapport
         jour={journee.numero}
         libelleJour={libelleJournee(journee.numero, journee.date)}
-        sections={sectionsPour(user.role)}
+        sections={sectionsPour(user.role, journee.numero)}
         cloudinaryActif={CLOUDINARY_ACTIF}
         existant={
           monRapport

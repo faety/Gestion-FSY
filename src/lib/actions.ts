@@ -2580,7 +2580,7 @@ export async function soumettreRapport(formData: FormData) {
   // Les questions oui/non rangent leur précision sous « <id>_precision » : elle
   // fait partie de la réponse et doit être conservée.
   const autorisees = new Set(
-    sectionsPour(user.role)
+    sectionsPour(user.role, jour)
       .flatMap((s) => s.questions)
       .flatMap((q) => [q.id, `${q.id}_precision`])
   );

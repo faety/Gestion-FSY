@@ -155,7 +155,8 @@ export function FormulaireRapport({
       .flatMap((s) => s.questions)
       .find((q) => q.id === "intendance");
     const intendanceComplete =
-      !questionIntendance || (questionIntendance.options ?? []).every((o) => etats[o]);
+      Boolean(questionIntendance) &&
+      (questionIntendance?.options ?? []).every((o) => etats[o]);
     let n = 10; // rapport remis
     if (new Date().getHours() < 22) n += 5;
     if (aMarche.trim().length >= 15) n += 3;

@@ -12,7 +12,7 @@
 // proposés, volontairement courts.
 
 import { ROLES, type Role } from "./roles";
-import { CLOTURE_RAPPORTS } from "./theme";
+import { CLOTURE_RAPPORTS, NB_JOURS } from "./theme";
 
 export type TypeQuestion =
   | "ECHELLE" // une seule option parmi une échelle illustrée
@@ -314,9 +314,111 @@ export const SECTIONS: Section[] = [
   },
 ];
 
-// Sections et questions visibles pour un rôle donné
-export function sectionsPour(role: string): Section[] {
-  return SECTIONS.map((s) => ({
+// ---------- Le dernier jour : le rapport du départ ----------
+//
+// Le sixième jour, il ne se passe plus de journée : on plie, on compte, on
+// monte dans les cars. Poser les questions ordinaires — participation aux
+// activités, intendance, veillée — n'aurait aucun sens, et chaque question
+// inutile retarde un conseiller qui a dix jeunes à surveiller sur un parking.
+//
+// Ce matin-là, une seule chose compte vraiment : que chaque conseiller ait
+// compté ses jeunes et confirmé son nombre. C'est le dernier appel de la
+// conférence, celui après lequel les jeunes ne sont plus sous notre garde
+// mais dans les cars — un écart découvert ici se rattrape, un écart découvert
+// à l'arrivée ne se rattrape plus. Le reste tient en une impression générale,
+// pendant qu'elle est fraîche.
+
+export const SECTIONS_DEPART: Section[] = [
+  {
+    id: "ambiance",
+    titre: "Votre impression générale",
+    icone: "🌅",
+    description: "Non plus la journée, mais toute la conférence : quel bilan ?",
+    questions: [
+      {
+        id: "ambiance",
+        label: "Quelle impression générale gardez-vous de la conférence ?",
+        type: "ECHELLE",
+        roles: TOUS,
+      },
+    ],
+  },
+  {
+    id: "depart",
+    titre: "Le compte du départ",
+    icone: "🚌",
+    description:
+      "Le dernier appel : après lui, les jeunes sont dans les cars. Comptez avant la montée.",
+    questions: [
+      {
+        id: "compteDepart",
+        label: "Combien de jeunes comptez-vous ce matin ?",
+        type: "NOMBRE",
+        aide: "Un par un, avant la montée dans les cars — pas de compte de tête.",
+        roles: CONSEILLERS,
+      },
+      {
+        id: "compteConfirme",
+        label: "Ce compte correspond-il à votre liste ?",
+        type: "OUI_NON",
+        siNon: "Qui manque, où en êtes-vous, et qui est prévenu ?",
+        roles: CONSEILLERS,
+      },
+      {
+        id: "departEtapes",
+        label: "Avant de monter",
+        type: "CASES",
+        options: [
+          "Affaires récupérées au dortoir, rien d'oublié",
+          "Dortoir laissé propre",
+          "Chaque jeune monté dans le bon car",
+          "Aucun incident au départ",
+        ],
+        roles: CONSEILLERS,
+      },
+      {
+        id: "comptesDepartRecus",
+        label: "Chaque conseiller a compté ses jeunes et confirmé son nombre ?",
+        type: "OUI_NON",
+        aide: "C'est le rapport de ce matin : aucun car ne part sur un compte non confirmé.",
+        siNon: "Quels comptes manquent, et où en est-on ?",
+        roles: RESPONSABLES,
+      },
+      {
+        id: "effectifDepart",
+        label: "Total des jeunes comptés dans votre périmètre au départ",
+        type: "NOMBRE",
+        roles: ADJOINTS,
+      },
+    ],
+  },
+  {
+    id: "bilan",
+    titre: "Pour le rapport final",
+    icone: "📝",
+    questions: [
+      {
+        id: "bilanConference",
+        label: "Votre impression de la conférence, en quelques phrases",
+        type: "TEXTE",
+        aide: "Ce qui vous restera. Ces lignes nourrissent le rapport final et le rapport historique.",
+        roles: TOUS,
+      },
+      {
+        id: "conseilsFuturs",
+        label: "Conseils pour les prochains comités FSY",
+        type: "TEXTE",
+        roles: DIRECTION,
+      },
+    ],
+  },
+];
+
+// Sections et questions visibles pour un rôle donné. Le dernier jour a son
+// propre questionnaire : celui du départ.
+export function sectionsPour(role: string, jour?: number): Section[] {
+  const modele = jour === NB_JOURS ? SECTIONS_DEPART : SECTIONS;
+  return modele.map((s) => ({
     ...s,
     questions: s.questions.filter((q) => (q.roles as readonly string[]).includes(role)),
   })).filter((s) => s.questions.length > 0);
