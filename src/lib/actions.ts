@@ -41,6 +41,7 @@ import { rapprocherJeunes } from "./rapprochement-jeunes";
 import { renseignementUtile } from "./renseignements";
 import { JOURNEES, PROGRAMME, type ActiviteSeed } from "../../prisma/programme-fsy2026";
 import { dateDuJour } from "./theme";
+import { CLE_ACCES_RESTREINTS } from "./reglages";
 import {
   apparier,
   extraireFiches,
@@ -3171,6 +3172,27 @@ export async function revoquerAttestationTierce(id: string, motif: string) {
     revalidatePath(p);
   }
   return { ok: true as const };
+}
+
+// ---------- Accès d'après conférence ----------
+
+// Basculer les accès restreints : hors du couple dirigeant, chacun ne garde
+// que l'accueil, son profil, les annonces et — s'il en a une — son
+// attestation. Réversible d'un geste, journalisé dans les deux sens.
+export async function basculerAccesRestreints(actif: boolean) {
+  const user = await exiger("DIRIGEANT");
+  await prisma.reglage.upsert({
+    where: { cle: CLE_ACCES_RESTREINTS },
+    create: { cle: CLE_ACCES_RESTREINTS, valeur: actif ? "oui" : "non" },
+    update: { valeur: actif ? "oui" : "non" },
+  });
+  await journaliser(
+    user.id,
+    "ACCES_RESTREINTS",
+    actif ? "Accès d'après conférence activés" : "Accès complets rétablis"
+  );
+  revalidatePath("/", "layout");
+  return { ok: true as const, actif };
 }
 
 // ---------- Remise à zéro après les essais ----------

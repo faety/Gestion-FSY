@@ -62,7 +62,9 @@ export function BottomNav({
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 sm:hidden pb-[env(safe-area-inset-bottom)]">
         <div
           className="grid"
-          style={{ gridTemplateColumns: `repeat(${principaux.length + 1}, minmax(0, 1fr))` }}
+          style={{
+            gridTemplateColumns: `repeat(${principaux.length + (secondaires.length > 0 ? 1 : 0)}, minmax(0, 1fr))`,
+          }}
         >
           {principaux.map((l) => (
             <Link
@@ -79,6 +81,7 @@ export function BottomNav({
               {l.court ?? l.label}
             </Link>
           ))}
+          {secondaires.length > 0 && (
           <button
             onClick={() => setMenuOuvert(!menuOuvert)}
             className={`flex flex-col items-center gap-0.5 py-2.5 text-[10px] ${
@@ -88,6 +91,7 @@ export function BottomNav({
             <span className="text-xl leading-none">☰</span>
             Plus
           </button>
+          )}
         </div>
       </nav>
     </>

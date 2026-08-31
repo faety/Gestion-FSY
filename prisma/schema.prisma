@@ -574,6 +574,14 @@ model Responsabilite {
 }
 
 // Journal d'audit : qui a fait quoi, à quelle heure
+// Réglages de l'application, un par clé — le premier : les accès restreints
+// d'après conférence, que le couple bascule depuis l'Administration.
+model Reglage {
+  cle        String   @id
+  valeur     String
+  misAJourLe DateTime @updatedAt
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id])

@@ -24,6 +24,8 @@ import {
 import { DecisionInscription } from "@/components/DecisionInscription";
 import { Doublons, type CompteDouble, type PaireDouble } from "@/components/Doublons";
 import { RemiseAZero } from "@/components/RemiseAZero";
+import { ModeArchive } from "@/components/ModeArchive";
+import { accesRestreints } from "@/lib/reglages";
 import { RechercheEncadrant } from "@/components/RechercheEncadrant";
 import { COMITE_LOGISTIQUE } from "@/lib/guide";
 
@@ -123,9 +125,26 @@ export default async function AdminPage() {
     b: fiche(p.b),
   }));
 
+  const restreints = await accesRestreints();
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">⚙️ Administration</h1>
+
+      {/* La fin de la conférence : un interrupteur, réservé au couple. Placé
+          en tête — c'est le geste de la saison, pas un réglage de détail. */}
+      {estDirigeant && (
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-bold">🗄️ Fin de conférence — accès restreints</h2>
+          <p className="text-sm text-slate-500 mt-0.5 mb-3">
+            Les cars partis, l&apos;application devient une archive. Ce réglage ferme tout ce qui
+            ne sert plus — listes de jeunes, santé, cars, groupes — à tout le monde sauf vous
+            deux, sans toucher aux comptes ni aux données&nbsp;: tout se rouvre d&apos;un geste si
+            besoin. Chacun garde l&apos;accueil, les annonces, son profil, et son attestation.
+          </p>
+          <ModeArchive actif={restreints} />
+        </section>
+      )}
 
       {/* Inscriptions à valider : c'est ce qui bloque quelqu'un, donc en tête */}
       {enAttente.length > 0 && (

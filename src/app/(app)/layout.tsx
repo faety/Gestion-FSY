@@ -10,6 +10,8 @@ import { Avatar } from "@/components/Avatar";
 import { BoutonDeconnexion } from "@/components/BoutonDeconnexion";
 import { SITE_AFFICHE } from "@/lib/site";
 import { A_ANNONCER } from "@/lib/report";
+import { accesRestreints, cheminAutorise } from "@/lib/reglages";
+import { prisma } from "@/lib/db";
 import { BarreReport } from "@/components/BandeauReport";
 import { quitterApercu } from "@/lib/actions";
 
@@ -31,15 +33,39 @@ export default async function AppLayout({
 
   const estCoordinateur = roleAuMoins(user.role, "COORDINATEUR");
 
+  // ---------- Les accès d'après conférence ----------
+  //
+  // Une fois basculés depuis l'Administration, tout le monde sauf le couple
+  // dirigeant redevient un utilisateur ordinaire : l'accueil, son profil, les
+  // annonces, et son attestation s'il en a une. Le contrôle est ici, dans le
+  // gabarit commun — comme pour le mot de passe provisoire — pour qu'aucune
+  // page ne reste accessible en tapant son adresse. Les listes de jeunes, les
+  // alertes médicales et les téléphones ne servent plus à personne : moins de
+  // gens les voient, moins elles risquent.
+  //
+  // L'aperçu suit la restriction : le dirigeant qui regarde avec les yeux
+  // d'un conseiller voit exactement ce que voit ce conseiller.
+  const restreint = user.role !== "DIRIGEANT" && (await accesRestreints());
+  let aUneAttestation = false;
+  if (restreint) {
+    const attestation = await prisma.attestation.findUnique({
+      where: { userId: user.id },
+      select: { revoqueeLe: true },
+    });
+    aUneAttestation = Boolean(attestation && !attestation.revoqueeLe);
+    const chemin = (await headers()).get("x-chemin") ?? "";
+    if (chemin && !cheminAutorise(chemin, aUneAttestation)) redirect("/accueil");
+  }
+
   // Accès directs de la barre mobile (4 + Plus) et liens du menu "Plus"
-  const principaux = [
+  const principauxComplets = [
     { href: "/accueil", label: "Accueil", icone: "🏠" },
     { href: "/programme", label: "Programme", icone: "📅", court: "Prog." },
     { href: "/rapports", label: "Mon rapport", icone: "📝", court: "Rapport" },
     { href: "/cars", label: "Cars", icone: "🚌" },
     { href: "/jeunes", label: "Jeunes", icone: "👥" },
   ];
-  const secondaires = [
+  const secondairesComplets = [
     { href: "/groupes", label: "Groupes", icone: "🧑‍🤝‍🧑" },
     ...(roleAuMoins(user.role, "COORDINATEUR")
       ? [{ href: "/reorganisation", label: "Réorganisation", icone: "🧩" }]
@@ -72,6 +98,19 @@ export default async function AppLayout({
       : []),
     ...(estCoordinateur ? [{ href: "/admin", label: "Administration", icone: "⚙️" }] : []),
   ];
+  // En accès restreint, la navigation dit la même chose que le verrou : trois
+  // ou quatre entrées, rien qui mène à une porte fermée.
+  const principaux = restreint
+    ? [
+        { href: "/accueil", label: "Accueil", icone: "🏠" },
+        ...(aUneAttestation
+          ? [{ href: "/attestation", label: "Mon attestation", icone: "🎓", court: "Attest." }]
+          : []),
+        { href: "/annonces", label: "Annonces", icone: "📢" },
+        { href: "/profil", label: "Mon profil", icone: "🙋", court: "Profil" },
+      ]
+    : principauxComplets;
+  const secondaires = restreint ? [] : secondairesComplets;
   const tous = [...principaux, ...secondaires];
 
   return (
