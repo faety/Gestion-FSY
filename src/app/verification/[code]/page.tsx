@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { libelleRoleAccorde } from "@/lib/roles";
 import { CODE_SPECIMEN, CONFERENCE, SIGNATAIRES, lireFaits, mention } from "@/lib/attestations";
 import {
   GENRES,
@@ -42,7 +42,7 @@ export default async function VerificationPage({
   const [attestation, tierce] = await Promise.all([
     prisma.attestation.findUnique({
       where: { code: propre },
-      include: { user: { select: { role: true, photoPublicId: true } } },
+      include: { user: { select: { role: true, sexe: true, photoPublicId: true } } },
     }),
     prisma.attestationTierce.findUnique({ where: { code: propre } }),
   ]);
@@ -291,7 +291,10 @@ export default async function VerificationPage({
   const photo = publicIdPhoto ? urlPhoto(publicIdPhoto, 320) : null;
 
   const lignes: [string, string][] = [
-    ["Fonction exercée", ROLE_LABELS[attestation.role as Role] ?? attestation.role],
+    // Accordée au genre : la page nomme une personne, elle ne classe pas un rôle.
+    // Le rôle est celui figé sur l'attestation ; le sexe vient du compte, seul
+    // endroit où il est enregistré.
+    ["Fonction exercée", libelleRoleAccorde(attestation.role, attestation.user.sexe)],
     ...(faits.compagnie ? ([["Compagnie dirigée", faits.compagnie]] as [string, string][]) : []),
     ...(faits.groupes.length > 0
       ? ([["Groupe encadré", faits.groupes.join(", ")]] as [string, string][])

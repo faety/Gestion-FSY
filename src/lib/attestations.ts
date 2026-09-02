@@ -10,7 +10,7 @@
 // contrôler l'authenticité sur fsy.ci.
 
 import type { Role } from "./roles";
-import { CONFERENCE as CONFERENCE_DATES, LIEU } from "./theme";
+import { CONFERENCE as CONFERENCE_DATES, EFFECTIFS, LIEU } from "./theme";
 
 export const CONFERENCE = {
   nom: "FSY 2026 — Abidjan Ouest",
@@ -26,7 +26,8 @@ export const CONFERENCE = {
   jours: CONFERENCE_DATES.jours,
   // Valeurs de référence, utilisées tant que les chiffres n'ont pas été figés
   // sur une attestation. Les attestations délivrées portent les leurs.
-  participants: 650,
+  // Les participants font exception : voir `ampleur` plus bas.
+  participants: EFFECTIFS.jeunes,
   encadrants: 64,
   unites: 8,
 };
@@ -143,9 +144,18 @@ export type FaitsAttestation = {
   unites?: number;
 };
 
-/** Chiffres de la conférence : ceux figés sur l'attestation, sinon les valeurs de référence. */
+/**
+ * Chiffres de la conférence : ceux figés sur l'attestation, sinon les valeurs
+ * de référence.
+ *
+ * Le nombre de participants fait exception et ne vient jamais des faits figés :
+ * les attestations délivrées les premiers jours portent 647, le nombre
+ * d'**inscrits**, alors que 382 jeunes sont effectivement venus. Un employeur
+ * qui compare deux attestations de la même conférence doit y lire le même
+ * chiffre, et ce chiffre doit être celui de la réalité.
+ */
 export const ampleur = (f: FaitsAttestation) => ({
-  participants: f.participants ?? CONFERENCE.participants,
+  participants: EFFECTIFS.jeunes,
   encadrants: f.encadrants ?? CONFERENCE.encadrants,
   unites: f.unites ?? CONFERENCE.unites,
 });

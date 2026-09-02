@@ -9,6 +9,28 @@ export const ROLE_LABELS: Record<Role, string> = {
   CONSEILLER: "Conseiller / Conseillère",
 };
 
+// Le même libellé, accordé au genre de la personne. Les libellés neutres
+// ci-dessus conviennent aux listes et aux filtres, qui désignent une catégorie ;
+// mais une attestation et sa page de vérification nomment quelqu'un, et une
+// femme qui lit « Coordinateur adjoint » sur le document qui atteste de son
+// travail y voit, à juste titre, le travail d'un autre.
+const ROLE_LABELS_F: Partial<Record<Role, string>> = {
+  COORDINATEUR: "Coordinatrice principale",
+  ADJOINT: "Coordinatrice adjointe",
+  CONSEILLER: "Conseillère",
+};
+
+const ROLE_LABELS_M: Partial<Record<Role, string>> = {
+  CONSEILLER: "Conseiller",
+};
+
+/** Libellé du rôle accordé au genre. `sexe` vaut "M" ou "F". */
+export function libelleRoleAccorde(role: string, sexe: string): string {
+  const r = role as Role;
+  const accorde = sexe === "F" ? ROLE_LABELS_F[r] : ROLE_LABELS_M[r];
+  return accorde ?? ROLE_LABELS[r] ?? role;
+}
+
 const ROLE_LEVEL: Record<Role, number> = {
   DIRIGEANT: 4,
   COORDINATEUR: 3,

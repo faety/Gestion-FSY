@@ -54,10 +54,9 @@ const TEXTES = {
     code: "Code",
     fait: (lieu: string, date: string) => `Fait à ${lieu}, le ${date}.`,
     competences: "Compétences mises en œuvre",
-    jeunes: "jeunes encadrés",
     jours: "jours de responsabilité",
     rapports: "comptes rendus remis",
-    participants: "participants encadrés",
+    participants: "participants à la conférence",
   },
   en: {
     eglise: "The Church of Jesus Christ of Latter-day Saints",
@@ -67,10 +66,9 @@ const TEXTES = {
     code: "Code",
     fait: (lieu: string, date: string) => `Issued in ${lieu} on ${date}.`,
     competences: "Competencies demonstrated",
-    jeunes: "youth supervised",
     jours: "days on duty",
     rapports: "daily reports filed",
-    participants: "participants",
+    participants: "conference participants",
   },
 } as const;
 
@@ -105,9 +103,7 @@ export async function AttestationPrestige({
   // design change, jamais le contenu.
   const comp = competences(role)[langue];
   const chiffres: [string, string][] = [
-    ...(faits.jeunesEncadres > 0
-      ? ([[String(faits.jeunesEncadres), t.jeunes]] as [string, string][])
-      : ([[String(ampleur(faits).participants), t.participants]] as [string, string][])),
+    [String(ampleur(faits).participants), t.participants],
     [String(CONFERENCE.jours), t.jours],
     [`${faits.rapportsRemis}/${faits.rapportsPossibles}`, t.rapports],
   ];

@@ -243,25 +243,22 @@ export async function Attestation({
   const [intro, detail] = corpsAttestation(role, sexe, faits).split("\n\n");
   const [introEn, detailEn] = corpsAttestationEn(role, faits).split("\n\n");
 
+  // Les mêmes trois chiffres pour tout le monde : l'ampleur de la conférence,
+  // la durée de la responsabilité, la régularité du compte rendu. Un cartouche
+  // qui changeait de nature selon qu'un groupe était rattaché ou non rendait
+  // deux attestations de la même conférence impossibles à comparer. Le nombre
+  // de jeunes du groupe reste dans le corps du texte et sur la page de
+  // vérification, où il est à sa place.
+  const a = ampleur(faits);
   const chiffres: [string, string][] = [
-    ...(faits.jeunesEncadres > 0
-      ? ([[String(faits.jeunesEncadres), "jeunes encadrés"]] as [string, string][])
-      : []),
+    [String(a.participants), "participants à la conférence"],
     [String(CONFERENCE.jours), "jours de responsabilité"],
     [`${faits.rapportsRemis}/${faits.rapportsPossibles}`, "comptes rendus remis"],
-    ...(faits.jeunesEncadres > 0
-      ? []
-      : ([[String(ampleur(faits).participants), "participants encadrés"]] as [string, string][])),
   ];
   const chiffresEn: [string, string][] = [
-    ...(faits.jeunesEncadres > 0
-      ? ([[String(faits.jeunesEncadres), "youth supervised"]] as [string, string][])
-      : []),
+    [String(a.participants), "conference participants"],
     [String(CONFERENCE.jours), "days on duty"],
     [`${faits.rapportsRemis}/${faits.rapportsPossibles}`, "daily reports filed"],
-    ...(faits.jeunesEncadres > 0
-      ? []
-      : ([[String(ampleur(faits).participants), "participants"]] as [string, string][])),
   ];
 
   // Filigrane : le logo en très grand, presque effacé. Il occupe le vide au
