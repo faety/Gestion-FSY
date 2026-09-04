@@ -55,8 +55,9 @@ const VIDE: Valeurs = {
   chiffres: CHIFFRES_VIDES,
 };
 
-const champ =
-  "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fsy/40";
+const cadreChamp =
+  "border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-fsy/40";
+const champ = `w-full ${cadreChamp}`;
 const etiquette = "block text-xs font-medium text-slate-600 mb-1";
 
 export function FormulaireAttestationTierce({
@@ -248,7 +249,7 @@ export function FormulaireAttestationTierce({
                 value={c.valeur}
                 onChange={(e) => majChiffre(i, "valeur", e.target.value)}
                 placeholder={i === 0 ? "762" : i === 1 ? "652" : ""}
-                className={`${champ} w-28 shrink-0 text-center font-semibold`}
+                className={`${cadreChamp} w-24 shrink-0 text-center font-semibold`}
                 aria-label={`Chiffre ${i + 1}`}
               />
               <input
@@ -257,7 +258,7 @@ export function FormulaireAttestationTierce({
                 placeholder={
                   i === 0 ? "t-shirts imprimés" : i === 1 ? "manuels livrés" : "ce que compte ce nombre"
                 }
-                className={champ}
+                className={`${cadreChamp} flex-1 min-w-0`}
                 aria-label={`Libellé du chiffre ${i + 1}`}
               />
             </div>

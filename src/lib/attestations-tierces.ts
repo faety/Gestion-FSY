@@ -226,8 +226,11 @@ export const LIMITES_CHIFFRE = { valeur: 12, label: 34, combien: 3 };
  * Met en forme les cartouches saisis, et écarte les lignes incomplètes.
  *
  * Un nombre sans libellé ne dit rien, un libellé sans nombre non plus : les
- * deux sont exigés, silencieusement, plutôt que de faire échouer la
- * délivrance pour une ligne laissée à moitié remplie.
+ * deux sont exigés. Écarter en silence était la première version, et elle a
+ * coûté cher — un défaut de mise en page poussait le champ du libellé hors de
+ * l'écran, les trois lignes tombaient une à une sans un mot, et le document
+ * ressortait avec les chiffres génériques comme si rien n'avait été saisi.
+ * D'où `chiffresIncomplets`, qui le dit.
  */
 export function chiffresPropres(
   entrees: { valeur?: string; label?: string }[]
@@ -239,6 +242,23 @@ export function chiffresPropres(
     }))
     .filter((c) => c.valeur && c.label)
     .slice(0, LIMITES_CHIFFRE.combien);
+}
+
+/**
+ * Les lignes à moitié remplies, pour les signaler au lieu de les perdre.
+ *
+ * Renvoie les rangs (1, 2, 3) des lignes où l'un des deux champs manque.
+ */
+export function chiffresIncomplets(
+  entrees: { valeur?: string; label?: string }[]
+): number[] {
+  return entrees
+    .map((c, i) => {
+      const valeur = (c.valeur ?? "").trim();
+      const label = (c.label ?? "").trim();
+      return Boolean(valeur) !== Boolean(label) ? i + 1 : 0;
+    })
+    .filter((rang) => rang > 0);
 }
 
 // L'effectif définitif vient de theme.ts, avec le reste de ce qui décrit la

@@ -80,6 +80,7 @@ import {
 } from "./attestations";
 import {
   EFFECTIFS_FINAUX,
+  chiffresIncomplets,
   chiffresPropres,
   genreValide,
   lignesPrecisions,
@@ -3062,6 +3063,20 @@ function preparerFaitsTiers(saisie: SaisieAttestationTierce) {
     return {
       ok: false as const,
       motif: "Décrivez la prestation en une phrase — elle s'écrira après « a assuré ».",
+    };
+  }
+
+  // Un nombre sans son libellé — ou l'inverse — ne peut pas s'imprimer, et le
+  // laisser tomber sans rien dire donne un document aux chiffres génériques
+  // alors que le couple croit avoir saisi les siens.
+  const incomplets = chiffresIncomplets(saisie.chiffres ?? []);
+  if (incomplets.length > 0) {
+    return {
+      ok: false as const,
+      motif:
+        `Chiffre${incomplets.length > 1 ? "s" : ""} ${incomplets.join(" et ")} : ` +
+        `il faut le nombre ET ce qu'il compte (par exemple 762 et « t-shirts imprimés »). ` +
+        `Complétez la ligne, ou videz-la.`,
     };
   }
 
