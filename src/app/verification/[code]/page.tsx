@@ -176,12 +176,17 @@ export default async function VerificationPage({
       ...(f.periode.trim() && f.periode.trim() !== PERIODE_CONFERENCE
         ? ([["Période d'intervention", f.periode.trim()]] as [string, string][])
         : []),
-      // Le chiffre que vérifiera un donneur d'ordre : c'est l'ampleur de la
-      // prestation, pas une décoration.
-      [
-        "Effectif rassemblé",
-        `${ampleurTierce(f).total} personnes, dont ${ampleurTierce(f).jeunes} jeunes`,
-      ],
+      // Ce que vérifiera un donneur d'ordre : l'ampleur de la prestation, pas
+      // une décoration. Les chiffres saisis pour ce document priment sur ceux
+      // de la conférence — la page publique doit dire ce que dit le papier.
+      ...(f.chiffres && f.chiffres.length > 0
+        ? (f.chiffres.map((c) => [c.label, c.valeur]) as [string, string][])
+        : ([
+            [
+              "Effectif rassemblé",
+              `${ampleurTierce(f).total} personnes, dont ${ampleurTierce(f).jeunes} jeunes`,
+            ],
+          ] as [string, string][])),
       ["Délivrée le", fmtLong.format(tierce.delivreeLe)],
       ...(tierce.modifieeLe
         ? ([["Corrigée le", fmtLong.format(tierce.modifieeLe)]] as [string, string][])

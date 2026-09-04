@@ -15,6 +15,7 @@ import {
   nature as natureDe,
   objetPropose as objetProposePour,
 } from "@/lib/attestations-tierces";
+import { EFFECTIFS, NB_JOURS } from "@/lib/theme";
 
 // Le formulaire d'une attestation de fournisseur ou de bénévole.
 //
@@ -32,7 +33,15 @@ type Valeurs = {
   objet: string;
   precisions: string;
   periode: string;
+  /** Trois cartouches « valeur / libellé » ; vides = l'ampleur de la conférence. */
+  chiffres: { valeur: string; label: string }[];
 };
+
+const CHIFFRES_VIDES = [
+  { valeur: "", label: "" },
+  { valeur: "", label: "" },
+  { valeur: "", label: "" },
+];
 
 const VIDE: Valeurs = {
   genre: "FOURNISSEUR",
@@ -43,6 +52,7 @@ const VIDE: Valeurs = {
   objet: "",
   precisions: "",
   periode: "",
+  chiffres: CHIFFRES_VIDES,
 };
 
 const champ =
@@ -69,6 +79,12 @@ export function FormulaireAttestationTierce({
 
   const maj = (k: keyof Valeurs) => (e: { target: { value: string } }) =>
     setV((x) => ({ ...x, [k]: e.target.value }));
+
+  const majChiffre = (i: number, champ: "valeur" | "label", valeur: string) =>
+    setV((x) => ({
+      ...x,
+      chiffres: x.chiffres.map((c, j) => (j === i ? { ...c, [champ]: valeur } : c)),
+    }));
 
   const personne = v.genre === "PERSONNE";
   const n = natureDe(v.nature);
@@ -215,6 +231,44 @@ export function FormulaireAttestationTierce({
             {personne ? `À ce titre : ${objetPropose}` : `… a assuré ${objetPropose}`} ».
           </p>
         )}
+      </div>
+
+      {/* Les trois cartouches du bas. Par défaut le document porte l'ampleur
+          de la conférence — juste pour un traiteur, faux pour un imprimeur qui
+          a travaillé sur les effectifs prévisionnels. */}
+      <div>
+        <span className={etiquette}>
+          Chiffres mis en avant sur le document{" "}
+          <span className="text-slate-400">(facultatif)</span>
+        </span>
+        <div className="space-y-2">
+          {v.chiffres.map((c, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                value={c.valeur}
+                onChange={(e) => majChiffre(i, "valeur", e.target.value)}
+                placeholder={i === 0 ? "762" : i === 1 ? "652" : ""}
+                className={`${champ} w-28 shrink-0 text-center font-semibold`}
+                aria-label={`Chiffre ${i + 1}`}
+              />
+              <input
+                value={c.label}
+                onChange={(e) => majChiffre(i, "label", e.target.value)}
+                placeholder={
+                  i === 0 ? "t-shirts imprimés" : i === 1 ? "manuels livrés" : "ce que compte ce nombre"
+                }
+                className={champ}
+                aria-label={`Libellé du chiffre ${i + 1}`}
+              />
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-400 mt-1">
+          Laissés vides, le document porte l&apos;ampleur de la conférence ({EFFECTIFS.total}{" "}
+          personnes, {EFFECTIFS.jeunes} jeunes, {NB_JOURS} jours). Renseignez-les quand ce
+          n&apos;est pas la bonne mesure — un imprimeur a travaillé sur les quantités
+          commandées, pas sur le nombre de présents.
+        </p>
       </div>
 
       <div>

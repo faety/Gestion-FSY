@@ -153,6 +153,11 @@ export default async function AttestationsTiercesPage() {
                         objet: f.objet,
                         precisions: f.precisions.join("\n"),
                         periode: f.periode,
+                        // Complété à trois lignes : le formulaire en montre
+                        // toujours trois, remplies ou non.
+                        chiffres: [0, 1, 2].map(
+                          (i) => f.chiffres?.[i] ?? { valeur: "", label: "" }
+                        ),
                       }}
                     />
                   )}

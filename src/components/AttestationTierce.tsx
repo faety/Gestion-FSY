@@ -251,18 +251,23 @@ export async function AttestationTierce({
             </div>
           )}
 
-          {/* L'ampleur de l'événement : ce qui donne sa portée à la référence
-              quand un fournisseur la joindra à un appel d'offres. Ce sont les
-              effectifs réellement présents, arrêtés par le couple à la
-              clôture — pas les inscrits. Pour un traiteur, 503 est le nombre
-              de repas qu'il a servis : c'est ce chiffre-là qu'il défendra. */}
+          {/* Les chiffres qui donnent sa portée à la référence, quand le
+              fournisseur la joindra à un appel d'offres.
+:
+              Par défaut, l'ampleur de l'événement — pour un traiteur, 503 est
+              le nombre de repas qu'il a servis, et c'est ce chiffre-là qu'il
+              défendra. Mais l'imprimeur, lui, a travaillé sur les effectifs
+              prévisionnels : 762 t-shirts, 652 manuels. Lui laisser « 503 »
+              sous-estimerait son travail. D'où des cartouches remplaçables au
+              cas par cas (faits.chiffres), saisis par le couple. */}
           <div className="flex items-stretch gap-[6mm] mt-[3.5mm] max-w-[150mm]">
-            {(
-              [
-                [String(a.total), "personnes rassemblées"],
-                [String(a.jeunes), "jeunes de 14 à 18 ans"],
-                [String(CONFERENCE.jours), "jours de conférence"],
-              ] as [string, string][]
+            {(f.chiffres && f.chiffres.length > 0
+              ? f.chiffres.map((c) => [c.valeur, c.label] as [string, string])
+              : ([
+                  [String(a.total), "personnes rassemblées"],
+                  [String(a.jeunes), "jeunes de 14 à 18 ans"],
+                  [String(CONFERENCE.jours), "jours de conférence"],
+                ] as [string, string][])
             ).map(([valeur, label], i) => (
               <div
                 key={label}

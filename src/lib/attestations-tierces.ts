@@ -200,7 +200,46 @@ export type FaitsTiers = {
   /** Effectif définitif figé sur le document (voir EFFECTIFS_FINAUX). */
   total?: number;
   jeunes?: number;
+  /**
+   * Les trois cartouches chiffrés du bas, quand ceux de la conférence ne
+   * disent pas la bonne chose.
+   *
+   * Par défaut le document porte l'ampleur de l'événement — 503 personnes,
+   * 382 jeunes, 6 jours. C'est juste pour un traiteur, dont la prestation se
+   * mesure en bouches à nourrir. Ça ne l'est pas pour l'imprimeur : il a
+   * travaillé sur les effectifs prévisionnels, et a livré 762 t-shirts et
+   * 652 manuels. Lui remettre « 503 personnes » sous-estime son travail et
+   * lui donne une référence qu'il ne pourrait pas défendre — l'inverse exact
+   * de ce qu'une attestation doit faire.
+   *
+   * Une à trois entrées. Vide, on retombe sur l'ampleur de la conférence.
+   */
+  chiffres?: { valeur: string; label: string }[];
 };
+
+/** Un cartouche chiffré : un nombre, et ce qu'il compte. */
+export type ChiffreTiers = { valeur: string; label: string };
+
+export const LIMITES_CHIFFRE = { valeur: 12, label: 34, combien: 3 };
+
+/**
+ * Met en forme les cartouches saisis, et écarte les lignes incomplètes.
+ *
+ * Un nombre sans libellé ne dit rien, un libellé sans nombre non plus : les
+ * deux sont exigés, silencieusement, plutôt que de faire échouer la
+ * délivrance pour une ligne laissée à moitié remplie.
+ */
+export function chiffresPropres(
+  entrees: { valeur?: string; label?: string }[]
+): ChiffreTiers[] {
+  return entrees
+    .map((c) => ({
+      valeur: (c.valeur ?? "").replace(/\s+/g, " ").trim().slice(0, LIMITES_CHIFFRE.valeur),
+      label: (c.label ?? "").replace(/\s+/g, " ").trim().slice(0, LIMITES_CHIFFRE.label),
+    }))
+    .filter((c) => c.valeur && c.label)
+    .slice(0, LIMITES_CHIFFRE.combien);
+}
 
 // L'effectif définitif vient de theme.ts, avec le reste de ce qui décrit la
 // conférence. C'est le chiffre qui compte pour un traiteur : 503, c'est le
@@ -277,12 +316,21 @@ export function corpsTiers(genre: string, f: FaitsTiers): string {
   const quand =
     f.periode.trim() && f.periode.trim() !== PERIODE_CONFERENCE ? ` ${f.periode.trim()}` : "";
 
+  // L'effectif de la conférence situe la prestation — sauf quand ce n'est pas
+  // la bonne mesure. L'imprimeur a travaillé sur les quantités commandées :
+  // lire « 503 personnes » à côté de ses 762 t-shirts sèmerait le doute sur
+  // l'un ou l'autre chiffre. Dès que le couple a saisi les siens, la phrase
+  // s'arrête au lieu et à la date.
+  const chiffresPropresAuDocument = (f.chiffres?.length ?? 0) > 0;
+  const ampleur = chiffresPropresAuDocument
+    ? ""
+    : `, qui a rassemblé ${a.total} personnes, dont ${a.jeunes} adolescents de 14 à 18 ans`;
+
   // « au Foyer des Jeunes de Jacqueville, en Côte d'Ivoire » — et non
   // CONFERENCE.lieu, qui écrirait « Jacqueville, Jacqueville, Côte d'Ivoire ».
   const cadre =
     `la conférence pour la jeunesse ${CONFERENCE.nom}, tenue ${PERIODE_CONFERENCE} ` +
-    `au ${LIEU.nom}, en ${LIEU.pays}, qui a rassemblé ${a.total} personnes, ` +
-    `dont ${a.jeunes} adolescents de 14 à 18 ans`;
+    `au ${LIEU.nom}, en ${LIEU.pays}${ampleur}`;
 
   if (genre === "PERSONNE") {
     const enQualite = f.fonction ? `, en qualité de ${f.fonction.toLowerCase()},` : "";

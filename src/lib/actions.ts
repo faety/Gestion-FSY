@@ -80,6 +80,7 @@ import {
 } from "./attestations";
 import {
   EFFECTIFS_FINAUX,
+  chiffresPropres,
   genreValide,
   lignesPrecisions,
   lireFaitsTiers,
@@ -3022,6 +3023,8 @@ export type SaisieAttestationTierce = {
   precisions?: string;
   /** Période réellement couverte ; vide = celle de la conférence. */
   periode?: string;
+  /** Les trois cartouches du bas ; vides = l'ampleur de la conférence. */
+  chiffres?: { valeur?: string; label?: string }[];
 };
 
 const LIMITES = { beneficiaire: 120, court: 120, objet: 400, periode: 80, precision: 120 };
@@ -3077,6 +3080,9 @@ function preparerFaitsTiers(saisie: SaisieAttestationTierce) {
       // Vide le plus souvent : la prestation couvre la conférence entière, et
       // le document n'a alors pas à répéter des dates qu'il donne déjà.
       periode: coupe(saisie.periode, LIMITES.periode),
+      // Vides le plus souvent aussi : c'est alors l'ampleur de la conférence
+      // qui s'affiche. Renseignés, ils la remplacent — voir FaitsTiers.
+      chiffres: chiffresPropres(saisie.chiffres ?? []),
     },
   };
 }
