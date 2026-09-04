@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { exigerUtilisateur } from "@/lib/auth";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_LABELS, libelleRoleAccorde, type Role } from "@/lib/roles";
 import {
   MENTIONS,
   RAPPORTS_POSSIBLES,
@@ -16,6 +16,7 @@ import {
 import { signaturesDuCouple } from "@/lib/signatures";
 import { DelivrerAttestations, RevoquerAttestation } from "@/components/OutilsAttestation";
 import { PadSignature } from "@/components/PadSignature";
+import { CorrectionsRecentes, DemandesNom } from "@/components/DemandesNom";
 
 export const metadata = { title: "Attestations" };
 
@@ -24,6 +25,24 @@ export default async function AttestationsPage() {
   if (user.role !== "DIRIGEANT") redirect("/accueil");
 
   const signatures = await signaturesDuCouple();
+
+  const [demandesNom, corrigesRecemment] = await Promise.all([
+    prisma.demandeNom.findMany({
+      where: { statut: "EN_ATTENTE" },
+      orderBy: { creeLe: "asc" },
+      include: {
+        user: { select: { role: true, sexe: true, attestation: { select: { code: true } } } },
+      },
+    }),
+    // Les corrections acceptées récemment, avec de quoi réimprimer leur feuille.
+    prisma.demandeNom.findMany({
+      where: { statut: "ACCEPTEE" },
+      orderBy: { traiteeLe: "desc" },
+      take: 10,
+      include: { user: { select: { attestation: { select: { id: true } } } } },
+    }),
+  ]);
+  const fmtCourt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" });
   // Journal des vérifications publiques : le couple voit qui scanne quoi, et
   // repère un code inconnu répété — le signe d'un document trafiqué en
   // circulation.
@@ -67,6 +86,30 @@ export default async function AttestationsPage() {
 
   return (
     <div className="space-y-4">
+      {/* Les corrections de nom en attente, avant tout le reste : quelqu'un
+          attend son document pour un dossier. */}
+      <DemandesNom
+        demandes={demandesNom.map((d) => ({
+          id: d.id,
+          ancien: `${d.ancienPrenom} ${d.ancienNom}`,
+          nouveau: `${d.prenom} ${d.nom}`,
+          motif: d.motif,
+          role: libelleRoleAccorde(d.user.role, d.user.sexe),
+          code: d.user.attestation?.code ?? null,
+          creeLe: fmtCourt.format(d.creeLe),
+        }))}
+      />
+
+      <CorrectionsRecentes
+        corrections={corrigesRecemment.map((d) => ({
+          id: d.id,
+          nouveau: `${d.prenom} ${d.nom}`,
+          ancien: `${d.ancienPrenom} ${d.ancienNom}`,
+          attestationId: d.user.attestation?.id ?? null,
+          traiteeLe: d.traiteeLe ? fmtCourt.format(d.traiteeLe) : "—",
+        }))}
+      />
+
       <div>
         <h1 className="text-2xl font-bold">🎓 Attestations d'encadrement</h1>
         <p className="text-slate-500 text-sm">

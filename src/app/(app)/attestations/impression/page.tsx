@@ -244,11 +244,15 @@ export default async function ImpressionPage({
           <p className="text-slate-500 text-sm">
             {choisies ? (
               <>
-                {attestations.length} attestation{attestations.length > 1 ? "s" : ""} que vous
-                avez choisie{attestations.length > 1 ? "s" : ""} parmi les encadrants sans
-                rapport.{" "}
+                {/* On arrive ici de deux façons : par la sélection des
+                    encadrants sans rapport, ou par la réimpression d'une
+                    feuille après correction de nom. La phrase reste neutre —
+                    elle serait fausse dans l'autre cas. */}
+                {attestations.length} attestation{attestations.length > 1 ? "s" : ""}{" "}
+                sélectionnée{attestations.length > 1 ? "s" : ""}, {totalPages} page
+                {totalPages > 1 ? "s" : ""} A4.{" "}
                 <Link href="/attestations/impression?lot=sans" className="underline">
-                  Modifier la sélection
+                  Choisir parmi les encadrants sans rapport
                 </Link>
               </>
             ) : (

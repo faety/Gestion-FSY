@@ -72,6 +72,13 @@ export default async function Accueil() {
   const [nbInscriptions, nbGroupes, nbConseillers] = stats;
   // Conseillers et adjoints ne remettent plus rien après l'heure de clôture.
   const rapportsFermes = rapportsClos(user.role);
+
+  // Une correction de nom en attente bloque quelqu'un : elle se signale ici,
+  // sinon elle attendrait qu'on pense à ouvrir la page des attestations.
+  const correctionsNom =
+    user.role === "DIRIGEANT"
+      ? await prisma.demandeNom.count({ where: { statut: "EN_ATTENTE" } })
+      : 0;
   const annoncesVisibles = annonces.filter((a) => annonceVisible(a.cible, user.role));
 
   // Avant (ou après) la conférence, il n'y a rien « aujourd'hui » : on affiche
@@ -269,6 +276,16 @@ export default async function Accueil() {
             </div>
             <span className="text-2xl shrink-0">→</span>
           </div>
+        </Link>
+      )}
+
+      {correctionsNom > 0 && (
+        <Link
+          href="/attestations"
+          className="block bg-amber-50 border border-amber-300 rounded-xl p-4 text-amber-900 font-medium hover:bg-amber-100 transition"
+        >
+          ✋ {correctionsNom} correction{correctionsNom > 1 ? "s" : ""} de nom à valider sur
+          {correctionsNom > 1 ? " des attestations" : " une attestation"}
         </Link>
       )}
 

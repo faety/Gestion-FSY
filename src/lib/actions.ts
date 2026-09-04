@@ -43,6 +43,13 @@ import { JOURNEES, PROGRAMME, type ActiviteSeed } from "../../prisma/programme-f
 import { dateDuJour } from "./theme";
 import { CLE_ACCES_RESTREINTS } from "./reglages";
 import {
+  LIMITES_NOM,
+  etatDemandeNom,
+  nomComplet,
+  verifierDemandeNom,
+  type SaisieNom,
+} from "./noms";
+import {
   apparier,
   extraireFiches,
   lireClasseur,
@@ -68,6 +75,7 @@ import {
   SIGNATAIRES,
   calculerMention,
   codeDepuisOctets,
+  lireFaits,
   modeleValide,
 } from "./attestations";
 import {
@@ -3172,6 +3180,139 @@ export async function revoquerAttestationTierce(id: string, motif: string) {
     revalidatePath(p);
   }
   return { ok: true as const };
+}
+
+// ---------- Correction du nom sur une attestation ----------
+//
+// Voir noms.ts pour les règles et leur raison d'être. Ici, les deux gestes :
+// la personne demande, le couple dirigeant tranche.
+
+export async function demanderCorrectionNom(saisie: SaisieNom) {
+  const user = await exiger("CONSEILLER");
+
+  const mesDemandes = await prisma.demandeNom.findMany({
+    where: { userId: user.id },
+    select: { statut: true, motifRefus: true, creeLe: true },
+  });
+  const etat = etatDemandeNom(mesDemandes);
+  if (!etat.peutDemander) {
+    return {
+      ok: false as const,
+      motif:
+        etat.raison === "EN_ATTENTE"
+          ? "Votre demande est déjà partie : le couple dirigeant doit la regarder avant que vous puissiez en faire une autre."
+          : "Votre nom a déjà été corrigé une fois. Pour une nouvelle correction, adressez-vous directement au couple dirigeant.",
+    };
+  }
+
+  const verdict = verifierDemandeNom(saisie, user);
+  if (!verdict.ok) return { ok: false as const, motif: verdict.motif };
+
+  await prisma.demandeNom.create({
+    data: {
+      userId: user.id,
+      ancienPrenom: user.prenom,
+      ancienNom: user.nom,
+      prenom: verdict.prenom,
+      nom: verdict.nom,
+      motif: verdict.motif,
+    },
+  });
+  await journaliser(
+    user.id,
+    "NOM_CORRECTION_DEMANDEE",
+    `« ${nomComplet(user)} » → « ${verdict.prenom} ${verdict.nom} »`
+  );
+  for (const p of ["/attestation", "/attestations", "/accueil"]) revalidatePath(p);
+  return { ok: true as const };
+}
+
+// La décision du couple. Acceptée, la correction touche deux endroits : le
+// compte (ce que l'application affiche partout) et les faits figés de
+// l'attestation (ce que porte le document imprimé et sa page de vérification).
+// Corriger l'un sans l'autre laisserait le document et l'écran se contredire.
+export async function traiterCorrectionNom(
+  id: string,
+  decision: "ACCEPTEE" | "REFUSEE",
+  motifRefus?: string
+) {
+  const user = await exiger("DIRIGEANT");
+
+  const demande = await prisma.demandeNom.findUnique({
+    where: { id },
+    include: { user: { select: { id: true, prenom: true, nom: true, attestation: true } } },
+  });
+  if (!demande) return { ok: false as const, motif: "Cette demande n'existe plus." };
+  if (demande.statut !== "EN_ATTENTE") {
+    return { ok: false as const, motif: "Cette demande a déjà été traitée." };
+  }
+
+  if (decision === "REFUSEE") {
+    const raison = (motifRefus ?? "").trim().slice(0, LIMITES_NOM.motif);
+    if (raison.length < 3) {
+      return {
+        ok: false as const,
+        motif: "Dites en un mot pourquoi vous refusez : la personne le lira et pourra corriger.",
+      };
+    }
+    await prisma.demandeNom.update({
+      where: { id },
+      data: {
+        statut: "REFUSEE",
+        motifRefus: raison,
+        traiteeParId: user.id,
+        traiteeLe: new Date(),
+      },
+    });
+    await journaliser(
+      user.id,
+      "NOM_CORRECTION_REFUSEE",
+      `${nomComplet(demande.user)} — ${raison}`
+    );
+  } else {
+    const nouveau = nomComplet({ prenom: demande.prenom, nom: demande.nom });
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: demande.userId },
+        data: { prenom: demande.prenom, nom: demande.nom },
+      });
+      // Les faits de l'attestation sont un JSON figé : on n'en réécrit que le
+      // nom, tout le reste (rapports, groupes, effectifs) doit rester intact.
+      if (demande.user.attestation) {
+        const faits = lireFaits(demande.user.attestation.faits);
+        await tx.attestation.update({
+          where: { id: demande.user.attestation.id },
+          data: { faits: JSON.stringify({ ...faits, nomComplet: nouveau }) },
+        });
+      }
+      await tx.demandeNom.update({
+        where: { id },
+        data: { statut: "ACCEPTEE", traiteeParId: user.id, traiteeLe: new Date() },
+      });
+    });
+    await journaliser(
+      user.id,
+      "NOM_CORRECTION_ACCEPTEE",
+      `« ${nomComplet(demande.user)} » devient « ${nouveau} »` +
+        (demande.user.attestation ? ` — attestation ${demande.user.attestation.code}` : "")
+    );
+  }
+
+  for (const p of [
+    "/attestation",
+    "/attestations",
+    "/attestations/impression",
+    "/accueil",
+    "/admin",
+    "/organigramme",
+  ]) {
+    revalidatePath(p);
+  }
+  return {
+    ok: true as const,
+    // De quoi proposer la réimpression de la seule feuille concernée.
+    attestationId: demande.user.attestation?.id ?? null,
+  };
 }
 
 // ---------- Accès d'après conférence ----------

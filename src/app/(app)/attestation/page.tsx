@@ -15,6 +15,8 @@ import { AttestationSelonModele, apercuDuModele } from "@/components/Attestation
 import { ChoixModeleAttestation } from "@/components/ChoixModeleAttestation";
 import { Apercu, StyleImpression } from "@/components/FeuilleImprimable";
 import { CopierTexte, ImprimerAttestation } from "@/components/OutilsAttestation";
+import { CorrigerMonNom } from "@/components/CorrigerMonNom";
+import { etatDemandeNom } from "@/lib/noms";
 
 export const metadata = { title: "Mon attestation" };
 
@@ -25,10 +27,17 @@ export default async function MonAttestationPage() {
   // sont à l'italienne et s'impriment sur une page A4 paysage.
   const feuille = apercuDuModele(user.modeleAttestation);
 
-  const [attestation, mesRapports] = await Promise.all([
+  const [attestation, mesRapports, mesDemandesNom] = await Promise.all([
     prisma.attestation.findUnique({ where: { userId: user.id } }),
     prisma.rapportQuotidien.count({ where: { auteurId: user.id } }),
+    prisma.demandeNom.findMany({
+      where: { userId: user.id },
+      select: { statut: true, motifRefus: true, creeLe: true },
+    }),
   ]);
+  // Le couple dirigeant délivre les attestations sans en recevoir : il corrige
+  // les noms depuis l'administration, il n'a pas à s'en demander un à lui-même.
+  const etatNom = etatDemandeNom(mesDemandesNom);
 
   // Avant la délivrance : on montre où l'on en est, pour que la mention ne soit
   // pas une surprise le dernier jour — et le document lui-même, au nom de la
@@ -162,12 +171,18 @@ export default async function MonAttestationPage() {
 
       <section className="bg-white rounded-xl shadow-sm p-4 print:hidden">
         <h2 className="font-bold mb-1">Ce que l'attestation certifie</h2>
-        <DetailAttestation role={attestation.role} faits={faits} />
+        <DetailAttestation role={attestation.role} sexe={user.sexe} faits={faits} />
         <p className="text-xs text-slate-500 mt-3">
           Ces chiffres figurent sur la page de vérification, consultable par un employeur avec le
           code ci-dessus. Le document imprimé reste sobre.
         </p>
       </section>
+
+      {user.role !== "DIRIGEANT" && (
+        <div className="print:hidden">
+          <CorrigerMonNom etat={etatNom} prenom={user.prenom} nom={user.nom} />
+        </div>
+      )}
 
       <section className="bg-white rounded-xl shadow-sm p-4 print:hidden">
         <h2 className="font-bold">Pour votre CV</h2>

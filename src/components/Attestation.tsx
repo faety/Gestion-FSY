@@ -10,7 +10,7 @@ import {
   mention,
   type FaitsAttestation,
 } from "@/lib/attestations";
-import { ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_LABELS, libelleRoleAccorde, type Role } from "@/lib/roles";
 import { signaturesDuCouple } from "@/lib/signatures";
 import { SITE_AFFICHE, lienVerification } from "@/lib/site";
 
@@ -522,13 +522,16 @@ export async function Attestation({
 // document lui-même, qui doit rester lisible d'un coup d'œil.
 export function DetailAttestation({
   role,
+  sexe,
   faits,
 }: {
   role: string;
+  /** Pour accorder la fonction : « Conseillère » plutôt que « Conseiller / Conseillère ». */
+  sexe?: string;
   faits: FaitsAttestation;
 }) {
   const lignes: [string, string][] = [
-    ["Fonction exercée", ROLE_LABELS[role as Role] ?? role],
+    ["Fonction exercée", sexe ? libelleRoleAccorde(role, sexe) : (ROLE_LABELS[role as Role] ?? role)],
     ...(faits.groupes.length > 0
       ? ([["Groupe encadré", faits.groupes.join(", ")]] as [string, string][])
       : []),

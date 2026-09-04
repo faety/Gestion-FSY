@@ -70,6 +70,8 @@ model User {
   attestation        Attestation?
   attestationsDelivrees Attestation[] @relation("Delivreur")
   attestationsTiercesDelivrees AttestationTierce[] @relation("DelivreurTiers")
+  demandesNom        DemandeNom[] @relation("DemandeurNom")
+  demandesNomTraitees DemandeNom[] @relation("TraiteurNom")
   reinitialisations  ReinitialisationMotDePasse[]
   auditLogs          AuditLog[]
   tachesPreparation  TachePreparation[]
@@ -576,6 +578,45 @@ model Responsabilite {
 // Journal d'audit : qui a fait quoi, à quelle heure
 // Réglages de l'application, un par clé — le premier : les accès restreints
 // d'après conférence, que le couple bascule depuis l'Administration.
+// Demande de correction de son propre nom sur son attestation.
+//
+// Le nom porté par une attestation est figé à la délivrance, et c'est
+// volontaire : un document qui se réécrit ne vaut rien. Mais certains
+// encadrants se sont inscrits avec un nom incomplet — un prénom seul, un nom
+// de famille manquant — et repartent avec un document qui ne les nomme pas
+// tout à fait. Refuser la correction serait leur remettre une attestation
+// inutilisable auprès d'un employeur.
+//
+// D'où ce détour : la personne demande, le couple dirigeant regarde et
+// tranche. Rien ne change sans cette validation, et l'ancien nom reste
+// inscrit ici pour toujours — c'est la trace qui rend la correction honnête.
+model DemandeNom {
+  id     String @id @default(cuid())
+  user   User   @relation("DemandeurNom", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Le nom tel qu'il était au moment de la demande : la trace de ce qui a été
+  // corrigé, conservée même après acceptation.
+  ancienPrenom String
+  ancienNom    String
+  prenom       String
+  nom          String
+  // Ce que la personne explique — facultatif, mais c'est souvent lui qui
+  // permet au couple de trancher sans avoir à téléphoner.
+  motif String?
+
+  statut     String  @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTEE | REFUSEE
+  motifRefus String?
+
+  traiteePar   User?     @relation("TraiteurNom", fields: [traiteeParId], references: [id])
+  traiteeParId String?
+  traiteeLe    DateTime?
+
+  creeLe DateTime @default(now())
+
+  @@index([statut])
+}
+
 model Reglage {
   cle        String   @id
   valeur     String
