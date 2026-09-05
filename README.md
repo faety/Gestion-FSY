@@ -1362,6 +1362,16 @@ L'espace de travail commence à `/accueil`, derrière l'authentification.
 Le couple dirigeant peut accorder à un adjoint le droit `MODIFICATION_DIRECTE`
 (modification du programme sans validation) depuis la page Admin.
 
+## Kit réutilisable pour les prochaines applications
+
+Le dossier [`kit-webapp/`](kit-webapp/README.md) est un projet autonome qui reprend
+tout ce qui resservira ailleurs : base PostgreSQL/Prisma (Neon), comptes et
+connexion, photos Cloudinary, e-mails Resend, PDF et impression, ZIP en flux,
+administration, script de vérification Playwright, compétences Claude Code
+(`.claude/skills/`) et leçons apprises (`docs/lecons.md`). Il se copie tel quel
+pour démarrer un nouveau projet ; il n'est ni compilé ni déployé avec cette
+application (exclu de `tsconfig.json`).
+
 ## Structure du code
 
 ```

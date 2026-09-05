@@ -1,0 +1,14 @@
+node_modules
+.next/
+out/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+.DS_Store
+next-env.d.ts
+.vercel
+tsconfig.tsbuildinfo
+
+# Données personnelles, exports, fichiers reçus : jamais versionnés.
+data/

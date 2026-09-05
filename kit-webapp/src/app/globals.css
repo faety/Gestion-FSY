@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Couleurs de la charte. Les mêmes valeurs sont dans src/lib/app.ts pour les
+   e-mails et les PDF : les changer aux deux endroits. */
+@theme {
+  --color-marque: #1d4ed8;
+  --color-marque-sombre: #1e3a8a;
+  --color-marque-claire: #dbeafe;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+}
+
+/* Certains réduisent les animations sur leur téléphone : on respecte ce réglage. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Impression d'une page ordinaire (« Enregistrer en PDF ») : lisible, sans
+   navigation ni ombres. Les documents composés (FeuilleImprimable) ont leurs
+   propres règles. */
+@media print {
+  body {
+    background: #fff;
+  }
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  [class*="shadow"] {
+    box-shadow: none !important;
+  }
+  section,
+  li,
+  figure {
+    break-inside: avoid;
+  }
+}

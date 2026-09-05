@@ -1,0 +1,91 @@
+// Schéma socle. Chaque application ajoute ses propres modèles à la suite ;
+// ceux-ci (comptes, sessions, journal, réglages) servent partout tels quels.
+//
+// Migration : `prisma db push` à chaque déploiement (voir package.json). C'est
+// suffisant tant qu'une seule équipe modifie le schéma ; une colonne retirée
+// perd ses données, donc on renomme en deux temps (ajouter, recopier, retirer).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Rôles (du plus au moins élevé) : voir src/lib/roles.ts
+// ADMIN        = accès total, gestion des comptes et des réglages
+// GESTIONNAIRE = gère le contenu métier
+// MEMBRE       = utilisateur ordinaire
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  prenom       String
+  nom          String
+  // "M" | "F" — sert à accorder les libellés (« Gestionnaire », « Conseillère »…).
+  sexe         String   @default("M")
+  telephone    String?
+  role         String   @default("MEMBRE")
+  // Un compte inactif ne peut plus se connecter ; on ne supprime pas, on désactive.
+  actif        Boolean  @default(true)
+  // Mot de passe provisoire : la connexion aboutit, mais l'application impose
+  // d'en choisir un nouveau avant toute autre page.
+  doitChangerMotDePasse Boolean @default(false)
+  // Photo de profil : seul l'identifiant Cloudinary est conservé.
+  photoPublicId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs        AuditLog[]
+  reinitialisations ReinitialisationMotDePasse[]
+}
+
+// Tentatives de connexion, pour freiner les essais en série sans jamais
+// verrouiller un compte (verrouiller serait un moyen commode de bloquer quelqu'un).
+model TentativeConnexion {
+  id        String   @id @default(cuid())
+  email     String
+  reussie   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
+// Liens « mot de passe oublié ». On stocke l'empreinte SHA-256 du jeton, jamais
+// le jeton : une fuite de la base ne permet pas de fabriquer un lien valide.
+model ReinitialisationMotDePasse {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  empreinte String   @unique
+  expireLe  DateTime
+  // Horodatée à l'emploi plutôt qu'effacée : on garde la trace.
+  utiliseLe DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Journal : qui a fait quoi, quand. Sert aussi de mémoire à l'amorçage
+// (jalons « déjà semé ») — voir prisma/seed.ts.
+model AuditLog {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, details])
+}
+
+// Réglages basculés depuis l'administration, sans déploiement.
+model Reglage {
+  cle        String   @id
+  valeur     String
+  misAJourLe DateTime @updatedAt
+}
